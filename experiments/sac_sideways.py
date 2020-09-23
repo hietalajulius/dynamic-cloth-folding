@@ -122,7 +122,7 @@ if __name__ == "__main__":
             num_trains_per_train_loop=1000, 
             num_expl_steps_per_train_loop=1000, #Is this good?
             min_num_steps_before_training=1000,
-            max_path_length=100,
+            max_path_length=50,
             batch_size=256,
         ),
         trainer_kwargs=dict(
