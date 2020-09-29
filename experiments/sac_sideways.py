@@ -135,6 +135,6 @@ if __name__ == "__main__":
             use_automatic_entropy_tuning=True,
         ),
     )
-    setup_logger('sac-sideways', variant=variant)
+    setup_logger('sac-sideways-nograsp', variant=variant)
     # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)
