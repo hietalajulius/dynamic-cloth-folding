@@ -163,7 +163,7 @@ if __name__ == "__main__":
         ),
     )
     args = argsparser()
-    path = "ddpg-her-sideways-"+str(args.title) + str(args.run)
+    path = "ddpg-her-sideways-benchmark"+str(args.title) + str(args.run)
     setup_logger(path, variant=variant, log_dir='logs/'+ path)
     demo_paths = make_demo_rollouts(variant['env_name'], variant['num_demos'], variant['env_type'])
     policy = experiment(variant, demo_paths=demo_paths)
