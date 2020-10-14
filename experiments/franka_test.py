@@ -25,18 +25,18 @@ if __name__ == "__main__":
             env.render()
     else:
 
-        
+        '''
         for prestep in range(50):
             action = np.array([0.0, 0.0, 0.0, 1.0])
             stuff = env.step(action)
             env.render()
 
-        '''
+
         for midsteps in range(1000):
             action = np.array([0, 0, 0.0002, 1.0])
             stuff = env.step(action)
             env.render()
-        
+        '''
         for s in range(10000):
             action = np.array([0.0, 0.0, 0.0, 1.0])
             if s < 60:
@@ -50,6 +50,8 @@ if __name__ == "__main__":
             elif s < 150:
                 action[2] = 0.0002
                 action[3] = -1.0
+            stuff = env.step(action)
+            env.render()
         '''
         for step in sideways_positions:
             action = step + [1]
@@ -68,3 +70,5 @@ if __name__ == "__main__":
                 action[3] = -1
             stuff = env.step(action)
             env.render()
+        
+        '''
