@@ -14,6 +14,16 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
 import gym
 import mujoco_py
+import argparse
+
+def argsparser():
+    parser = argparse.ArgumentParser("Parser")
+    parser.add_argument('--run',  default=1, type=int)
+    parser.add_argument('--title', default="notitle", type=str)
+    parser.add_argument('--train_steps', default=1000, type=int)
+    parser.add_argument('--num_epochs', default=100, type=int)
+    parser.add_argument('--her_percent', default=0.0, type=float)
+    return parser.parse_args()
 
 
 def experiment(variant):
@@ -112,7 +122,7 @@ if __name__ == "__main__":
         layer_size=256,
         replay_buffer_kwargs=dict(
             max_size=int(1E6),
-            fraction_goals_rollout_goals=0.2,  #Tune
+            fraction_goals_rollout_goals=0.2,  #Tune, 1=no HERs
             fraction_goals_env_goals=0,
         ),
         algorithm_kwargs=dict(
@@ -120,9 +130,9 @@ if __name__ == "__main__":
             num_eval_steps_per_epoch=500,
             num_train_loops_per_epoch=10,
             num_trains_per_train_loop=1000, 
-            num_expl_steps_per_train_loop=1000, #Is this good?
+            num_expl_steps_per_train_loop=1000,
             min_num_steps_before_training=1000,
-            max_path_length=50,
+            max_path_length=75,
             batch_size=256,
         ),
         trainer_kwargs=dict(
@@ -135,6 +145,16 @@ if __name__ == "__main__":
             use_automatic_entropy_tuning=True,
         ),
     )
-    setup_logger('sac-sideways-nograsp', variant=variant)
+    args = argsparser()
+    file_path = args.title + "-run-" + str(args.run)
+
+    variant['algorithm_kwargs']['num_trains_per_train_loop'] = args.train_steps
+    variant['algorithm_kwargs']['num_expl_steps_per_train_loop'] = args.train_steps
+    variant['algorithm_kwargs']['num_train_loops_per_epoch'] = int(10000 / args.train_steps)
+    variant['algorithm_kwargs']['num_epochs'] = args.num_epochs
+    variant['replay_buffer_kwargs']['fraction_goals_rollout_goals'] = 1 - args.her_percent
+
+    setup_logger(file_path, variant=variant)
+
     # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)
