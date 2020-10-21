@@ -31,6 +31,7 @@ def argsparser():
     parser.add_argument('--strict', default=True, type=bool)
     parser.add_argument('--gpu', default=False, type=bool)
     parser.add_argument('--image_training', default=False, type=bool)
+    parser.add_argument('--asymmetric', default=False, type=bool)
     parser.add_argument('--task', type=str, required=True)
     parser.add_argument('--n_actions', type=int, default=3)
     parser.add_argument('--learn_grasp', type=str, default=False)
@@ -43,77 +44,54 @@ def experiment(variant):
     expl_env = NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
 
     image_training = variant['image_training']
-
     if image_training:
-        policy_observation_key = 'image'
-        value_observation_key = 'image'
+        path_collector_observation_key = 'image'
     else:
-        policy_observation_key = 'observation'
-        value_observation_key = 'observation'
+        path_collector_observation_key = 'observation'
 
-    policy_obs_dim = expl_env.observation_space.spaces[policy_observation_key].low.size
-    value_obs_dim = expl_env.observation_space.spaces[value_observation_key].low.size
-
+    obs_dim = expl_env.observation_space.spaces['observation'].low.size
     action_dim = eval_env.action_space.low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
 
+    observation_key = 'observation'
     desired_goal_key = 'desired_goal'
 
     achieved_goal_key = desired_goal_key.replace("desired", "achieved")
 
+    M = variant['layer_size']
+
+    qf1 = ConcatMlp(
+    input_size=obs_dim + action_dim + goal_dim,
+    output_size=1,
+    hidden_sizes=[M, M],
+    )
+    qf2 = ConcatMlp(
+        input_size=obs_dim + action_dim + goal_dim,
+        output_size=1,
+        hidden_sizes=[M, M],
+    )
+    target_qf1 = ConcatMlp(
+        input_size=obs_dim + action_dim + goal_dim,
+        output_size=1,
+        hidden_sizes=[M, M],
+    )
+    target_qf2 = ConcatMlp(
+        input_size=obs_dim + action_dim + goal_dim,
+        output_size=1,
+        hidden_sizes=[M, M],
+    )
     if image_training:
         policy = TanhCNNGaussianPolicy(
             output_size=action_dim,
             added_fc_input_size=goal_dim,
             **variant['policy_kwargs'],
         )
-        qf1 = MergedCNN(
-            output_size=1,
-            added_fc_input_size=goal_dim + action_dim,
-            **variant['value_kwargs']
-        )
-        qf2 = MergedCNN(
-            output_size=1,
-            added_fc_input_size=goal_dim + action_dim,
-            **variant['value_kwargs']
-        )
-        target_qf1 = MergedCNN(
-            output_size=1,
-            added_fc_input_size=goal_dim + action_dim,
-            **variant['value_kwargs']
-        )
-        target_qf2 = MergedCNN(
-             output_size=1,
-             added_fc_input_size=goal_dim + action_dim,
-            **variant['value_kwargs']
-        )
     else:
         policy = TanhGaussianPolicy(
-            obs_dim=policy_obs_dim + goal_dim,
+            obs_dim=obs_dim + goal_dim,
             action_dim=action_dim,
             hidden_sizes=[M, M],
             **variant['policy_kwargs']
-        )
-        M = variant['layer_size']
-        qf1 = ConcatMlp(
-        input_size=value_obs_dim + action_dim + goal_dim,
-        output_size=1,
-        hidden_sizes=[M, M],
-        )
-        qf2 = ConcatMlp(
-            input_size=value_obs_dim + action_dim + goal_dim,
-            output_size=1,
-            hidden_sizes=[M, M],
-        )
-        target_qf1 = ConcatMlp(
-            input_size=value_obs_dim + action_dim + goal_dim,
-            output_size=1,
-            hidden_sizes=[M, M],
-        )
-        target_qf2 = ConcatMlp(
-            input_size=value_obs_dim + action_dim + goal_dim,
-            output_size=1,
-            hidden_sizes=[M, M],
         )
 
     eval_policy = MakeDeterministic(policy)
@@ -122,18 +100,18 @@ def experiment(variant):
         eval_policy,
         render=True,
         render_kwargs={'mode': 'rgb_array'},
-        observation_key=policy_observation_key,
+        observation_key=path_collector_observation_key,
         desired_goal_key=desired_goal_key
     )
     expl_path_collector = GoalConditionedPathCollector(
         expl_env,
         policy,
-        observation_key=policy_observation_key,
+        observation_key=path_collector_observation_key,
         desired_goal_key=desired_goal_key
     )
     replay_buffer = ObsDictRelabelingBuffer(
         env=eval_env,
-        observation_key=policy_observation_key,
+        observation_key=observation_key,
         desired_goal_key=desired_goal_key,
         achieved_goal_key=achieved_goal_key,
         **variant['replay_buffer_kwargs']
@@ -176,7 +154,7 @@ if __name__ == "__main__":
         algorithm_kwargs=dict(
             num_epochs=100,
             num_eval_steps_per_epoch=500,
-            min_num_steps_before_training=1000,
+            min_num_steps_before_training=0,
             batch_size=256,
         ),
         trainer_kwargs=dict(
@@ -202,6 +180,7 @@ if __name__ == "__main__":
     variant['env_name'] = args.env_name
     variant['version'] = args.title
     variant['image_training'] = args.image_training
+    variant['asymmetric'] = args.asymmetric
 
     variant['env_kwargs'] = dict(
         learn_grasp = args.learn_grasp,
@@ -225,19 +204,22 @@ if __name__ == "__main__":
             hidden_sizes=[256,256,256,256],
             init_w=1e-4
         )
-        variant['value_kwargs'] = dict(
-            input_width=84,
-            input_height=84,
-            input_channels=3,
-            kernel_sizes=[3,3,3,3],
-            n_channels=[32,32,32,32],
-            strides=[2,2,2,2],
-            paddings=[0,0,0,0],
-            hidden_sizes=[256,256,256,256],
-            init_w=1e-4
+        if args.asymmetric:
+            variant['replay_buffer_kwargs']['internal_keys'] = ['image']
+        else:
+            variant['value_kwargs'] = dict(
+                input_width=84,
+                input_height=84,
+                input_channels=3,
+                kernel_sizes=[3,3,3,3],
+                n_channels=[32,32,32,32],
+                strides=[2,2,2,2],
+                paddings=[0,0,0,0],
+                hidden_sizes=[256,256,256,256],
+                init_w=1e-4
+        
         )
-    else:
-        variant['policy_kwargs'] = dict()
+
     if args.gpu:
         ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
         print("GPU training", ptu)
