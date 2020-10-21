@@ -9,7 +9,7 @@ from rlkit.samplers.data_collector import GoalConditionedPathCollector
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, MonsterTanhCNNGaussianPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.her.her import HERTrainer
-from rlkit.torch.networks import ConcatMlp, CNN
+from rlkit.torch.networks import ConcatMlp, MergedCNN
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
 import gym
@@ -67,22 +67,22 @@ def experiment(variant):
             added_fc_input_size=goal_dim,
             **variant['policy_kwargs'],
         )
-        qf1 = CNN(
+        qf1 = MergedCNN(
             output_size=1,
             added_fc_input_size=goal_dim + action_dim,
             **variant['value_kwargs']
         )
-        qf2 = CNN(
+        qf2 = MergedCNN(
             output_size=1,
             added_fc_input_size=goal_dim + action_dim,
             **variant['value_kwargs']
         )
-        target_qf1 = CNN(
+        target_qf1 = MergedCNN(
             output_size=1,
             added_fc_input_size=goal_dim + action_dim,
             **variant['value_kwargs']
         )
-        target_qf2 = CNN(
+        target_qf2 = MergedCNN(
              output_size=1,
              added_fc_input_size=goal_dim + action_dim,
             **variant['value_kwargs']
