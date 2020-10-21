@@ -28,11 +28,13 @@ def argsparser():
     parser.add_argument('--buffer_size', default=1E6, type=int)
     parser.add_argument('--max_path_length', default=50, type=int)
     parser.add_argument('--env_name', type=str, required=True)
+    parser.add_argument('--strict', default=True, type=bool)
     parser.add_argument('--gpu', default=False, type=bool)
     parser.add_argument('--image_training', default=False, type=bool)
     parser.add_argument('--task', type=str, required=True)
     parser.add_argument('--n_actions', type=int, default=3)
-    parser.add_argument('--learn_grasp', type=str, required=False)
+    parser.add_argument('--learn_grasp', type=str, default=False)
+    parser.add_argument('--distance_threshold', type=float, default=0.05)
     return parser.parse_args()
 
 
@@ -180,7 +182,9 @@ if __name__ == "__main__":
         learn_grasp = args.learn_grasp,
         n_actions=args.n_actions,
         task=args.task,
-        pixels=args.image_training
+        pixels=args.image_training,
+        strict=args.strict,
+        distance_threshold=args.distance_threshold
     )
 
     setup_logger(file_path, variant=variant)
@@ -200,4 +204,5 @@ if __name__ == "__main__":
         variant['policy_kwargs'] = dict()
     if args.gpu:
         ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
+        print("GPU training", ptu)
     experiment(variant)
