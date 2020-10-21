@@ -9,7 +9,7 @@ from rlkit.samplers.data_collector import GoalConditionedPathCollector
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, MonsterTanhCNNGaussianPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.her.her import HERTrainer
-from rlkit.torch.networks import ConcatMlp
+from rlkit.torch.networks import ConcatMlp, CNN
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
 import gym
@@ -43,12 +43,17 @@ def experiment(variant):
     expl_env = NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
 
     image_training = variant['image_training']
-    if image_training:
-        observation_key = 'image'
-    else:
-        observation_key = 'observation'
 
-    obs_dim = expl_env.observation_space.spaces[observation_key].low.size
+    if image_training:
+        policy_observation_key = 'image'
+        value_observation_key = 'image'
+    else:
+        policy_observation_key = 'observation'
+        value_observation_key = 'observation'
+
+    policy_obs_dim = expl_env.observation_space.spaces[policy_observation_key].low.size
+    value_obs_dim = expl_env.observation_space.spaces[value_observation_key].low.size
+
     action_dim = eval_env.action_space.low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
 
@@ -56,59 +61,79 @@ def experiment(variant):
 
     achieved_goal_key = desired_goal_key.replace("desired", "achieved")
 
-    M = variant['layer_size']
-    qf1 = ConcatMlp(
-        input_size=obs_dim + action_dim + goal_dim,
-        output_size=1,
-        hidden_sizes=[M, M],
-    )
-    qf2 = ConcatMlp(
-        input_size=obs_dim + action_dim + goal_dim,
-        output_size=1,
-        hidden_sizes=[M, M],
-    )
-    target_qf1 = ConcatMlp(
-        input_size=obs_dim + action_dim + goal_dim,
-        output_size=1,
-        hidden_sizes=[M, M],
-    )
-    target_qf2 = ConcatMlp(
-        input_size=obs_dim + action_dim + goal_dim,
-        output_size=1,
-        hidden_sizes=[M, M],
-    )
-
     if image_training:
         policy = TanhCNNGaussianPolicy(
             output_size=action_dim,
             added_fc_input_size=goal_dim,
             **variant['policy_kwargs'],
         )
+        qf1 = CNN(
+            output_size=1,
+            added_fc_input_size=goal_dim + action_dim,
+            **variant['value_kwargs']
+        )
+        qf2 = CNN(
+            output_size=1,
+            added_fc_input_size=goal_dim + action_dim,
+            **variant['value_kwargs']
+        )
+        target_qf1 = CNN(
+            output_size=1,
+            added_fc_input_size=goal_dim + action_dim,
+            **variant['value_kwargs']
+        )
+        target_qf2 = CNN(
+             output_size=1,
+             added_fc_input_size=goal_dim + action_dim,
+            **variant['value_kwargs']
+        )
     else:
         policy = TanhGaussianPolicy(
-            obs_dim=obs_dim + goal_dim,
+            obs_dim=policy_obs_dim + goal_dim,
             action_dim=action_dim,
             hidden_sizes=[M, M],
             **variant['policy_kwargs']
         )
+        M = variant['layer_size']
+        qf1 = ConcatMlp(
+        input_size=value_obs_dim + action_dim + goal_dim,
+        output_size=1,
+        hidden_sizes=[M, M],
+        )
+        qf2 = ConcatMlp(
+            input_size=value_obs_dim + action_dim + goal_dim,
+            output_size=1,
+            hidden_sizes=[M, M],
+        )
+        target_qf1 = ConcatMlp(
+            input_size=value_obs_dim + action_dim + goal_dim,
+            output_size=1,
+            hidden_sizes=[M, M],
+        )
+        target_qf2 = ConcatMlp(
+            input_size=value_obs_dim + action_dim + goal_dim,
+            output_size=1,
+            hidden_sizes=[M, M],
+        )
+
     eval_policy = MakeDeterministic(policy)
     eval_path_collector = GoalConditionedPathCollector(
         eval_env,
         eval_policy,
         render=True,
         render_kwargs={'mode': 'rgb_array'},
-        observation_key=observation_key,
+        observation_key=policy_observation_key,
         desired_goal_key=desired_goal_key
     )
     expl_path_collector = GoalConditionedPathCollector(
         expl_env,
         policy,
-        observation_key=observation_key,
+        observation_key=policy_observation_key,
         desired_goal_key=desired_goal_key
     )
     replay_buffer = ObsDictRelabelingBuffer(
         env=eval_env,
-        observation_key=observation_key,
+        observation_key=policy_observation_key,
         desired_goal_key=desired_goal_key,
         achieved_goal_key=achieved_goal_key,
         **variant['replay_buffer_kwargs']
@@ -190,6 +215,17 @@ if __name__ == "__main__":
     setup_logger(file_path, variant=variant)
     if args.image_training:
         variant['policy_kwargs'] = dict(
+            input_width=84,
+            input_height=84,
+            input_channels=3,
+            kernel_sizes=[3,3,3,3],
+            n_channels=[32,32,32,32],
+            strides=[2,2,2,2],
+            paddings=[0,0,0,0],
+            hidden_sizes=[256,256,256,256],
+            init_w=1e-4
+        )
+        variant['value_kwargs'] = dict(
             input_width=84,
             input_height=84,
             input_channels=3,
