@@ -154,7 +154,7 @@ if __name__ == "__main__":
         algorithm_kwargs=dict(
             num_epochs=100,
             num_eval_steps_per_epoch=500,
-            min_num_steps_before_training=0,
+            min_num_steps_before_training=1000,
             batch_size=256,
         ),
         trainer_kwargs=dict(
