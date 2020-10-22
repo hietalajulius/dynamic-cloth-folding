@@ -38,6 +38,8 @@ def argsparser():
     parser.add_argument('--distance_threshold', type=float, default=0.05)
     parser.add_argument('--eval_steps', type=int, default=500)
     parser.add_argument('--min_expl_steps', type=int, default=1000)
+    parser.add_argument('--randomize_params', type=bool, default=False)
+    parser.add_argument('--uniform_jnt_tend', type=bool, default=True)
     return parser.parse_args()
 
 
@@ -198,7 +200,9 @@ if __name__ == "__main__":
         task=args.task,
         pixels=args.image_training,
         strict=args.strict,
-        distance_threshold=args.distance_threshold
+        distance_threshold=args.distance_threshold,
+        randomize_params=args.randomize_params,
+        uniform_jnt_tend=args.uniform_jnt_tend
     )
 
     if args.image_training:
