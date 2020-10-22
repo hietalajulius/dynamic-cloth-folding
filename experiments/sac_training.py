@@ -228,4 +228,4 @@ if __name__ == "__main__":
     setup_logger(file_path, variant=variant)
 
     trained_policy = experiment(variant)
-    torch.save(policy.state_dict(), path +'.mdl')
+    torch.save(trained_policy.state_dict(), file_path +'.mdl')
