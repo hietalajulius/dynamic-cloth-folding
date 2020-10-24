@@ -29,9 +29,7 @@ def argsparser():
     parser.add_argument('--max_path_length', default=50, type=int)
     parser.add_argument('--env_name', type=str, required=True)
     parser.add_argument('--strict', default=True, type=bool)
-    parser.add_argument('--gpu', default=False, type=bool)
     parser.add_argument('--image_training', default=False, type=bool)
-    parser.add_argument('--asymmetric', default=False, type=bool)
     parser.add_argument('--task', type=str, required=True)
     parser.add_argument('--n_actions', type=int, default=3)
     parser.add_argument('--learn_grasp', type=str, default=False)
@@ -40,6 +38,9 @@ def argsparser():
     parser.add_argument('--min_expl_steps', type=int, default=1000)
     parser.add_argument('--randomize_params', type=bool, default=False)
     parser.add_argument('--uniform_jnt_tend', type=bool, default=True)
+    parser.add_argument('--max_advance', type=float, default=0.05)
+    parser.add_argument('--start_grasped', type=bool, default=False)
+
     return parser.parse_args()
 
 
@@ -175,7 +176,6 @@ if __name__ == "__main__":
     variant['env_name'] = args.env_name
     variant['version'] = args.title
     variant['image_training'] = args.image_training
-    variant['asymmetric'] = args.asymmetric
 
     variant['algorithm_kwargs'] = dict(
         num_epochs=args.num_epochs,
@@ -202,13 +202,15 @@ if __name__ == "__main__":
         strict=args.strict,
         distance_threshold=args.distance_threshold,
         randomize_params=args.randomize_params,
-        uniform_jnt_tend=args.uniform_jnt_tend
+        uniform_jnt_tend=args.uniform_jnt_tend,
+        max_advance=args.max_advance, 
+        start_grasped=args.start_grasped, 
     )
 
     if args.image_training:
         variant['policy_kwargs'] = dict(
-            input_width=200,
-            input_height=200,
+            input_width=140,
+            input_height=140,
             input_channels=1,
             kernel_sizes=[3,3,3,3],
             n_channels=[32,32,32,32],
