@@ -227,7 +227,7 @@ if __name__ == "__main__":
     #if args.gpu:
     print("Args", args)
     print("Cuda avail",torch.cuda.is_available())
-    #ptu.set_gpu_mode()  # optionally set the GPU (default=False)
+    ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     #print("GPU training", ptu)
 
     file_path = args.title + "-run-" + str(args.run)
