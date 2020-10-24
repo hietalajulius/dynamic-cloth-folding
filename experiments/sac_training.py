@@ -207,9 +207,9 @@ if __name__ == "__main__":
 
     if args.image_training:
         variant['policy_kwargs'] = dict(
-            input_width=84,
-            input_height=84,
-            input_channels=3,
+            input_width=200,
+            input_height=200,
+            input_channels=1,
             kernel_sizes=[3,3,3,3],
             n_channels=[32,32,32,32],
             strides=[2,2,2,2],
@@ -224,11 +224,10 @@ if __name__ == "__main__":
         variant['path_collector_kwargs']['additional_keys'] = ['model_params']
         variant['replay_buffer_kwargs']['internal_keys'] = ['model_params']
 
-    #if args.gpu:
     print("Args", args)
-    print("Cuda avail",torch.cuda.is_available())
-    ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
-    #print("GPU training", ptu)
+    if torch.cuda.is_available():
+        print("Training with GPU")
+        ptu.set_gpu_mode(True) 
 
     file_path = args.title + "-run-" + str(args.run)
     setup_logger(file_path, variant=variant)

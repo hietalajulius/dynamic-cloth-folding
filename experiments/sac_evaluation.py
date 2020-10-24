@@ -104,7 +104,10 @@ def experiment(variant):
     
     
     path = "good_policy.mdl"
-    eval_policy.load_state_dict(torch.load(path))
+    if not torch.cuda.is_available():
+        eval_policy.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
+    else:
+        eval_policy.load_state_dict(torch.load(path))
 
     eval_path_collector = KeyPathCollector(
         eval_env,
@@ -116,7 +119,7 @@ def experiment(variant):
         **variant['path_collector_kwargs']
     )
 
-    eval_path_collector.collect_new_paths(100, 500, False)
+    eval_path_collector.collect_new_paths(30, 3000, False)
 
 
 
