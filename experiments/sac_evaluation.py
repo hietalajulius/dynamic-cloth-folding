@@ -1,5 +1,3 @@
-from gym.envs.mujoco import HalfCheetahEnv
-
 import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.envs.wrappers import NormalizedBoxEnv
@@ -17,29 +15,33 @@ import mujoco_py
 import argparse
 import torch.nn as nn
 import torch
+import cProfile
 
 def argsparser():
     parser = argparse.ArgumentParser("Parser")
     parser.add_argument('--run',  default=1, type=int)
     parser.add_argument('--title', default="notitle", type=str)
-    parser.add_argument('--train_steps', default=1000, type=int)
+    parser.add_argument('--train_steps', default=100, type=int)
     parser.add_argument('--num_epochs', default=100, type=int)
+    parser.add_argument('--num_cycles', default=100, type=int)
     parser.add_argument('--her_percent', default=0.0, type=float)
     parser.add_argument('--buffer_size', default=1E6, type=int)
     parser.add_argument('--max_path_length', default=50, type=int)
     parser.add_argument('--env_name', type=str, required=True)
-    parser.add_argument('--strict', default=True, type=bool)
-    parser.add_argument('--gpu', default=False, type=bool)
-    parser.add_argument('--image_training', default=False, type=bool)
-    parser.add_argument('--asymmetric', default=False, type=bool)
+    parser.add_argument('--strict', default=1, type=int)
+    parser.add_argument('--image_training', default=1, type=int)
     parser.add_argument('--task', type=str, required=True)
-    parser.add_argument('--n_actions', type=int, default=3)
-    parser.add_argument('--learn_grasp', type=str, default=False)
     parser.add_argument('--distance_threshold', type=float, default=0.05)
     parser.add_argument('--eval_steps', type=int, default=500)
     parser.add_argument('--min_expl_steps', type=int, default=1000)
-    parser.add_argument('--randomize_params', type=bool, default=False)
-    parser.add_argument('--uniform_jnt_tend', type=bool, default=True)
+    parser.add_argument('--randomize_params', type=int, default=1)
+    parser.add_argument('--randomize_geoms', type=int, default=0)
+    parser.add_argument('--uniform_jnt_tend', type=int, default=1)
+    parser.add_argument('--image_size', type=int, default=84)
+    parser.add_argument('--rgb', type=int, default=1)
+    parser.add_argument('--max_advance', type=float, default=0.05)
+    parser.add_argument('--seed', type=int, required=True)
+    parser.add_argument('--profile', type=int, default=0)
     return parser.parse_args()
 
 
@@ -58,34 +60,11 @@ def experiment(variant):
     model_params_dim = expl_env.observation_space.spaces['model_params'].low.size
     action_dim = eval_env.action_space.low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
-
-    observation_key = 'observation'
     desired_goal_key = 'desired_goal'
 
-    achieved_goal_key = desired_goal_key.replace("desired", "achieved")
 
     M = variant['layer_size']
 
-    qf1 = ConcatMlp(
-    input_size=obs_dim + action_dim + model_params_dim + goal_dim,
-    output_size=1,
-    hidden_sizes=[M, M],
-    )
-    qf2 = ConcatMlp(
-        input_size=obs_dim + action_dim + model_params_dim + goal_dim,
-        output_size=1,
-        hidden_sizes=[M, M],
-    )
-    target_qf1 = ConcatMlp(
-        input_size=obs_dim + action_dim + model_params_dim + goal_dim,
-        output_size=1,
-        hidden_sizes=[M, M],
-    )
-    target_qf2 = ConcatMlp(
-        input_size=obs_dim + action_dim + model_params_dim + goal_dim,
-        output_size=1,
-        hidden_sizes=[M, M],
-    )
     if image_training:
         policy = TanhCNNGaussianPolicy(
             output_size=action_dim,
@@ -124,7 +103,6 @@ def experiment(variant):
 
 
 
-
 if __name__ == "__main__":
     # noinspection PyTypeChecker
     variant = dict(
@@ -147,14 +125,13 @@ if __name__ == "__main__":
     args = argsparser()
     variant['env_name'] = args.env_name
     variant['version'] = args.title
-    variant['image_training'] = args.image_training
-    variant['asymmetric'] = args.asymmetric
+    variant['image_training'] = bool(args.image_training)
 
     variant['algorithm_kwargs'] = dict(
         num_epochs=args.num_epochs,
         num_trains_per_train_loop = args.train_steps,
         num_expl_steps_per_train_loop = args.train_steps,
-        num_train_loops_per_epoch = int(10000 / args.train_steps),
+        num_train_loops_per_epoch = int(args.num_cycles),
         max_path_length = int(args.max_path_length),
         num_eval_steps_per_epoch=args.eval_steps,
         min_num_steps_before_training=args.min_expl_steps,
@@ -168,21 +145,28 @@ if __name__ == "__main__":
         )
 
     variant['env_kwargs'] = dict(
-        learn_grasp = args.learn_grasp,
-        n_actions=args.n_actions,
         task=args.task,
-        pixels=args.image_training,
-        strict=args.strict,
+        pixels=bool(args.image_training),
+        strict=bool(args.strict),
         distance_threshold=args.distance_threshold,
-        randomize_params=args.randomize_params,
-        uniform_jnt_tend=args.uniform_jnt_tend
+        randomize_params=bool(args.randomize_params),
+        randomize_geoms=bool(args.randomize_geoms),
+        uniform_jnt_tend=bool(args.uniform_jnt_tend),
+        image_size=args.image_size,
+        rgb=bool(args.rgb),
+        max_advance=args.max_advance,
+        random_seed=args.seed
     )
 
     if args.image_training:
+        if args.rgb:
+            channels = 3
+        else:
+            channels = 1
         variant['policy_kwargs'] = dict(
-            input_width=84,
-            input_height=84,
-            input_channels=3,
+            input_width=args.image_size,
+            input_height=args.image_size,
+            input_channels=channels,
             kernel_sizes=[3,3,3,3],
             n_channels=[32,32,32,32],
             strides=[2,2,2,2],
@@ -197,10 +181,16 @@ if __name__ == "__main__":
         variant['path_collector_kwargs']['additional_keys'] = ['model_params']
         variant['replay_buffer_kwargs']['internal_keys'] = ['model_params']
 
-    #if args.gpu:
     print("Args", args)
     if torch.cuda.is_available():
-        ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
-    #print("GPU training", ptu)
+        print("Training with GPU")
+        ptu.set_gpu_mode(True) 
 
-    experiment(variant)
+    file_path = args.title + "-run-" + str(args.run)
+    setup_logger(file_path, variant=variant)
+
+    if bool(args.profile):
+        cProfile.run('experiment(variant)', file_path +'-stats')
+    else:
+        trained_policy = experiment(variant)
+        torch.save(trained_policy.state_dict(), file_path +'.mdl')
