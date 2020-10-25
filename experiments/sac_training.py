@@ -17,6 +17,7 @@ import mujoco_py
 import argparse
 import torch.nn as nn
 import torch
+import cProfile
 
 def argsparser():
     parser = argparse.ArgumentParser("Parser")
@@ -24,6 +25,7 @@ def argsparser():
     parser.add_argument('--title', default="notitle", type=str)
     parser.add_argument('--train_steps', default=1000, type=int)
     parser.add_argument('--num_epochs', default=100, type=int)
+    parser.add_argument('--num_cycles', default=100, type=int)
     parser.add_argument('--her_percent', default=0.0, type=float)
     parser.add_argument('--buffer_size', default=1E6, type=int)
     parser.add_argument('--max_path_length', default=50, type=int)
@@ -41,6 +43,7 @@ def argsparser():
     parser.add_argument('--rgb', type=int, default=1)
     parser.add_argument('--max_advance', type=float, default=0.05)
     parser.add_argument('--seed', type=int, required=True)
+    parser.add_argument('--profile', type=int, default=0)
     return parser.parse_args()
 
 
@@ -181,7 +184,7 @@ if __name__ == "__main__":
         num_epochs=args.num_epochs,
         num_trains_per_train_loop = args.train_steps,
         num_expl_steps_per_train_loop = args.train_steps,
-        num_train_loops_per_epoch = int(10000 / args.train_steps),
+        num_train_loops_per_epoch = int(args.num_cycles),
         max_path_length = int(args.max_path_length),
         num_eval_steps_per_epoch=args.eval_steps,
         min_num_steps_before_training=args.min_expl_steps,
@@ -239,5 +242,8 @@ if __name__ == "__main__":
     file_path = args.title + "-run-" + str(args.run)
     setup_logger(file_path, variant=variant)
 
-    trained_policy = experiment(variant)
-    torch.save(trained_policy.state_dict(), file_path +'.mdl')
+    if bool(args.profile):
+        cProfile.run('experiment(variant)', file_path +'-stats')
+    else:
+        trained_policy = experiment(variant)
+        torch.save(trained_policy.state_dict(), file_path +'.mdl')
