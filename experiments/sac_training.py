@@ -28,18 +28,19 @@ def argsparser():
     parser.add_argument('--buffer_size', default=1E6, type=int)
     parser.add_argument('--max_path_length', default=50, type=int)
     parser.add_argument('--env_name', type=str, required=True)
-    parser.add_argument('--strict', default=True, type=bool)
-    parser.add_argument('--gpu', default=False, type=bool)
-    parser.add_argument('--image_training', default=False, type=bool)
-    parser.add_argument('--asymmetric', default=False, type=bool)
+    parser.add_argument('--strict', default=1, type=int)
+    parser.add_argument('--image_training', default=1, type=int)
     parser.add_argument('--task', type=str, required=True)
-    parser.add_argument('--n_actions', type=int, default=3)
-    parser.add_argument('--learn_grasp', type=str, default=False)
     parser.add_argument('--distance_threshold', type=float, default=0.05)
     parser.add_argument('--eval_steps', type=int, default=500)
     parser.add_argument('--min_expl_steps', type=int, default=1000)
-    parser.add_argument('--randomize_params', type=bool, default=False)
-    parser.add_argument('--uniform_jnt_tend', type=bool, default=True)
+    parser.add_argument('--randomize_params', type=int, default=1)
+    parser.add_argument('--randomize_geoms', type=int, default=0)
+    parser.add_argument('--uniform_jnt_tend', type=int, default=1)
+    parser.add_argument('--image_size', type=int, default=84)
+    parser.add_argument('--rgb', type=int, default=1)
+    parser.add_argument('--max_advance', type=float, default=0.05)
+    parser.add_argument('--seed', type=int, required=True)
     return parser.parse_args()
 
 
@@ -174,8 +175,7 @@ if __name__ == "__main__":
     args = argsparser()
     variant['env_name'] = args.env_name
     variant['version'] = args.title
-    variant['image_training'] = args.image_training
-    variant['asymmetric'] = args.asymmetric
+    variant['image_training'] = bool(args.image_training)
 
     variant['algorithm_kwargs'] = dict(
         num_epochs=args.num_epochs,
@@ -195,21 +195,28 @@ if __name__ == "__main__":
         )
 
     variant['env_kwargs'] = dict(
-        learn_grasp = args.learn_grasp,
-        n_actions=args.n_actions,
         task=args.task,
-        pixels=args.image_training,
-        strict=args.strict,
+        pixels=bool(args.image_training),
+        strict=bool(args.strict),
         distance_threshold=args.distance_threshold,
-        randomize_params=args.randomize_params,
-        uniform_jnt_tend=args.uniform_jnt_tend
+        randomize_params=bool(args.randomize_params),
+        randomize_geoms=bool(args.randomize_geoms),
+        uniform_jnt_tend=bool(args.uniform_jnt_tend),
+        image_size=args.image_size,
+        rgb=bool(args.rgb),
+        max_advance=args.max_advance,
+        random_seed=args.seed
     )
 
     if args.image_training:
+        if args.rgb:
+            channels = 3
+        else:
+            channels = 1
         variant['policy_kwargs'] = dict(
-            input_width=200,
-            input_height=200,
-            input_channels=1,
+            input_width=args.image_size,
+            input_height=args.image_size,
+            input_channels=channels,
             kernel_sizes=[3,3,3,3],
             n_channels=[32,32,32,32],
             strides=[2,2,2,2],
