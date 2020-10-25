@@ -23,7 +23,7 @@ def argsparser():
     parser = argparse.ArgumentParser("Parser")
     parser.add_argument('--run',  default=1, type=int)
     parser.add_argument('--title', default="notitle", type=str)
-    parser.add_argument('--train_steps', default=1000, type=int)
+    parser.add_argument('--train_steps', default=100, type=int)
     parser.add_argument('--num_epochs', default=100, type=int)
     parser.add_argument('--num_cycles', default=100, type=int)
     parser.add_argument('--her_percent', default=0.0, type=float)
