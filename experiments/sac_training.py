@@ -44,6 +44,7 @@ def argsparser():
     parser.add_argument('--max_advance', type=float, default=0.05)
     parser.add_argument('--seed', type=int, required=True)
     parser.add_argument('--profile', type=int, default=0)
+    parser.add_argument('--batch_size', type=int, default=256)
     return parser.parse_args()
 
 
@@ -188,7 +189,7 @@ if __name__ == "__main__":
         max_path_length = int(args.max_path_length),
         num_eval_steps_per_epoch=args.eval_steps,
         min_num_steps_before_training=args.min_expl_steps,
-        batch_size=256,
+        batch_size=args.batch_size,
     )
 
     variant['replay_buffer_kwargs'] =dict(

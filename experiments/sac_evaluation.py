@@ -181,16 +181,12 @@ if __name__ == "__main__":
         variant['path_collector_kwargs']['additional_keys'] = ['model_params']
         variant['replay_buffer_kwargs']['internal_keys'] = ['model_params']
 
-    print("Args", args)
-    if torch.cuda.is_available():
-        print("Training with GPU")
-        ptu.set_gpu_mode(True) 
 
     file_path = args.title + "-run-" + str(args.run)
     setup_logger(file_path, variant=variant)
 
     if bool(args.profile):
-        cProfile.run('experiment(variant)', file_path +'-stats')
+        cProfile.run('experiment(variant)', file_path +'-eval-stats')
     else:
-        trained_policy = experiment(variant)
-        torch.save(trained_policy.state_dict(), file_path +'.mdl')
+        experiment(variant)
+
