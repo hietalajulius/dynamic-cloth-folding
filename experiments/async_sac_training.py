@@ -21,9 +21,12 @@ import cProfile
 
 
 def experiment():
+    pixels = bool(1)
+    comparison = bool(0)
+
     env_kwargs = dict(
             task="sideways",
-            pixels=False,
+            pixels=pixels,
             strict=True,
             distance_threshold=0.05,
             randomize_params=False,
@@ -32,10 +35,10 @@ def experiment():
             max_advance=0.05,
             random_seed=1
         )
-    path_collector_kwargs = dict(additional_keys = ['model_params'])
+    path_collector_kwargs = dict()
     replay_buffer_kwargs = dict(
         internal_keys = ['model_params'],
-        max_size=int(1E6),
+        max_size=int(1E5),
         fraction_goals_env_goals = 0,
         fraction_goals_rollout_goals = 0.2
         )
@@ -52,6 +55,7 @@ def experiment():
     eval_env = NormalizedBoxEnv(gym.make("Cloth-v1", **env_kwargs))
     obs_dim = eval_env.observation_space.spaces['observation'].low.size
     model_params_dim = eval_env.observation_space.spaces['model_params'].low.size
+    robot_obs_dim = eval_env.observation_space.spaces['robot_observation'].low.size
     action_dim = eval_env.action_space.low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
 
@@ -87,6 +91,36 @@ def experiment():
         hidden_sizes=[M, M]
     )
 
+    if pixels:
+        path_collector_kwargs['additional_keys'] = ['robot_observation']
+        replay_buffer_kwargs['internal_keys'] = ['image','model_params','robot_observation']
+        path_collector_observation_key = 'image'
+        policy_kwargs = dict(
+            input_width=84,
+            input_height=84,
+            input_channels=3,
+            kernel_sizes=[3,3,3,3],
+            n_channels=[32,32,32,32],
+            strides=[2,2,2,2],
+            paddings=[0,0,0,0],
+            hidden_sizes=[256,256,256,256],
+            init_w=1e-4
+        )
+        policy = TanhCNNGaussianPolicy(
+            output_size=action_dim,
+            added_fc_input_size=robot_obs_dim + goal_dim,
+            **policy_kwargs,
+        )
+    else:
+        path_collector_observation_key = 'observation'
+        path_collector_kwargs['additional_keys'] = ['model_params']
+        replay_buffer_kwargs['internal_keys'] = ['model_params']
+        policy = TanhGaussianPolicy(
+            obs_dim=obs_dim + model_params_dim + goal_dim,
+            action_dim=action_dim,
+            hidden_sizes=[M, M]
+        )
+
     trainer_kwargs=dict(
             discount=0.99,
             soft_target_tau=5e-3,
@@ -107,13 +141,10 @@ def experiment():
     )
     trainer = ClothSacHERTrainer(trainer)
 
-    comparison = True
-
     if comparison:
         
         eval_env = NormalizedBoxEnv(gym.make("Cloth-v1", **env_kwargs))
         expl_env = NormalizedBoxEnv(gym.make("Cloth-v1", **env_kwargs))
-        path_collector_observation_key = 'observation'
         eval_policy = MakeDeterministic(policy)
         observation_key = 'observation'
         desired_goal_key = 'desired_goal'
@@ -155,6 +186,10 @@ def experiment():
     else:
         algorithm = TorchAsyncBatchRLAlgorithm(
             trainer=trainer,
+            path_collector_observation_key=path_collector_observation_key,
+            desired_goal_key=desired_goal_key,
+            env_kwargs=env_kwargs,
+            buffer_kwargs=replay_buffer_kwargs,
             exploration_env=None,
             evaluation_env=None,
             exploration_data_collector=None,
@@ -165,7 +200,8 @@ def experiment():
             num_epochs=1,
             num_eval_steps_per_epoch=0,
             num_expl_steps_per_train_loop=100,
-            num_trains_per_train_loop=100
+            num_trains_per_train_loop=100,
+            additional_keys=path_collector_kwargs['additional_keys']
         )
 
     algorithm.to(ptu.device)
