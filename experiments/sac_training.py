@@ -18,7 +18,7 @@ import argparse
 import torch.nn as nn
 import torch
 import cProfile
-from stable_baselines.common.vec_env import SubprocVecEnv
+#from stable_baselines.common.vec_env import SubprocVecEnv
 
 def argsparser():
     parser = argparse.ArgumentParser("Parser")
@@ -35,19 +35,19 @@ def argsparser():
     parser.add_argument('--image_training', default=1, type=int)
     parser.add_argument('--task', type=str, required=True)
     parser.add_argument('--distance_threshold', type=float, default=0.05)
-    parser.add_argument('--eval_steps', type=int, default=500)
-    parser.add_argument('--min_expl_steps', type=int, default=1000)
-    parser.add_argument('--randomize_params', type=int, default=1)
+    parser.add_argument('--eval_steps', type=int, default=0)
+    parser.add_argument('--min_expl_steps', type=int, default=0)
+    parser.add_argument('--randomize_params', type=int, default=0)
     parser.add_argument('--randomize_geoms', type=int, default=0)
     parser.add_argument('--uniform_jnt_tend', type=int, default=1)
     parser.add_argument('--image_size', type=int, default=84)
     parser.add_argument('--rgb', type=int, default=1)
     parser.add_argument('--max_advance', type=float, default=0.05)
     parser.add_argument('--seed', type=int, required=False)
-    parser.add_argument('--profile', type=int, default=0)
+    parser.add_argument('--cprofile', type=int, default=0)
     parser.add_argument('--batch_size', type=int, default=256)
-    parser.add_argument('--vec_env', type=int, default=1)
-    parser.add_argument('--num_processes', type=int, default=5)
+    parser.add_argument('--vec_env', type=int, default=0)
+    parser.add_argument('--num_processes', type=int, default=1)
     return parser.parse_args()
 
 
@@ -118,6 +118,7 @@ def experiment(variant):
         desired_goal_key=desired_goal_key,
         **variant['path_collector_kwargs']
     )
+    '''
     if variant['vec_env']:
         def make_env():
             return NormalizedBoxEnv(gym.make('Cloth-v1', **variant['env_kwargs']))
@@ -134,13 +135,14 @@ def experiment(variant):
             **variant['path_collector_kwargs']
         )
     else:
-        expl_path_collector = KeyPathCollector(
-            expl_env,
-            policy,
-            observation_key=path_collector_observation_key,
-            desired_goal_key=desired_goal_key,
-            **variant['path_collector_kwargs']
-        )
+    '''
+    expl_path_collector = KeyPathCollector(
+        expl_env,
+        policy,
+        observation_key=path_collector_observation_key,
+        desired_goal_key=desired_goal_key,
+        **variant['path_collector_kwargs']
+    )
     replay_buffer = ObsDictRelabelingBuffer(
         env=eval_env,
         observation_key=observation_key,
@@ -264,7 +266,7 @@ if __name__ == "__main__":
     file_path = args.title + "-run-" + str(args.run)
     setup_logger(file_path, variant=variant)
 
-    if bool(args.profile):
+    if bool(args.cprofile):
         cProfile.run('experiment(variant)', file_path +'-stats')
     else:
         trained_policy = experiment(variant)
