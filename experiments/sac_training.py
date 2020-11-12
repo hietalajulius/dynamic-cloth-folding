@@ -8,7 +8,7 @@ from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, Tanh
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.her.her import ClothSacHERTrainer
 from rlkit.torch.networks import ConcatMlp, MergedCNN
-from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
+from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm,TorchAsyncBatchRLAlgorithm
 from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
 import gym
 import mujoco_py
@@ -18,6 +18,9 @@ import torch
 import cProfile
 from rlkit.envs.wrappers import SubprocVecEnv
 from gym.logger import set_level
+import multiprocessing
+from multiprocessing import set_start_method, Queue
+import time
 
 set_level(50)
 
@@ -51,9 +54,81 @@ def argsparser():
     parser.add_argument('--num_processes', type=int, default=5)
     return parser.parse_args()
 
+def collector(namespace, variant, batch_queue):
+    def make_env():
+            return NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
+    env_fns = [make_env for _ in range(variant['num_processes'])]
+    vec_env = SubprocVecEnv(env_fns)
+    vec_env.seed(variant['env_kwargs']['random_seed'])
+    image_training = variant['image_training']
+    desired_goal_key = 'desired_goal'
+    observation_key = 'observation'
+    achieved_goal_key = desired_goal_key.replace("desired", "achieved")
+
+    if image_training:
+        path_collector_observation_key = 'image'
+    else:
+        path_collector_observation_key = 'observation'
+    while namespace.policy == None:
+        pass
+    print("Creating sub collector")
+
+    replay_buf_env = NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
+
+    replay_buffer = ObsDictRelabelingBuffer(
+        env=replay_buf_env,
+        observation_key=observation_key,
+        desired_goal_key=desired_goal_key,
+        achieved_goal_key=achieved_goal_key,
+        **variant['replay_buffer_kwargs']
+    )
+    
+    expl_path_collector = VectorizedKeyPathCollector(
+        vec_env,
+        namespace.policy,
+        processes=variant['num_processes'],
+        observation_key=path_collector_observation_key,
+        desired_goal_key=desired_goal_key,
+        **variant['path_collector_kwargs']
+    )
+    collected_with_current_version = False
+    policy_version = namespace.policy.vers
+
+    while True:
+        if not collected_with_current_version:
+            print("Collecting paths with policy", namespace.policy.vers)
+            paths = expl_path_collector.collect_new_paths(
+                    variant['algorithm_kwargs']['max_path_length'],
+                    variant['algorithm_kwargs']['num_trains_per_train_loop'],
+                    discard_incomplete_paths=False,
+                )
+            replay_buffer.add_paths(paths)
+            print("Collected paths with policy", namespace.policy.vers, "size now:", replay_buffer._size)
+
+        if batch_queue.qsize() < 30:
+                batch = replay_buffer.random_batch(variant['algorithm_kwargs']['batch_size'])
+                batch_queue.put(batch)
+                #print("Put batches to queue", batch_queue.qsize())
+
+        if policy_version == namespace.policy.vers:
+            collected_with_current_version = True
+        else:
+            collected_with_current_version = False
+            policy_version = namespace.policy.vers
+            
 
 def experiment(variant):
+    set_start_method('spawn')
+    manager = multiprocessing.Manager()
+    namespace = manager.Namespace()
+    namespace.policy = None
+
+    batch_queue = Queue()
+    process = multiprocessing.Process(target=collector, args=(namespace,variant,batch_queue))
+    process.start()
+
     eval_env = NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
+    replay_buf_env = eval_env
     expl_env = NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
 
     image_training = variant['image_training']
@@ -145,7 +220,7 @@ def experiment(variant):
             **variant['path_collector_kwargs']
         )
     replay_buffer = ObsDictRelabelingBuffer(
-        env=eval_env,
+        env=replay_buf_env,
         observation_key=observation_key,
         desired_goal_key=desired_goal_key,
         achieved_goal_key=achieved_goal_key,
@@ -161,13 +236,15 @@ def experiment(variant):
         **variant['trainer_kwargs']
     )
     trainer = ClothSacHERTrainer(trainer)
-    algorithm = TorchBatchRLAlgorithm(
+    algorithm = TorchAsyncBatchRLAlgorithm(
         trainer=trainer,
         exploration_env=expl_env,
         evaluation_env=eval_env,
         exploration_data_collector=expl_path_collector,
         evaluation_data_collector=eval_path_collector,
         replay_buffer=replay_buffer,
+        namespace=namespace,
+        batch_queue=batch_queue,
         **variant['algorithm_kwargs']
     )
     algorithm.to(ptu.device)
