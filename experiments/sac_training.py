@@ -26,7 +26,11 @@ import time
 from rlkit.torch.core import np_to_pytorch_batch_explicit_device
 import os
 
+from threadpoolctl import threadpool_info, threadpool_limits
+from pprint import pprint
 
+
+start_method = "forkserver"
 set_level(50)
 
 def argsparser():
@@ -63,7 +67,7 @@ def collector(variant, batch_queue, policy_weights_queue, batch_processed_event,
     def make_env():
             return NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
     env_fns = [make_env for _ in range(variant['num_processes'])]
-    vec_env = SubprocVecEnv(env_fns, start_method='spawn')
+    vec_env = SubprocVecEnv(env_fns, start_method=start_method)
     vec_env.seed(variant['env_kwargs']['random_seed'])
     image_training = variant['image_training']
     desired_goal_key = 'desired_goal'
@@ -142,7 +146,7 @@ def collector(variant, batch_queue, policy_weights_queue, batch_processed_event,
             del state_dict
             print("Deleted state dict")
             replay_buffer.add_paths(paths)
-            del paths
+            #del paths
             print("Collected paths, size now:", replay_buffer._size)
             new_policy_event.clear()
             version += 1
@@ -159,7 +163,7 @@ def collector(variant, batch_queue, policy_weights_queue, batch_processed_event,
             
 
 def experiment(variant):
-    set_start_method('spawn')
+    set_start_method(start_method)
 
     batch_queue = SimpleQueue()
     policy_weights_queue = SimpleQueue()
@@ -291,6 +295,8 @@ def experiment(variant):
         **variant['algorithm_kwargs']
     )
     algorithm.to(ptu.device)
+    print("Threads before train:")
+    pprint(threadpool_info())
     with mujoco_py.ignore_mujoco_warnings():
         algorithm.train()
 
@@ -380,7 +386,6 @@ if __name__ == "__main__":
         variant['path_collector_kwargs']['additional_keys'] = ['model_params']
         variant['replay_buffer_kwargs']['internal_keys'] = ['model_params']
 
-    print("Args", args)
     if torch.cuda.is_available():
         print("Training with GPU")
         ptu.set_gpu_mode(True) 
@@ -389,7 +394,8 @@ if __name__ == "__main__":
     setup_logger(file_path, variant=variant)
 
     if bool(args.cprofile):
-        cProfile.run('experiment(variant)', file_path +'-stats')
+        with threadpool_limits(limits=1):
+            cProfile.run('experiment(variant)', file_path +'-stats')
     else:
         trained_policy = experiment(variant)
         torch.save(trained_policy.state_dict(), file_path +'.mdl')
