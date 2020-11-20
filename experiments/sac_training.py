@@ -19,7 +19,7 @@ import cProfile
 from rlkit.envs.wrappers import SubprocVecEnv
 from gym.logger import set_level
 #import multiprocessing
-from multiprocessing import set_start_method, SimpleQueue
+from multiprocessing import set_start_method, Queue
 import torch.multiprocessing as multiprocessing
 #from torch.multiprocessing import set_start_method, Queue
 import time
@@ -130,8 +130,9 @@ def collector(variant, batch_queue, policy_weights_queue, batch_processed_event,
         **variant['path_collector_kwargs']
     )
 
-    initted = False
     version = 0
+    
+    buffer_initted = False
     while True:
         if new_policy_event.is_set():
             state_dict = policy_weights_queue.get()
@@ -151,13 +152,17 @@ def collector(variant, batch_queue, policy_weights_queue, batch_processed_event,
             new_policy_event.clear()
             version += 1
 
+        if not buffer_initted:
+            batch = replay_buffer.random_batch(variant['algorithm_kwargs']['batch_size'])
+            batch = np_to_pytorch_batch_explicit_device(batch, "cuda:0")
+            batch_queue.put(batch)
+            buffer_initted = True
 
-        if batch_processed_event.is_set() or not initted:
-                initted = True
-                batch = replay_buffer.random_batch(variant['algorithm_kwargs']['batch_size'])
-                batch = np_to_pytorch_batch_explicit_device(batch, "cuda:0")
-                batch_queue.put(batch)
-                batch_processed_event.clear()
+        if batch_processed_event.is_set():
+            batch = replay_buffer.random_batch(variant['algorithm_kwargs']['batch_size'])
+            batch = np_to_pytorch_batch_explicit_device(batch, "cuda:0")
+            batch_queue.put(batch)
+            batch_processed_event.clear()
 
 
             
@@ -165,8 +170,8 @@ def collector(variant, batch_queue, policy_weights_queue, batch_processed_event,
 def experiment(variant):
     set_start_method(start_method)
 
-    batch_queue = SimpleQueue()
-    policy_weights_queue = SimpleQueue()
+    batch_queue = Queue()
+    policy_weights_queue = Queue()
     new_policy_event = multiprocessing.Event()
     batch_processed_event = multiprocessing.Event()
     process = multiprocessing.Process(target=collector, args=(variant,batch_queue,policy_weights_queue,batch_processed_event,new_policy_event))
