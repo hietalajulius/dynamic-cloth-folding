@@ -18,9 +18,14 @@ import torch
 import cProfile
 from rlkit.envs.wrappers import SubprocVecEnv
 from gym.logger import set_level
-import multiprocessing
-from multiprocessing import set_start_method, Queue
+#import multiprocessing
+from multiprocessing import set_start_method, SimpleQueue
+import torch.multiprocessing as multiprocessing
+#from torch.multiprocessing import set_start_method, Queue
 import time
+from rlkit.torch.core import np_to_pytorch_batch_explicit_device
+import os
+
 
 set_level(50)
 
@@ -32,12 +37,12 @@ def argsparser():
     parser.add_argument('--num_epochs', default=100, type=int)
     parser.add_argument('--num_cycles', default=100, type=int)
     parser.add_argument('--her_percent', default=0.0, type=float)
-    parser.add_argument('--buffer_size', default=1E6, type=int)
+    parser.add_argument('--buffer_size', default=1E5, type=int)
     parser.add_argument('--max_path_length', default=50, type=int)
-    parser.add_argument('--env_name', type=str, required=True)
+    parser.add_argument('--env_name', type=str, default="Cloth-v1")
     parser.add_argument('--strict', default=1, type=int)
     parser.add_argument('--image_training', default=1, type=int)
-    parser.add_argument('--task', type=str, required=True)
+    parser.add_argument('--task', type=str, default="sideways")
     parser.add_argument('--distance_threshold', type=float, default=0.05)
     parser.add_argument('--eval_steps', type=int, default=0)
     parser.add_argument('--min_expl_steps', type=int, default=0)
@@ -51,14 +56,14 @@ def argsparser():
     parser.add_argument('--cprofile', type=int, default=1)
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--vec_env', type=int, default=1)
-    parser.add_argument('--num_processes', type=int, default=5)
+    parser.add_argument('--num_processes', type=int, default=3)
     return parser.parse_args()
 
-def collector(namespace, variant, batch_queue):
+def collector(variant, batch_queue, policy_weights_queue, batch_processed_event, new_policy_event):
     def make_env():
             return NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
     env_fns = [make_env for _ in range(variant['num_processes'])]
-    vec_env = SubprocVecEnv(env_fns)
+    vec_env = SubprocVecEnv(env_fns, start_method='spawn')
     vec_env.seed(variant['env_kwargs']['random_seed'])
     image_training = variant['image_training']
     desired_goal_key = 'desired_goal'
@@ -69,8 +74,8 @@ def collector(namespace, variant, batch_queue):
         path_collector_observation_key = 'image'
     else:
         path_collector_observation_key = 'observation'
-    while namespace.policy == None:
-        pass
+
+    new_policy_event.wait()
     print("Creating sub collector")
 
     replay_buf_env = NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
@@ -82,49 +87,85 @@ def collector(namespace, variant, batch_queue):
         achieved_goal_key=achieved_goal_key,
         **variant['replay_buffer_kwargs']
     )
+
+    obs_dim = replay_buf_env.observation_space.spaces['observation'].low.size
+    robot_obs_dim = replay_buf_env.observation_space.spaces['robot_observation'].low.size
+    model_params_dim = replay_buf_env.observation_space.spaces['model_params'].low.size
+    action_dim = replay_buf_env.action_space.low.size
+    goal_dim = replay_buf_env.observation_space.spaces['desired_goal'].low.size
+
+    observation_key = 'observation'
+    desired_goal_key = 'desired_goal'
+
+    achieved_goal_key = desired_goal_key.replace("desired", "achieved")
+
+    M = variant['layer_size']
+
+    if image_training:
+        policy = TanhCNNGaussianPolicy(
+            output_size=action_dim,
+            added_fc_input_size=robot_obs_dim + goal_dim,
+            **variant['policy_kwargs'],
+        )
+    else:
+        policy = TanhGaussianPolicy(
+            obs_dim=obs_dim + model_params_dim + goal_dim,
+            action_dim=action_dim,
+            hidden_sizes=[M, M],
+            **variant['policy_kwargs']
+        )
+    
+
     
     expl_path_collector = VectorizedKeyPathCollector(
         vec_env,
-        namespace.policy,
+        policy,
         processes=variant['num_processes'],
         observation_key=path_collector_observation_key,
         desired_goal_key=desired_goal_key,
         **variant['path_collector_kwargs']
     )
-    collected_with_current_version = False
-    policy_version = namespace.policy.vers
 
+    initted = False
+    version = 0
     while True:
-        if not collected_with_current_version:
-            print("Collecting paths with policy", namespace.policy.vers)
+        if new_policy_event.is_set():
+            state_dict = policy_weights_queue.get()
+            policy.load_state_dict(state_dict)
+            print("Loaded state dict", version)
+            print("Collect with new policy")
             paths = expl_path_collector.collect_new_paths(
                     variant['algorithm_kwargs']['max_path_length'],
                     variant['algorithm_kwargs']['num_trains_per_train_loop'],
                     discard_incomplete_paths=False,
                 )
+            del state_dict
+            print("Deleted state dict")
             replay_buffer.add_paths(paths)
-            print("Collected paths with policy", namespace.policy.vers, "size now:", replay_buffer._size)
+            del paths
+            print("Collected paths, size now:", replay_buffer._size)
+            new_policy_event.clear()
+            version += 1
 
-        if batch_queue.qsize() < 30:
+
+        if batch_processed_event.is_set() or not initted:
+                initted = True
                 batch = replay_buffer.random_batch(variant['algorithm_kwargs']['batch_size'])
+                batch = np_to_pytorch_batch_explicit_device(batch, "cuda:0")
                 batch_queue.put(batch)
-                #print("Put batches to queue", batch_queue.qsize())
+                batch_processed_event.clear()
 
-        if policy_version == namespace.policy.vers:
-            collected_with_current_version = True
-        else:
-            collected_with_current_version = False
-            policy_version = namespace.policy.vers
+
             
 
 def experiment(variant):
     set_start_method('spawn')
-    manager = multiprocessing.Manager()
-    namespace = manager.Namespace()
-    namespace.policy = None
 
-    batch_queue = Queue()
-    process = multiprocessing.Process(target=collector, args=(namespace,variant,batch_queue))
+    batch_queue = SimpleQueue()
+    policy_weights_queue = SimpleQueue()
+    new_policy_event = multiprocessing.Event()
+    batch_processed_event = multiprocessing.Event()
+    process = multiprocessing.Process(target=collector, args=(variant,batch_queue,policy_weights_queue,batch_processed_event,new_policy_event))
     process.start()
 
     eval_env = NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
@@ -243,14 +284,17 @@ def experiment(variant):
         exploration_data_collector=expl_path_collector,
         evaluation_data_collector=eval_path_collector,
         replay_buffer=replay_buffer,
-        namespace=namespace,
         batch_queue=batch_queue,
+        policy_weights_queue=policy_weights_queue,
+        new_policy_event=new_policy_event,
+        batch_processed_event=batch_processed_event,
         **variant['algorithm_kwargs']
     )
     algorithm.to(ptu.device)
     with mujoco_py.ignore_mujoco_warnings():
         algorithm.train()
 
+    process.join()
     return eval_policy
 
 
