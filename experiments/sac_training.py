@@ -19,16 +19,22 @@ import cProfile
 from rlkit.envs.wrappers import SubprocVecEnv
 from gym.logger import set_level
 #import multiprocessing
-from multiprocessing import set_start_method, Queue
+from multiprocessing import set_start_method, SimpleQueue
 import torch.multiprocessing as multiprocessing
 #from torch.multiprocessing import set_start_method, Queue
 import time
 from rlkit.torch.core import np_to_pytorch_batch_explicit_device
 import os
+import psutil
 
 from threadpoolctl import threadpool_info, threadpool_limits
 from pprint import pprint
-
+import logging
+import sys
+import copy
+import logging
+import sys
+import tracemalloc
 
 start_method = "forkserver"
 set_level(50)
@@ -59,127 +65,18 @@ def argsparser():
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--cprofile', type=int, default=1)
     parser.add_argument('--batch_size', type=int, default=256)
-    parser.add_argument('--vec_env', type=int, default=1)
-    parser.add_argument('--num_processes', type=int, default=3)
+    parser.add_argument('--vec_env', type=int, default=0)
     return parser.parse_args()
 
-def collector(variant, batch_queue, policy_weights_queue, batch_processed_event, new_policy_event):
-    def make_env():
-            return NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
-    env_fns = [make_env for _ in range(variant['num_processes'])]
-    vec_env = SubprocVecEnv(env_fns, start_method=start_method)
-    vec_env.seed(variant['env_kwargs']['random_seed'])
-    image_training = variant['image_training']
-    desired_goal_key = 'desired_goal'
-    observation_key = 'observation'
-    achieved_goal_key = desired_goal_key.replace("desired", "achieved")
-
-    if image_training:
-        path_collector_observation_key = 'image'
-    else:
-        path_collector_observation_key = 'observation'
-
-    new_policy_event.wait()
-    print("Creating sub collector")
-
-    replay_buf_env = NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
-
-    replay_buffer = ObsDictRelabelingBuffer(
-        env=replay_buf_env,
-        observation_key=observation_key,
-        desired_goal_key=desired_goal_key,
-        achieved_goal_key=achieved_goal_key,
-        **variant['replay_buffer_kwargs']
-    )
-
-    obs_dim = replay_buf_env.observation_space.spaces['observation'].low.size
-    robot_obs_dim = replay_buf_env.observation_space.spaces['robot_observation'].low.size
-    model_params_dim = replay_buf_env.observation_space.spaces['model_params'].low.size
-    action_dim = replay_buf_env.action_space.low.size
-    goal_dim = replay_buf_env.observation_space.spaces['desired_goal'].low.size
-
-    observation_key = 'observation'
-    desired_goal_key = 'desired_goal'
-
-    achieved_goal_key = desired_goal_key.replace("desired", "achieved")
-
-    M = variant['layer_size']
-
-    if image_training:
-        policy = TanhCNNGaussianPolicy(
-            output_size=action_dim,
-            added_fc_input_size=robot_obs_dim + goal_dim,
-            **variant['policy_kwargs'],
-        )
-    else:
-        policy = TanhGaussianPolicy(
-            obs_dim=obs_dim + model_params_dim + goal_dim,
-            action_dim=action_dim,
-            hidden_sizes=[M, M],
-            **variant['policy_kwargs']
-        )
-    
-
-    
-    expl_path_collector = VectorizedKeyPathCollector(
-        vec_env,
-        policy,
-        processes=variant['num_processes'],
-        observation_key=path_collector_observation_key,
-        desired_goal_key=desired_goal_key,
-        **variant['path_collector_kwargs']
-    )
-
-    version = 0
-    
-    buffer_initted = False
-    while True:
-        if new_policy_event.is_set():
-            state_dict = policy_weights_queue.get()
-            policy.load_state_dict(state_dict)
-            print("Loaded state dict", version)
-            print("Collect with new policy")
-            paths = expl_path_collector.collect_new_paths(
-                    variant['algorithm_kwargs']['max_path_length'],
-                    variant['algorithm_kwargs']['num_trains_per_train_loop'],
-                    discard_incomplete_paths=False,
-                )
-            del state_dict
-            print("Deleted state dict")
-            replay_buffer.add_paths(paths)
-            #del paths
-            print("Collected paths, size now:", replay_buffer._size)
-            new_policy_event.clear()
-            version += 1
-
-        if not buffer_initted:
-            batch = replay_buffer.random_batch(variant['algorithm_kwargs']['batch_size'])
-            batch = np_to_pytorch_batch_explicit_device(batch, "cuda:0")
-            batch_queue.put(batch)
-            buffer_initted = True
-
-        if batch_processed_event.is_set():
-            batch = replay_buffer.random_batch(variant['algorithm_kwargs']['batch_size'])
-            batch = np_to_pytorch_batch_explicit_device(batch, "cuda:0")
-            batch_queue.put(batch)
-            batch_processed_event.clear()
-
-
-            
-
 def experiment(variant):
-    set_start_method(start_method)
+    tracemalloc.start()
+    print("PID of main process", os.getpid())
+    
 
-    batch_queue = Queue()
-    policy_weights_queue = Queue()
-    new_policy_event = multiprocessing.Event()
-    batch_processed_event = multiprocessing.Event()
-    process = multiprocessing.Process(target=collector, args=(variant,batch_queue,policy_weights_queue,batch_processed_event,new_policy_event))
-    process.start()
-
-    eval_env = NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
-    replay_buf_env = eval_env
-    expl_env = NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
+    #eval_env = NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
+    #expl_env = NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
+    eval_env = gym.make(variant['env_name'], **variant['env_kwargs'])
+    expl_env = gym.make(variant['env_name'], **variant['env_kwargs'])
 
     image_training = variant['image_training']
     if image_training:
@@ -244,7 +141,7 @@ def experiment(variant):
         desired_goal_key=desired_goal_key,
         **variant['path_collector_kwargs']
     )
-    
+
     if variant['vec_env']:
         def make_env():
             return NormalizedBoxEnv(gym.make('Cloth-v1', **variant['env_kwargs']))
@@ -270,7 +167,7 @@ def experiment(variant):
             **variant['path_collector_kwargs']
         )
     replay_buffer = ObsDictRelabelingBuffer(
-        env=replay_buf_env,
+        env=eval_env,
         observation_key=observation_key,
         desired_goal_key=desired_goal_key,
         achieved_goal_key=achieved_goal_key,
@@ -286,17 +183,14 @@ def experiment(variant):
         **variant['trainer_kwargs']
     )
     trainer = ClothSacHERTrainer(trainer)
-    algorithm = TorchAsyncBatchRLAlgorithm(
+
+    algorithm = TorchBatchRLAlgorithm(
         trainer=trainer,
         exploration_env=expl_env,
         evaluation_env=eval_env,
         exploration_data_collector=expl_path_collector,
         evaluation_data_collector=eval_path_collector,
         replay_buffer=replay_buffer,
-        batch_queue=batch_queue,
-        policy_weights_queue=policy_weights_queue,
-        new_policy_event=new_policy_event,
-        batch_processed_event=batch_processed_event,
         **variant['algorithm_kwargs']
     )
     algorithm.to(ptu.device)
@@ -304,8 +198,7 @@ def experiment(variant):
     pprint(threadpool_info())
     with mujoco_py.ignore_mujoco_warnings():
         algorithm.train()
-
-    process.join()
+        
     return eval_policy
 
 
@@ -335,7 +228,6 @@ if __name__ == "__main__":
     variant['version'] = args.title
     variant['image_training'] = bool(args.image_training)
     variant['vec_env'] = bool(args.vec_env)
-    variant['num_processes'] = int(args.num_processes)
 
     variant['algorithm_kwargs'] = dict(
         num_epochs=args.num_epochs,
@@ -399,8 +291,8 @@ if __name__ == "__main__":
     setup_logger(file_path, variant=variant)
 
     if bool(args.cprofile):
-        with threadpool_limits(limits=1):
-            cProfile.run('experiment(variant)', file_path +'-stats')
+        #with threadpool_limits(limits=1):
+        cProfile.run('experiment(variant)', file_path +'-stats')
     else:
         trained_policy = experiment(variant)
         torch.save(trained_policy.state_dict(), file_path +'.mdl')
