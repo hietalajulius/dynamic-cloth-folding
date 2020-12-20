@@ -1,19 +1,9 @@
-import rlkit.torch.pytorch_util as ptu
-from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
-from rlkit.samplers.data_collector import MdpPathCollector
-from rlkit.samplers.data_collector import GoalConditionedPathCollector, KeyPathCollector
-from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, MonsterTanhCNNGaussianPolicy
-from rlkit.torch.sac.sac import SACTrainer
-from rlkit.torch.her.her import ClothSacHERTrainer
-from rlkit.torch.networks import ConcatMlp, MergedCNN
-from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
-from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
+from rlkit.samplers.data_collector import KeyPathCollector
+from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy
 import gym
-import mujoco_py
 import argparse
-import torch.nn as nn
 import torch
 import cProfile
 
