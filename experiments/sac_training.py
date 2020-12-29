@@ -41,9 +41,7 @@ def experiment(variant):
     action_dim = eval_env.action_space.low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
 
-    observation_key = 'observation'
     desired_goal_key = 'desired_goal'
-
     achieved_goal_key = desired_goal_key.replace("desired", "achieved")
 
     M = variant['layer_size']
@@ -128,9 +126,9 @@ def experiment(variant):
         reward_function=reward_function,
         ob_spaces=ob_spaces,
         action_space=action_space,
-        observation_key='observation',
-        desired_goal_key='desired_goal',
-        achieved_goal_key='achieved_goal',
+        observation_key=path_collector_observation_key,
+        desired_goal_key=desired_goal_key,
+        achieved_goal_key=achieved_goal_key,
         **variant['replay_buffer_kwargs']
     )
 
@@ -179,6 +177,7 @@ if __name__ == "__main__":
     setup_logger(file_path, variant=variant)
 
     if bool(args.cprofile):
+        print("Profiling with cProfile")
         cProfile.run('experiment(variant)', file_path + '-stats')
     else:
         trained_policy = experiment(variant)

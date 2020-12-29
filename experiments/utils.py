@@ -21,6 +21,7 @@ def argsparser():
     parser.add_argument('--batch_size', type=int, default=256)
 
     # Replay buffer
+    # HER 0.8 from paper
     parser.add_argument('--her_percent', default=0.0, type=float)
     parser.add_argument('--buffer_size', default=1E5, type=int)
 
