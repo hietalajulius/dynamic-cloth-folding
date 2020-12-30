@@ -130,6 +130,8 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
     )
     print("Created path collector")
 
+    steps_per_rollout = variant['algorithm_kwargs']['max_path_length'] * \
+        variant['num_processes']
     while True:
         if new_policy_event.wait():
             state_dict = policy_weights_queue.get()
@@ -141,7 +143,7 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
         # Keep collecting paths even without new policy
         paths = expl_path_collector.collect_new_paths(
             variant['algorithm_kwargs']['max_path_length'],
-            1,
+            steps_per_rollout,
             discard_incomplete_paths=False,
         )
         path_queue.put(paths)
