@@ -23,14 +23,14 @@ def argsparser():
     # Replay buffer
     # HER 0.8 from paper
     parser.add_argument('--her_percent', default=0.0, type=float)
-    parser.add_argument('--buffer_size', default=1E5, type=int)
+    parser.add_argument('--buffer_size', default=1E6, type=int)
 
     # Collection
     parser.add_argument('--max_path_length', default=50, type=int)
 
     # Env
     parser.add_argument('--env_name', type=str, default="Cloth-v1")
-    parser.add_argument('--n_substeps', type=int, default=40)
+    parser.add_argument('--n_substeps', type=int, default=4)
     parser.add_argument('--seed', type=int, default=1)
 
     parser.add_argument('--task', type=str, default="diagonal_1")

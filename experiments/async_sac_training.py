@@ -237,6 +237,7 @@ def experiment(variant):
         variant, batch_queue, path_queue, batch_processed_event, paths_available_event, keys, ptu.device, dims))
     replay_buffer_process.start()
 
+    # TODO: Add eval path collection
     trainer = SACTrainer(
         policy_target_entropy=policy_target_entropy,
         policy=policy,
