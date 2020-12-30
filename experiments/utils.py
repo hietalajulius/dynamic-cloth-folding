@@ -29,6 +29,8 @@ def argsparser():
     parser.add_argument('--max_path_length', default=50, type=int)
 
     # Env
+    parser.add_argument('--debug_render_success', type=int, default=0)
+
     parser.add_argument('--env_name', type=str, default="Cloth-v1")
     parser.add_argument('--n_substeps', type=int, default=4)
     parser.add_argument('--seed', type=int, default=1)
@@ -115,6 +117,7 @@ def get_variant(args):
     )
 
     variant['env_kwargs'] = dict(
+        debug_render_success=bool(args.debug_render_success),
         constraints=task_definitions.constraints[args.task],
         sparse_dense=bool(args.sparse_dense),
         pixels=bool(args.image_training),

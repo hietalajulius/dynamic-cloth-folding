@@ -2,7 +2,7 @@ from utils import argsparser, get_variant
 import rlkit.torch.pytorch_util as ptu
 from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
-from rlkit.samplers.data_collector import VectorizedKeyPathCollector
+from rlkit.samplers.data_collector import VectorizedKeyPathCollector, KeyPathCollector
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.her.cloth.her import ClothSacHERTrainer
@@ -14,7 +14,9 @@ import mujoco_py
 import torch
 from rlkit.envs.wrappers import SubprocVecEnv
 from gym.logger import set_level
-from multiprocessing import set_start_method, Queue
+
+# TODO: Back to regular multiprocessing if fails
+from torch.multiprocessing import set_start_method, Queue, Value
 import torch.multiprocessing as multiprocessing
 from rlkit.torch.core import np_to_pytorch_batch_explicit_device
 import os
@@ -81,11 +83,12 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
                 replay_buffer.add_paths(copied_paths)
                 paths_available_event.clear()
                 paths_initted = True
-                print("Added new paths to buffer, memory usage",
-                      process.memory_info().rss/10E9, "GB")
+
+                # TODO: Use for memory debug
+                # print("Added new paths to buffer, memory usage",process.memory_info().rss/10E9, "GB")
 
 
-def collector(variant, path_queue, policy_weights_queue, paths_available_event, new_policy_event, keys, dims):
+def collector(variant, path_queue, policy_weights_queue, paths_available_event, new_policy_event, keys, dims, num_collected_steps):
     process = psutil.Process(os.getpid())
     print("Collector process PID", process)
 
@@ -96,10 +99,7 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
     vec_env.seed(variant['env_kwargs']['random_seed'])
     image_training = variant['image_training']
 
-    if image_training:
-        path_collector_observation_key = 'image'
-    else:
-        path_collector_observation_key = keys['observation_key']
+    path_collector_observation_key = keys['observation_key']
 
     new_policy_event.wait()
 
@@ -130,10 +130,6 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
     )
     print("Created path collector")
 
-    collected_items = 0
-    # Each collector 1 episode before getting new policy
-    steps_per_request = variant['algorithm_kwargs']['max_path_length'] * \
-        variant['num_processes']
     while True:
         if new_policy_event.wait():
             state_dict = policy_weights_queue.get()
@@ -142,45 +138,52 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
 
             policy.load_state_dict(local_state_dict)
 
-            paths = expl_path_collector.collect_new_paths(
-                variant['algorithm_kwargs']['max_path_length'],
-                steps_per_request,
-                discard_incomplete_paths=False,
-            )
-            path_queue.put(paths)
-            paths_available_event.set()
+        # Keep collecting paths even without new policy
+        paths = expl_path_collector.collect_new_paths(
+            variant['algorithm_kwargs']['max_path_length'],
+            1,
+            discard_incomplete_paths=False,
+        )
+        path_queue.put(paths)
+        paths_available_event.set()
 
-            new_policy_event.clear()
-            collected_items += steps_per_request
-            print("Added new paths, collected steps so far:", collected_items)
-            print("Memory usage in collector",
-                  process.memory_info().rss/10E9, "GB")
+        new_policy_event.clear()
+
+        num_collected_steps.value = expl_path_collector._num_steps_total
+
+        # TODO: Use for memory debug
+        # print("Added new paths, collected steps so far:", collected_items)
+        # print("Memory usage in collector",process.memory_info().rss/10E9, "GB")
 
 
 def experiment(variant):
     tracemalloc.start()
     print("PID of main process", os.getpid())
 
-    dim_env = NormalizedBoxEnv(
+    eval_env = NormalizedBoxEnv(
         gym.make(variant['env_name'], **variant['env_kwargs']))
 
     image_training = variant['image_training']
 
-    obs_dim = dim_env.observation_space.spaces['observation'].low.size
-    robot_obs_dim = dim_env.observation_space.spaces['robot_observation'].low.size
-    model_params_dim = dim_env.observation_space.spaces['model_params'].low.size
-    action_dim = dim_env.action_space.low.size
-    goal_dim = dim_env.observation_space.spaces['desired_goal'].low.size
+    obs_dim = eval_env.observation_space.spaces['observation'].low.size
+    robot_obs_dim = eval_env.observation_space.spaces['robot_observation'].low.size
+    model_params_dim = eval_env.observation_space.spaces['model_params'].low.size
+    action_dim = eval_env.action_space.low.size
+    goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
 
     policy_target_entropy = -np.prod(
-        dim_env.action_space.shape).item()
+        eval_env.action_space.shape).item()
 
     dims = dict(obs_dim=obs_dim, robot_obs_dim=robot_obs_dim,
                 model_params_dim=model_params_dim, action_dim=action_dim, goal_dim=goal_dim)
-    del dim_env
+
+    if image_training:
+        path_collector_observation_key = 'image'
+    else:
+        path_collector_observation_key = 'observation'
 
     keys = dict(desired_goal_key='desired_goal',
-                observation_key='observation', achieved_goal_key="achieved_goal")
+                observation_key=path_collector_observation_key, achieved_goal_key="achieved_goal")
 
     M = variant['layer_size']
 
@@ -218,8 +221,6 @@ def experiment(variant):
             **variant['policy_kwargs']
         )
 
-    eval_policy = MakeDeterministic(policy)
-
     set_start_method(START_METHOD)
     batch_queue = Queue()
     path_queue = Queue()
@@ -229,8 +230,10 @@ def experiment(variant):
     paths_available_event = multiprocessing.Event()
     new_policy_event = multiprocessing.Event()
 
+    num_collected_steps = Value('d', 0.0)
+
     collector_process = multiprocessing.Process(target=collector, args=(
-        variant, path_queue, policy_weights_queue, paths_available_event, new_policy_event, keys, dims))
+        variant, path_queue, policy_weights_queue, paths_available_event, new_policy_event, keys, dims, num_collected_steps))
     collector_process.start()
 
     replay_buffer_process = multiprocessing.Process(target=buffer, args=(
@@ -248,12 +251,28 @@ def experiment(variant):
         **variant['trainer_kwargs']
     )
     trainer = ClothSacHERTrainer(trainer)
+
+    eval_policy = MakeDeterministic(policy)
+
+    eval_path_collector = KeyPathCollector(
+        eval_env,
+        eval_policy,
+        render=True,
+        render_kwargs=dict(
+            mode='rgb_array', image_capture=True, width=500, height=500),
+        observation_key=keys['observation_key'],
+        desired_goal_key=keys['desired_goal_key'],
+        **variant['path_collector_kwargs']
+    )
+
     algorithm = TorchAsyncBatchRLAlgorithm(
         trainer=trainer,
         batch_queue=batch_queue,
         policy_weights_queue=policy_weights_queue,
         new_policy_event=new_policy_event,
         batch_processed_event=batch_processed_event,
+        evaluation_data_collector=eval_path_collector,
+        num_collected_steps=num_collected_steps,
         **variant['algorithm_kwargs']
     )
 
