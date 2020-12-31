@@ -29,18 +29,19 @@ def experiment(variant):
     expl_env = NormalizedBoxEnv(
         gym.make(variant['env_name'], **variant['env_kwargs']))
 
-    image_training = variant['image_training']
-    if image_training:
-        path_collector_observation_key = 'image'
-    else:
-        path_collector_observation_key = 'observation'
-
     obs_dim = expl_env.observation_space.spaces['observation'].low.size
     robot_obs_dim = expl_env.observation_space.spaces['robot_observation'].low.size
     model_params_dim = expl_env.observation_space.spaces['model_params'].low.size
     action_dim = eval_env.action_space.low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
 
+    image_training = variant['image_training']
+    if image_training:
+        path_collector_observation_key = 'image'
+    else:
+        path_collector_observation_key = 'observation'
+
+    observation_key = 'observation'
     desired_goal_key = 'desired_goal'
     achieved_goal_key = desired_goal_key.replace("desired", "achieved")
 
@@ -126,7 +127,7 @@ def experiment(variant):
         reward_function=reward_function,
         ob_spaces=ob_spaces,
         action_space=action_space,
-        observation_key=path_collector_observation_key,
+        observation_key=observation_key,  # Image key passed in additional keys
         desired_goal_key=desired_goal_key,
         achieved_goal_key=achieved_goal_key,
         **variant['replay_buffer_kwargs']

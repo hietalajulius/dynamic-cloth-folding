@@ -15,7 +15,6 @@ import torch
 from rlkit.envs.wrappers import SubprocVecEnv
 from gym.logger import set_level
 
-# TODO: Back to regular multiprocessing if fails
 from torch.multiprocessing import set_start_method, Queue, Value
 import torch.multiprocessing as multiprocessing
 from rlkit.torch.core import np_to_pytorch_batch_explicit_device
@@ -30,7 +29,7 @@ START_METHOD = "forkserver"
 set_level(50)
 
 
-def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_available_event, keys, device, dims):
+def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_available_event, keys, device):
     process = psutil.Process(os.getpid())
     print("Buffer process PID", process)
     replay_buf_env = NormalizedBoxEnv(
@@ -176,6 +175,7 @@ def experiment(variant):
     policy_target_entropy = -np.prod(
         eval_env.action_space.shape).item()
 
+    # Image training does not require obs dims
     dims = dict(obs_dim=obs_dim, robot_obs_dim=robot_obs_dim,
                 model_params_dim=model_params_dim, action_dim=action_dim, goal_dim=goal_dim)
 
@@ -184,8 +184,11 @@ def experiment(variant):
     else:
         path_collector_observation_key = 'observation'
 
-    keys = dict(desired_goal_key='desired_goal',
-                observation_key=path_collector_observation_key, achieved_goal_key="achieved_goal")
+    collector_keys = dict(desired_goal_key='desired_goal',
+                          observation_key=path_collector_observation_key, achieved_goal_key="achieved_goal")
+
+    buffer_keys = dict(desired_goal_key='desired_goal',
+                       observation_key='observation', achieved_goal_key="achieved_goal")
 
     M = variant['layer_size']
 
@@ -235,11 +238,11 @@ def experiment(variant):
     num_collected_steps = Value('d', 0.0)
 
     collector_process = multiprocessing.Process(target=collector, args=(
-        variant, path_queue, policy_weights_queue, paths_available_event, new_policy_event, keys, dims, num_collected_steps))
+        variant, path_queue, policy_weights_queue, paths_available_event, new_policy_event, collector_keys, dims, num_collected_steps))
     collector_process.start()
 
     replay_buffer_process = multiprocessing.Process(target=buffer, args=(
-        variant, batch_queue, path_queue, batch_processed_event, paths_available_event, keys, ptu.device, dims))
+        variant, batch_queue, path_queue, batch_processed_event, paths_available_event, buffer_keys, ptu.device))
     replay_buffer_process.start()
 
     # TODO: Add eval path collection
@@ -262,8 +265,8 @@ def experiment(variant):
         render=True,
         render_kwargs=dict(
             mode='rgb_array', image_capture=True, width=500, height=500),
-        observation_key=keys['observation_key'],
-        desired_goal_key=keys['desired_goal_key'],
+        observation_key=collector_keys['observation_key'],
+        desired_goal_key=collector_keys['desired_goal_key'],
         **variant['path_collector_kwargs']
     )
 
