@@ -1,7 +1,7 @@
 import rlkit.torch.pytorch_util as ptu
 from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
-from rlkit.samplers.data_collector import KeyPathCollector, VectorizedKeyPathCollector
+from rlkit.samplers.data_collector import KeyPathCollector, EvalKeyPathCollector, VectorizedKeyPathCollector
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.her.cloth.her import ClothSacHERTrainer
@@ -83,7 +83,9 @@ def experiment(variant):
         )
 
     eval_policy = MakeDeterministic(policy)
-    eval_path_collector = KeyPathCollector(
+
+    # TODO: Most kwargs below a bit redundant
+    eval_path_collector = EvalKeyPathCollector(
         eval_env,
         eval_policy,
         render=True,
