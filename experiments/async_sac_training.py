@@ -29,7 +29,7 @@ START_METHOD = "forkserver"
 set_level(50)
 
 
-def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_available_event, keys, device):
+def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_available_event, keys, device, buffer_memory_usage):
     process = psutil.Process(os.getpid())
     print("Buffer process PID", process)
     replay_buf_env = NormalizedBoxEnv(
@@ -83,18 +83,18 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
                 paths_available_event.clear()
                 paths_initted = True
 
-                # TODO: Use for memory debug
-                # print("Added new paths to buffer, memory usage",process.memory_info().rss/10E9, "GB")
+                buffer_memory_usage.value = process.memory_info().rss/10E9
 
 
-def collector(variant, path_queue, policy_weights_queue, paths_available_event, new_policy_event, keys, dims, num_collected_steps):
+def collector(variant, path_queue, policy_weights_queue, paths_available_event, new_policy_event, keys, dims, num_collected_steps, collector_memory_usage, env_memory_usages):
     process = psutil.Process(os.getpid())
     print("Collector process PID", process)
 
     def make_env():
         return NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
     env_fns = [make_env for _ in range(variant['num_processes'])]
-    vec_env = SubprocVecEnv(env_fns, start_method=START_METHOD)
+    vec_env = SubprocVecEnv(env_fns, env_memory_usages,
+                            start_method=START_METHOD)
     vec_env.seed(variant['env_kwargs']['random_seed'])
     image_training = variant['image_training']
 
@@ -138,6 +138,8 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
             del state_dict
 
             policy.load_state_dict(local_state_dict)
+
+            collector_memory_usage.value = process.memory_info().rss/10E9
 
         # Keep collecting paths even without new policy
         paths = expl_path_collector.collect_new_paths(
@@ -237,12 +239,18 @@ def experiment(variant):
 
     num_collected_steps = Value('d', 0.0)
 
+    collector_memory_usage = Value('d', 0.0)
+    buffer_memory_usage = Value('d', 0.0)
+
+    env_memory_usages = [Value('d', 0.0)
+                         for _ in range(variant['num_processes'])]
+
     collector_process = multiprocessing.Process(target=collector, args=(
-        variant, path_queue, policy_weights_queue, paths_available_event, new_policy_event, collector_keys, dims, num_collected_steps))
+        variant, path_queue, policy_weights_queue, paths_available_event, new_policy_event, collector_keys, dims, num_collected_steps, collector_memory_usage, env_memory_usages))
     collector_process.start()
 
     replay_buffer_process = multiprocessing.Process(target=buffer, args=(
-        variant, batch_queue, path_queue, batch_processed_event, paths_available_event, buffer_keys, ptu.device))
+        variant, batch_queue, path_queue, batch_processed_event, paths_available_event, buffer_keys, ptu.device, buffer_memory_usage))
     replay_buffer_process.start()
 
     # TODO: Add eval path collection
@@ -278,6 +286,9 @@ def experiment(variant):
         batch_processed_event=batch_processed_event,
         evaluation_data_collector=eval_path_collector,
         num_collected_steps=num_collected_steps,
+        buffer_memory_usage=buffer_memory_usage,
+        collector_memory_usage=collector_memory_usage,
+        env_memory_usages=env_memory_usages,
         **variant['algorithm_kwargs']
     )
 
