@@ -108,6 +108,7 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
         policy = TanhCNNGaussianPolicy(
             output_size=dims['action_dim'],
             added_fc_input_size=dims['robot_obs_dim'] + dims['goal_dim'],
+            aux_output_size=12,
             **variant['policy_kwargs'],
         )
     else:
@@ -217,6 +218,7 @@ def experiment(variant):
     if image_training:
         policy = TanhCNNGaussianPolicy(
             output_size=action_dim,
+            aux_output_size=12,
             added_fc_input_size=robot_obs_dim + goal_dim,
             **variant['policy_kwargs'],
         )

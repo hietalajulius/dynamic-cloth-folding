@@ -71,6 +71,7 @@ def experiment(variant):
         policy = TanhCNNGaussianPolicy(
             output_size=action_dim,
             added_fc_input_size=robot_obs_dim + goal_dim,
+            aux_output_size=12,
             **variant['policy_kwargs'],
         )
     else:
