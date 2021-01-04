@@ -1,7 +1,7 @@
 import rlkit.torch.pytorch_util as ptu
 from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
-from rlkit.samplers.data_collector import KeyPathCollector, EvalKeyPathCollector, VectorizedKeyPathCollector
+from rlkit.samplers.data_collector import KeyPathCollector, EvalKeyPathCollector, VectorizedKeyPathCollector, PresetEvalKeyPathCollector
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.her.cloth.her import ClothSacHERTrainer
@@ -96,6 +96,14 @@ def experiment(variant):
         **variant['path_collector_kwargs']
     )
 
+    preset_eval_path_collector = PresetEvalKeyPathCollector(
+        eval_env,
+        eval_policy,
+        observation_key=path_collector_observation_key,
+        desired_goal_key=desired_goal_key,
+        **variant['path_collector_kwargs']
+    )
+
     if variant['num_processes'] > 1:
         print("Vectorized path collection")
 
@@ -156,6 +164,7 @@ def experiment(variant):
         evaluation_env=eval_env,
         exploration_data_collector=expl_path_collector,
         evaluation_data_collector=eval_path_collector,
+        preset_evaluation_data_collector=preset_eval_path_collector,
         replay_buffer=replay_buffer,
         **variant['algorithm_kwargs']
     )

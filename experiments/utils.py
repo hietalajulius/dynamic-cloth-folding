@@ -15,9 +15,11 @@ def argsparser():
     # Train
     parser.add_argument('--train_steps', default=1000, type=int)
     parser.add_argument('--num_epochs', default=100, type=int)
+    parser.add_argument('--save_policy_every_epoch', default=10, type=int)
     parser.add_argument('--num_cycles', default=100, type=int)
     parser.add_argument('--min_expl_steps', type=int, default=0)
     parser.add_argument('--num_eval_rollouts', type=int, default=5)
+    parser.add_argument('--num_eval_param_buckets', type=int, default=5)
     parser.add_argument('--batch_size', type=int, default=256)
 
     # Replay buffer
@@ -107,6 +109,8 @@ def get_variant(args):
         num_train_loops_per_epoch=int(args.num_cycles),
         max_path_length=int(args.max_path_length),
         num_eval_rollouts_per_epoch=args.num_eval_rollouts,
+        num_eval_param_buckets=args.num_eval_param_buckets,
+        save_policy_every_epoch=args.save_policy_every_epoch,
         min_num_steps_before_training=args.min_expl_steps,
         batch_size=args.batch_size,
     )
