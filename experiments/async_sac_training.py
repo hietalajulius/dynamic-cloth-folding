@@ -2,7 +2,7 @@ from utils import argsparser, get_variant
 import rlkit.torch.pytorch_util as ptu
 from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
-from rlkit.samplers.data_collector import VectorizedKeyPathCollector, KeyPathCollector, EvalKeyPathCollector
+from rlkit.samplers.data_collector import VectorizedKeyPathCollector, KeyPathCollector, EvalKeyPathCollector, PresetEvalKeyPathCollector
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.her.cloth.her import ClothSacHERTrainer
@@ -281,6 +281,14 @@ def experiment(variant):
         **variant['path_collector_kwargs']
     )
 
+    preset_eval_path_collector = PresetEvalKeyPathCollector(
+        eval_env,
+        eval_policy,
+        observation_key=collector_keys['observation_key'],
+        desired_goal_key=collector_keys['desired_goal_key'],
+        **variant['path_collector_kwargs']
+    )
+
     algorithm = TorchAsyncBatchRLAlgorithm(
         trainer=trainer,
         batch_queue=batch_queue,
@@ -288,6 +296,7 @@ def experiment(variant):
         new_policy_event=new_policy_event,
         batch_processed_event=batch_processed_event,
         evaluation_data_collector=eval_path_collector,
+        preset_evaluation_data_collector=preset_eval_path_collector,
         num_collected_steps=num_collected_steps,
         buffer_memory_usage=buffer_memory_usage,
         collector_memory_usage=collector_memory_usage,
