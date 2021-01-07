@@ -21,6 +21,7 @@ def argsparser():
     parser.add_argument('--num_eval_rollouts', type=int, default=5)
     parser.add_argument('--num_eval_param_buckets', type=int, default=5)
     parser.add_argument('--batch_size', type=int, default=256)
+    parser.add_argument('--debug_same_batch', type=int, default=0)
 
     # Replay buffer
     # HER 0.8 from paper
@@ -113,6 +114,7 @@ def get_variant(args):
         save_policy_every_epoch=args.save_policy_every_epoch,
         min_num_steps_before_training=args.min_expl_steps,
         batch_size=args.batch_size,
+        debug_same_batch=bool(args.debug_same_batch)
     )
 
     variant['replay_buffer_kwargs'] = dict(
