@@ -28,7 +28,6 @@ experiments/.ipynb_checkpoints
 /experiments/archive/data.pkl
 /experiments/archive/version
 /experiments/async-stats
-/experiments/current_policy.mdl
 /experiments/her-sac-validation-newrange-3cm-run-1-stats
 /experiments/her-sac-validation-newrange-run-1-stats
 /experiments/her-sac-validation-run-1-stats
