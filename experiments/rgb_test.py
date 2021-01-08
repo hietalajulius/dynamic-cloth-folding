@@ -2,7 +2,7 @@ import numpy as np
 from rlkit.envs.wrappers import NormalizedBoxEnv
 from utils import argsparser, get_variant
 import gym
-from rlkit.samplers.data_collector import PresetEvalKeyPathCollector
+from rlkit.samplers.data_collector import PresetEvalKeyPathCollector, EvalKeyPathCollector
 from rlkit.torch.sac.policies import TanhCNNGaussianPolicy, MakeDeterministic
 import torch
 
@@ -34,25 +34,38 @@ def experiment(variant):
         **variant['policy_kwargs'],
     )
 
-    device = torch.device('cpu')
+    #device = torch.device('cpu')
 
     policy.load_state_dict(torch.load(
-        'current_policy.mdl', map_location=device))
+        'current_policy.mdl'))
 
     eval_policy = MakeDeterministic(policy)
 
-    preset_eval_path_collector = PresetEvalKeyPathCollector(
+    eval_path_collector = EvalKeyPathCollector(
         eval_env,
         eval_policy,
         render=True,
+        render_kwargs=dict(
+            mode='rgb_array', image_capture=True, width=500, height=500),
         observation_key=path_collector_observation_key,
         desired_goal_key=desired_goal_key,
         **variant['path_collector_kwargs']
     )
 
-    preset_eval_path_collector.collect_new_paths(
+    preset_eval_path_collector = PresetEvalKeyPathCollector(
+        eval_env,
+        eval_policy,
+        render=True,
+        render_kwargs=dict(
+            mode='rgb_array', image_capture=True, width=500, height=500),
+        observation_key=path_collector_observation_key,
+        desired_goal_key=desired_goal_key,
+        **variant['path_collector_kwargs']
+    )
+
+    eval_path_collector.collect_new_paths(
         100,
-        10
+        1
     )
 
 

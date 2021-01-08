@@ -1,6 +1,5 @@
 experiments/images
 .DS_Store
-experiments/tblogs
 experiments/logs
 experiments/.ipynb_checkpoints
 /experiments/MUJOCO_LOG.TXT
