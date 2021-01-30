@@ -52,7 +52,11 @@ def argsparser():
     parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.02))
     parser.add_argument('--max_advance', type=float, default=0.05)
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    file = open("sample.txt", "w")
+    file.write(str(args.__dict__))
+    return args
 
 
 def display_top(snapshot, key_type='lineno', limit=10):
