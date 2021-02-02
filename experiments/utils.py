@@ -16,7 +16,7 @@ def argsparser():
     parser.add_argument('--train_steps', default=1000, type=int)
     parser.add_argument('--num_epochs', default=100, type=int)
     parser.add_argument('--save_policy_every_epoch', default=10, type=int)
-    parser.add_argument('--num_cycles', default=100, type=int)
+    parser.add_argument('--num_cycles', default=20, type=int)
     parser.add_argument('--min_expl_steps', type=int, default=0)
     parser.add_argument('--num_eval_rollouts', type=int, default=5)
     parser.add_argument('--num_eval_param_buckets', type=int, default=5)
@@ -25,8 +25,8 @@ def argsparser():
 
     # Replay buffer
     # HER 0.8 from paper
-    parser.add_argument('--her_percent', default=0.0, type=float)
-    parser.add_argument('--buffer_size', default=1E6, type=int)
+    parser.add_argument('--her_percent', default=0.8, type=float)
+    parser.add_argument('--buffer_size', default=1E5, type=int)
 
     # Collection
     parser.add_argument('--max_path_length', default=50, type=int)
@@ -34,23 +34,27 @@ def argsparser():
     # Env
     parser.add_argument('--debug_render_success', type=int, default=0)
 
-    parser.add_argument('--env_name', type=str, default="Cloth-v1")
-    parser.add_argument('--n_substeps', type=int, default=4)
+    parser.add_argument('--env_name', type=str, default="Franka-v1")
+    parser.add_argument('--ctrl_frequency', type=int, default=10)
     parser.add_argument('--seed', type=int, default=1)
 
-    parser.add_argument('--task', type=str, default="diagonal_1")
+    parser.add_argument('--task', type=str, default="diagonal_franka_1")
     parser.add_argument('--velocity_in_obs', type=int, default=1)
 
     parser.add_argument('--image_training', default=0, type=int)
-    parser.add_argument('--image_size', type=int, default=84)
+    parser.add_argument('--image_size', type=int, default=100)
 
     parser.add_argument('--randomize_params', type=int, default=0)
     parser.add_argument('--randomize_geoms', type=int, default=0)
     parser.add_argument('--uniform_jnt_tend', type=int, default=1)
 
-    parser.add_argument('--sparse_dense', type=int, default=0)
+    parser.add_argument('--sparse_dense', type=int, default=1)
     parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.02))
     parser.add_argument('--max_advance', type=float, default=0.05)
+
+    # XML model / env
+    parser.add_argument('--finger_type', type=str, default="3dprinted")
+    parser.add_argument('--model_timestep', type=float, default=0.01)
 
     return parser.parse_args()
 
@@ -95,7 +99,7 @@ def get_variant(args):
         path_collector_kwargs=dict(),
         policy_kwargs=dict(),
         replay_buffer_kwargs=dict(),
-        algorithm_kwargs=dict(),
+        algorithm_kwargs=dict()
     )
 
     variant['env_name'] = args.env_name
@@ -122,6 +126,8 @@ def get_variant(args):
         fraction_goals_rollout_goals=1 - args.her_percent
     )
 
+    n_substeps = int(1/(args.ctrl_frequency*args.model_timestep))
+    print("N subs", n_substeps)
     variant['env_kwargs'] = dict(
         debug_render_success=bool(args.debug_render_success),
         constraints=task_definitions.constraints[args.task],
@@ -134,8 +140,11 @@ def get_variant(args):
         image_size=args.image_size,
         max_advance=args.max_advance,
         random_seed=args.seed,
-        n_substeps=args.n_substeps,
-        velocity_in_obs=int(args.velocity_in_obs)
+        n_substeps=n_substeps,
+        velocity_in_obs=int(args.velocity_in_obs),
+        template_kwargs=dict(  # No effect for non Franka env
+            finger_type=args.finger_type,
+            model_timestep=float(args.model_timestep))
     )
 
     if args.image_training:

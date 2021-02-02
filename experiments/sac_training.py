@@ -90,25 +90,28 @@ def experiment(variant):
         eval_policy,
         render=True,
         render_kwargs=dict(
-            mode='rgb_array', image_capture=True, width=500, height=500),
+            mode='rgb_array', image_capture=True, width=1000, height=1000),
         observation_key=path_collector_observation_key,
         desired_goal_key=desired_goal_key,
         **variant['path_collector_kwargs']
     )
 
-    preset_eval_path_collector = PresetEvalKeyPathCollector(
-        eval_env,
-        eval_policy,
-        observation_key=path_collector_observation_key,
-        desired_goal_key=desired_goal_key,
-        **variant['path_collector_kwargs']
-    )
+    if variant['env_kwargs']['randomize_params']:
+        preset_eval_path_collector = PresetEvalKeyPathCollector(
+            eval_env,
+            eval_policy,
+            observation_key=path_collector_observation_key,
+            desired_goal_key=desired_goal_key,
+            **variant['path_collector_kwargs']
+        )
+    else:
+        preset_eval_path_collector = None
 
     if variant['num_processes'] > 1:
         print("Vectorized path collection")
 
         def make_env():
-            return NormalizedBoxEnv(gym.make('Cloth-v1', **variant['env_kwargs']))
+            return NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
         env_fns = [make_env for _ in range(variant['num_processes'])]
         vec_env = SubprocVecEnv(env_fns)
         vec_env.seed(variant['env_kwargs']['random_seed'])
