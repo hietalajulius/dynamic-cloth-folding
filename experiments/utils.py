@@ -56,7 +56,11 @@ def argsparser():
     parser.add_argument('--finger_type', type=str, default="3dprinted")
     parser.add_argument('--model_timestep', type=float, default=0.01)
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    file = open("sample.txt", "w")
+    file.write(str(args.__dict__))
+    return args
 
 
 def display_top(snapshot, key_type='lineno', limit=10):

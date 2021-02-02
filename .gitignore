@@ -1,6 +1,7 @@
 experiments/images
 experiments/tblogs
 experiments/current_policy.mdl
+experiments/sample.txt
 .DS_Store
 experiments/logs
 experiments/.ipynb_checkpoints
