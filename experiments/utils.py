@@ -4,7 +4,19 @@ import argparse
 from gym.envs.robotics import task_definitions
 from panda_gym.gym_envs.utils import env_field
 #env = gym.make('Franka-v1', constraints=task_definitions.constraints['diagonal_1'])
+import os
 
+if os.environ['USER'] == 'hietalj4':
+    print("Host paniikki")
+    os.environ["FRANKA_TEMPLATE_PATH"] = '/m/home/home0/06/hietalj4/unix/robotics/panda-gym/panda_gym/franka_sim/templates'
+    os.environ["FRANKA_MESH_PATH"] = '/m/home/home0/06/hietalj4/unix/robotics/panda-gym/panda_gym/franka_sim/meshes'
+elif os.environ['USER'] == 'clothmanip':
+    os.environ["FRANKA_TEMPLATE_PATH"] = '/home/clothmanip/robotics/panda-gym/panda_gym/franka_sim/templates'
+    os.environ["FRANKA_MESH_PATH"] = '/home/clothmanip/robotics/panda-gym/panda_gym/franka_sim/meshes'
+else:
+    print("Host mac")
+    os.environ["FRANKA_TEMPLATE_PATH"] = '/Users/juliushietala/robotics/panda-gym/panda_gym/franka_sim/templates'
+    os.environ["FRANKA_MESH_PATH"] = '/Users/juliushietala/robotics/panda-gym/panda_gym/franka_sim/meshes'
 
 def argsparser():
     parser = argparse.ArgumentParser("Parser")
