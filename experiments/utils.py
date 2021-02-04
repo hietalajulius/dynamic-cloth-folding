@@ -2,6 +2,8 @@ import tracemalloc
 import linecache
 import argparse
 from gym.envs.robotics import task_definitions
+from panda_gym.gym_envs.utils import env_field
+#env = gym.make('Franka-v1', constraints=task_definitions.constraints['diagonal_1'])
 
 
 def argsparser():
@@ -34,11 +36,12 @@ def argsparser():
     # Env
     parser.add_argument('--debug_render_success', type=int, default=0)
 
-    parser.add_argument('--env_name', type=str, default="Franka-v1")
-    parser.add_argument('--ctrl_frequency', type=int, default=10)
+    parser.add_argument('--env_name', type=str,
+                        default="PandaClothJointPosDeltaVelLP4FixedGoal-v0")
+    parser.add_argument('--ctrl_frequency', type=int, default=5)
     parser.add_argument('--seed', type=int, default=1)
 
-    parser.add_argument('--task', type=str, default="diagonal_franka_1")
+    parser.add_argument('--task', type=str, default="sideways_franka_1")
     parser.add_argument('--velocity_in_obs', type=int, default=1)
 
     parser.add_argument('--image_training', default=0, type=int)
@@ -52,7 +55,7 @@ def argsparser():
     parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.02))
     parser.add_argument('--max_advance', type=float, default=0.05)
 
-    # XML model / env
+    # XML model / env TODO: merge these better with panda-gym
     parser.add_argument('--finger_type', type=str, default="3dprinted")
     parser.add_argument('--model_timestep', type=float, default=0.01)
 
@@ -133,7 +136,7 @@ def get_variant(args):
     n_substeps = int(1/(args.ctrl_frequency*args.model_timestep))
     print("N subs", n_substeps)
     variant['env_kwargs'] = dict(
-        debug_render_success=bool(args.debug_render_success),
+        # debug_render_success=bool(args.debug_render_success),
         constraints=task_definitions.constraints[args.task],
         sparse_dense=bool(args.sparse_dense),
         pixels=bool(args.image_training),
@@ -142,13 +145,12 @@ def get_variant(args):
         randomize_geoms=bool(args.randomize_geoms),
         uniform_jnt_tend=bool(args.uniform_jnt_tend),
         image_size=args.image_size,
-        max_advance=args.max_advance,
+        # max_advance=args.max_advance,
         random_seed=args.seed,
-        n_substeps=n_substeps,
+        # n_substeps=n_substeps,
         velocity_in_obs=int(args.velocity_in_obs),
-        template_kwargs=dict(  # No effect for non Franka env
-            finger_type=args.finger_type,
-            model_timestep=float(args.model_timestep))
+        repeat_kwargs=dict(num=n_substeps, start_value=env_field(
+            "joint_pos"))  # TODO: slight spaghetti
     )
 
     if args.image_training:

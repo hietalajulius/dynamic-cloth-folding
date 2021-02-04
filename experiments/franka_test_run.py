@@ -19,7 +19,7 @@ while True:
         print(i)
         # action = np.random.uniform(-10, 10, (7,))
         action = -np.zeros(7)
-        action = -np.ones(7)
+        #action = -np.ones(7)
         #action[3] = 0.075
 
         ret = env1.step(action)
