@@ -18,6 +18,7 @@ else:
     os.environ["FRANKA_TEMPLATE_PATH"] = '/Users/juliushietala/robotics/panda-gym/panda_gym/franka_sim/templates'
     os.environ["FRANKA_MESH_PATH"] = '/Users/juliushietala/robotics/panda-gym/panda_gym/franka_sim/meshes'
 
+
 def argsparser():
     parser = argparse.ArgumentParser("Parser")
     # Generic
@@ -32,7 +33,7 @@ def argsparser():
     parser.add_argument('--save_policy_every_epoch', default=10, type=int)
     parser.add_argument('--num_cycles', default=20, type=int)
     parser.add_argument('--min_expl_steps', type=int, default=0)
-    parser.add_argument('--num_eval_rollouts', type=int, default=5)
+    parser.add_argument('--num_eval_rollouts', type=int, default=1)
     parser.add_argument('--num_eval_param_buckets', type=int, default=5)
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--debug_same_batch', type=int, default=0)
@@ -49,11 +50,12 @@ def argsparser():
     parser.add_argument('--debug_render_success', type=int, default=0)
 
     parser.add_argument('--env_name', type=str,
-                        default="PandaClothJointPosDeltaVelLP4FixedGoal-v0")
+                        default="ClothDeltaPos-v0")
+    # TODO: only applies to old envs
     parser.add_argument('--ctrl_frequency', type=int, default=5)
     parser.add_argument('--seed', type=int, default=1)
 
-    parser.add_argument('--task', type=str, default="sideways_franka_1")
+    parser.add_argument('--task', type=str, default="diagonal_franka_1")
     parser.add_argument('--velocity_in_obs', type=int, default=1)
 
     parser.add_argument('--image_training', default=0, type=int)
@@ -145,10 +147,9 @@ def get_variant(args):
         fraction_goals_rollout_goals=1 - args.her_percent
     )
 
-    n_substeps = int(1/(args.ctrl_frequency*args.model_timestep))
-    print("N subs", n_substeps)
+    #n_substeps = int(1/(args.ctrl_frequency*args.model_timestep))
+
     variant['env_kwargs'] = dict(
-        # debug_render_success=bool(args.debug_render_success),
         constraints=task_definitions.constraints[args.task],
         sparse_dense=bool(args.sparse_dense),
         pixels=bool(args.image_training),
@@ -157,12 +158,8 @@ def get_variant(args):
         randomize_geoms=bool(args.randomize_geoms),
         uniform_jnt_tend=bool(args.uniform_jnt_tend),
         image_size=args.image_size,
-        # max_advance=args.max_advance,
         random_seed=args.seed,
-        # n_substeps=n_substeps,
-        velocity_in_obs=int(args.velocity_in_obs),
-        repeat_kwargs=dict(num=n_substeps, start_value=env_field(
-            "joint_pos"))  # TODO: slight spaghetti
+        velocity_in_obs=int(args.velocity_in_obs)
     )
 
     if args.image_training:
