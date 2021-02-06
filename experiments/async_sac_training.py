@@ -23,6 +23,7 @@ import psutil
 import copy
 import tracemalloc
 import numpy as np
+import pickle
 
 
 START_METHOD = "forkserver"
@@ -38,36 +39,40 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
     ob_spaces = copy.deepcopy(replay_buf_env.observation_space.spaces)
     action_space = copy.deepcopy(replay_buf_env.action_space)
     del replay_buf_env  # TODO: Pass spaces and reward function from main process
-    replay_buffer = FutureObsDictRelabelingBuffer(
-        reward_function=reward_function,
-        ob_spaces=ob_spaces,
-        action_space=action_space,
-        observation_key=keys['observation_key'],
-        desired_goal_key=keys['desired_goal_key'],
-        achieved_goal_key=keys['achieved_goal_key'],
-        **variant['replay_buffer_kwargs']
-    )
+    # TODO: Parametrize this
+    load_existing_buffer = False
+    if load_existing_buffer:
+        with open('async_policy/buffer_data.pkl', 'rb') as inp:
+            replay_buffer = pickle.load(inp)
+            print("LOADED BUFFER", replay_buffer._size)
+    else:
+        replay_buffer = FutureObsDictRelabelingBuffer(
+            ob_spaces=ob_spaces,
+            action_space=action_space,
+            observation_key=keys['observation_key'],
+            desired_goal_key=keys['desired_goal_key'],
+            achieved_goal_key=keys['achieved_goal_key'],
+            **variant['replay_buffer_kwargs']
+        )
+    replay_buffer.set_reward_function(reward_function)
 
-    paths_initted = False
-    buffer_initted = False
+    paths_available_event.wait()
+    paths = path_queue.get()
+    print("GOT INITIAL PATHS")
+    copied_paths = copy.deepcopy(paths)
+    del paths
+    replay_buffer.add_paths(copied_paths)
+    paths_available_event.clear()
+    batch = replay_buffer.random_batch(
+        variant['algorithm_kwargs']['batch_size'])
+    batch = np_to_pytorch_batch_explicit_device(batch, device)
+    batch_queue.put(batch)
+    print("INSERTED INITIAL BATCH")
 
+    # TODO: Parametrize this and sync with policy saves
+    save_every_addition = 100
+    additions = 0
     while True:
-        if paths_available_event.is_set() and not paths_initted:
-            paths = path_queue.get()
-            copied_paths = copy.deepcopy(paths)
-            del paths
-            replay_buffer.add_paths(copied_paths)
-            paths_available_event.clear()
-            paths_initted = True
-
-        if paths_initted and not buffer_initted:
-            batch = replay_buffer.random_batch(
-                variant['algorithm_kwargs']['batch_size'])
-            batch = np_to_pytorch_batch_explicit_device(batch, device)
-            batch_queue.put(batch)
-            print("Initted buffer queue")
-            buffer_initted = True
-
         if batch_processed_event.is_set():
             batch = replay_buffer.random_batch(
                 variant['algorithm_kwargs']['batch_size'])
@@ -81,7 +86,14 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
                 del paths
                 replay_buffer.add_paths(copied_paths)
                 paths_available_event.clear()
-                paths_initted = True
+                if additions % save_every_addition == 0:
+                    replay_buffer.set_reward_function(None)
+                    with open('async_policy/buffer_data.pkl', 'wb') as outp:
+                        pickle.dump(replay_buffer, outp,
+                                    pickle.HIGHEST_PROTOCOL)
+                        print("DUMPED buffer")
+                    replay_buffer.set_reward_function(reward_function)
+                additions += 1
 
                 buffer_memory_usage.value = process.memory_info().rss/10E9
 
@@ -255,7 +267,6 @@ def experiment(variant):
         variant, batch_queue, path_queue, batch_processed_event, paths_available_event, buffer_keys, ptu.device, buffer_memory_usage))
     replay_buffer_process.start()
 
-    # TODO: Add eval path collection
     trainer = SACTrainer(
         policy_target_entropy=policy_target_entropy,
         policy=policy,
@@ -265,7 +276,21 @@ def experiment(variant):
         target_qf2=target_qf2,
         **variant['trainer_kwargs']
     )
+
     trainer = ClothSacHERTrainer(trainer)
+
+    load_existing = False  # TODO: parametrize
+    if load_existing:
+        policy.load_state_dict(torch.load('async_policy/current_policy.mdl'))
+        trainer._base_trainer.alpha_optimizer.load_state_dict(
+            torch.load('async_policy/current_alpha_optimizer.mdl'))
+        trainer._base_trainer.policy_optimizer.load_state_dict(
+            torch.load('async_policy/current_policy_optimizer.mdl'))
+        trainer._base_trainer.qf1_optimizer.load_state_dict(
+            torch.load('async_policy/current_qf1_optimizer.mdl'))
+        trainer._base_trainer.qf2_optimizer.load_state_dict(
+            torch.load('async_policy/current_qf2_optimizer.mdl'))
+        print("LOADED EXISTING POLICY")
 
     eval_policy = MakeDeterministic(policy)
 

@@ -138,7 +138,6 @@ def experiment(variant):
     ob_spaces = copy.deepcopy(eval_env.observation_space.spaces)
     action_space = copy.deepcopy(eval_env.action_space)
     replay_buffer = FutureObsDictRelabelingBuffer(
-        reward_function=reward_function,
         ob_spaces=ob_spaces,
         action_space=action_space,
         observation_key=observation_key,  # Image key passed in additional keys
@@ -146,6 +145,7 @@ def experiment(variant):
         achieved_goal_key=achieved_goal_key,
         **variant['replay_buffer_kwargs']
     )
+    replay_buffer.set_reward_function(reward_function)
 
     policy_target_entropy = -np.prod(
         eval_env.action_space.shape).item()

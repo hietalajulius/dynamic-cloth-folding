@@ -34,7 +34,7 @@ def argsparser():
     parser.add_argument('--num_cycles', default=20, type=int)
     parser.add_argument('--min_expl_steps', type=int, default=0)
     parser.add_argument('--num_eval_rollouts', type=int, default=1)
-    parser.add_argument('--num_eval_param_buckets', type=int, default=5)
+    parser.add_argument('--num_eval_param_buckets', type=int, default=1)
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--debug_same_batch', type=int, default=0)
 
