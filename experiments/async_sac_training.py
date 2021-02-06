@@ -24,6 +24,8 @@ import copy
 import tracemalloc
 import numpy as np
 import pickle
+from rlkit.core import logger, eval_util
+from torch.utils.tensorboard import SummaryWriter
 
 
 START_METHOD = "forkserver"
@@ -102,6 +104,8 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
     process = psutil.Process(os.getpid())
     print("Collector process PID", process)
 
+    setup_logger(variant['file_path'], variant=variant)
+
     def make_env():
         return NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
     env_fns = [make_env for _ in range(variant['num_processes'])]
@@ -144,6 +148,11 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
 
     steps_per_rollout = variant['algorithm_kwargs']['max_path_length'] * \
         variant['num_processes']
+
+    # TODO: parametrize this and sync with train epochs
+    path_batches_collected = 0
+    log_exploration_batches_every = 1
+    writer = SummaryWriter(log_dir='tblogs/'+logger._prefixes[0])
     while True:
         if new_policy_event.wait():
             state_dict = policy_weights_queue.get()
@@ -160,6 +169,24 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
             steps_per_rollout,
             discard_incomplete_paths=False,
         )
+        if path_batches_collected % log_exploration_batches_every == 0:
+            expl_paths = expl_path_collector.get_epoch_paths()
+            writer.add_scalar('env/acceleration_penalty', eval_util.get_generic_path_information(
+                expl_paths)['env_infos/final/acceleration_penalty Mean'], path_batches_collected)
+            writer.add_scalar('env/velocity_penalty', eval_util.get_generic_path_information(
+                expl_paths)['env_infos/final/velocity_penalty Mean'], path_batches_collected)
+            writer.add_scalar('env/position_penalty', eval_util.get_generic_path_information(
+                expl_paths)['env_infos/final/position_penalty Mean'], path_batches_collected)
+
+            writer.add_scalar('env/acceleration_violations', eval_util.get_generic_path_information(
+                expl_paths)['env_infos/acceleration_over_limit Mean'], path_batches_collected)
+            writer.add_scalar('env/velocity_violations', eval_util.get_generic_path_information(
+                expl_paths)['env_infos/velocity_over_limit Mean'], path_batches_collected)
+            writer.add_scalar('env/position_violations', eval_util.get_generic_path_information(
+                expl_paths)['env_infos/position_over_limit Mean'], path_batches_collected)
+            expl_path_collector.end_epoch(path_batches_collected)
+        path_batches_collected += 1
+
         path_queue.put(paths)
         paths_available_event.set()
 
@@ -351,6 +378,8 @@ if __name__ == "__main__":
         print("Training with CPU")
 
     file_path = args.title + "-run-" + str(args.run)
+    # TODO: remove hack
+    variant['file_path'] = file_path
     setup_logger(file_path, variant=variant)
 
     trained_policy = experiment(variant)
