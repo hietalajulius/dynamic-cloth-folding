@@ -47,25 +47,20 @@ def argsparser():
     parser.add_argument('--max_path_length', default=50, type=int)
 
     # Env
-    parser.add_argument('--debug_render_success', type=int, default=0)
-
-    parser.add_argument('--env_name', type=str,
-                        default="ClothDeltaPos-v0")
+    parser.add_argument('--env_name', type=str, required=True)
     parser.add_argument('--env_type', type=str, required=True)
-    # TODO: only applies to old envs
-    parser.add_argument('--ctrl_frequency', type=int, default=5)
+
+    # NOTE: only applies to some envs
+    parser.add_argument('--debug_render_success', type=int, default=0)
+    parser.add_argument('--ctrl_frequency', type=int, default=10)
     parser.add_argument('--seed', type=int, default=1)
-
-    parser.add_argument('--task', type=str, default="diagonal_franka_1")
+    parser.add_argument('--task', type=str, default="sideways_3")
     parser.add_argument('--velocity_in_obs', type=int, default=1)
-
     parser.add_argument('--image_training', default=0, type=int)
     parser.add_argument('--image_size', type=int, default=100)
-
     parser.add_argument('--randomize_params', type=int, default=0)
     parser.add_argument('--randomize_geoms', type=int, default=0)
     parser.add_argument('--uniform_jnt_tend', type=int, default=1)
-
     parser.add_argument('--sparse_dense', type=int, default=1)
     parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.02))
     parser.add_argument('--max_advance', type=float, default=0.05)
@@ -150,8 +145,6 @@ def get_variant(args):
         fraction_goals_rollout_goals=1 - args.her_percent
     )
 
-    #n_substeps = int(1/(args.ctrl_frequency*args.model_timestep))
-
     if variant['env_type'] == 'panda_gym_reach':
         variant['env_kwargs'] = dict()
     elif variant['env_type'] == 'panda_gym_franka':
@@ -165,10 +158,12 @@ def get_variant(args):
             uniform_jnt_tend=bool(args.uniform_jnt_tend),
             image_size=args.image_size,
             random_seed=args.seed,
-            velocity_in_obs=int(args.velocity_in_obs)
+            velocity_in_obs=bool(args.velocity_in_obs)
         )
-    elif variant['env_type'] == 'gym_cloth' or variant['env_type'] == 'gym_franka':
+    elif variant['env_type'] == 'gym':
+        n_substeps = int(1/(args.ctrl_frequency*args.model_timestep))
         variant['env_kwargs'] = dict(
+            n_substeps=n_substeps,
             constraints=task_definitions.constraints[args.task],
             sparse_dense=bool(args.sparse_dense),
             pixels=bool(args.image_training),
@@ -178,7 +173,7 @@ def get_variant(args):
             uniform_jnt_tend=bool(args.uniform_jnt_tend),
             image_size=args.image_size,
             random_seed=args.seed,
-            velocity_in_obs=int(args.velocity_in_obs)
+            velocity_in_obs=bool(args.velocity_in_obs)
         )
     else:
         raise ValueError("Incorrect env_type provided")
