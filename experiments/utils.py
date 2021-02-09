@@ -51,6 +51,7 @@ def argsparser():
 
     parser.add_argument('--env_name', type=str,
                         default="ClothDeltaPos-v0")
+    parser.add_argument('--env_type', type=str, required=True)
     # TODO: only applies to old envs
     parser.add_argument('--ctrl_frequency', type=int, default=5)
     parser.add_argument('--seed', type=int, default=1)
@@ -124,6 +125,8 @@ def get_variant(args):
     )
 
     variant['env_name'] = args.env_name
+    variant['env_type'] = args.env_type
+    variant['random_seed'] = args.seed
     variant['version'] = args.title
     variant['image_training'] = bool(args.image_training)
     variant['num_processes'] = int(args.num_processes)
@@ -149,18 +152,36 @@ def get_variant(args):
 
     #n_substeps = int(1/(args.ctrl_frequency*args.model_timestep))
 
-    variant['env_kwargs'] = dict(
-        constraints=task_definitions.constraints[args.task],
-        sparse_dense=bool(args.sparse_dense),
-        pixels=bool(args.image_training),
-        goal_noise_range=tuple(args.goal_noise_range),
-        randomize_params=bool(args.randomize_params),
-        randomize_geoms=bool(args.randomize_geoms),
-        uniform_jnt_tend=bool(args.uniform_jnt_tend),
-        image_size=args.image_size,
-        random_seed=args.seed,
-        velocity_in_obs=int(args.velocity_in_obs)
-    )
+    if variant['env_type'] == 'panda_gym_reach':
+        variant['env_kwargs'] = dict()
+    elif variant['env_type'] == 'panda_gym_franka':
+        variant['env_kwargs'] = dict(
+            constraints=task_definitions.constraints[args.task],
+            sparse_dense=bool(args.sparse_dense),
+            pixels=bool(args.image_training),
+            goal_noise_range=tuple(args.goal_noise_range),
+            randomize_params=bool(args.randomize_params),
+            randomize_geoms=bool(args.randomize_geoms),
+            uniform_jnt_tend=bool(args.uniform_jnt_tend),
+            image_size=args.image_size,
+            random_seed=args.seed,
+            velocity_in_obs=int(args.velocity_in_obs)
+        )
+    elif variant['env_type'] == 'gym_cloth' or variant['env_type'] == 'gym_franka':
+        variant['env_kwargs'] = dict(
+            constraints=task_definitions.constraints[args.task],
+            sparse_dense=bool(args.sparse_dense),
+            pixels=bool(args.image_training),
+            goal_noise_range=tuple(args.goal_noise_range),
+            randomize_params=bool(args.randomize_params),
+            randomize_geoms=bool(args.randomize_geoms),
+            uniform_jnt_tend=bool(args.uniform_jnt_tend),
+            image_size=args.image_size,
+            random_seed=args.seed,
+            velocity_in_obs=int(args.velocity_in_obs)
+        )
+    else:
+        raise ValueError("Incorrect env_type provided")
 
     if args.image_training:
         channels = 1
@@ -177,11 +198,20 @@ def get_variant(args):
         )
         variant['path_collector_kwargs']['additional_keys'] = [
             'robot_observation']
-        variant['replay_buffer_kwargs']['internal_keys'] = [
-            'image', 'model_params', 'robot_observation']
+        if not args.env_type == 'panda_gym_reach':
+            variant['replay_buffer_kwargs']['internal_keys'] = [
+                'image', 'model_params', 'robot_observation']
+        else:
+            variant['replay_buffer_kwargs']['internal_keys'] = [
+                'image']
 
     else:
-        variant['path_collector_kwargs']['additional_keys'] = ['model_params']
-        variant['replay_buffer_kwargs']['internal_keys'] = ['model_params']
+        if not args.env_type == 'panda_gym_reach':
+            variant['path_collector_kwargs']['additional_keys'] = [
+                'model_params']
+            variant['replay_buffer_kwargs']['internal_keys'] = ['model_params']
+        else:
+            variant['path_collector_kwargs']['additional_keys'] = []
+            variant['replay_buffer_kwargs']['internal_keys'] = []
 
     return variant
