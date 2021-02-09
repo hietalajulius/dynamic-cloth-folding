@@ -151,7 +151,7 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
 
     # TODO: parametrize this and sync with train epochs
     path_batches_collected = 0
-    log_exploration_batches_every = 1
+    log_exploration_batches_every = 100
     writer = SummaryWriter(log_dir='tblogs/'+logger._prefixes[0])
     while True:
         if new_policy_event.wait():
