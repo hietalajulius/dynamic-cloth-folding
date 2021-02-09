@@ -30,10 +30,22 @@ def experiment(variant):
         gym.make(variant['env_name'], **variant['env_kwargs']))
 
     obs_dim = expl_env.observation_space.spaces['observation'].low.size
-    robot_obs_dim = expl_env.observation_space.spaces['robot_observation'].low.size
-    model_params_dim = expl_env.observation_space.spaces['model_params'].low.size
-    action_dim = eval_env.action_space.low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
+    action_dim = eval_env.action_space.low.size
+
+    if 'model_params' in expl_env.observation_space.spaces:
+        model_params_dim = expl_env.observation_space.spaces['model_params'].low.size
+        policy_obs_dim = obs_dim + model_params_dim + goal_dim
+        value_input_size = obs_dim + action_dim + model_params_dim + goal_dim
+    else:
+        policy_obs_dim = obs_dim + goal_dim
+        value_input_size = obs_dim + action_dim + goal_dim
+
+    if 'robot_obs' in expl_env.observation_space.spaces:
+        robot_obs_dim = expl_env.observation_space.spaces['robot_observation'].low.size
+        added_fc_input_size = robot_obs_dim + goal_dim
+    else:
+        added_fc_input_size = goal_dim
 
     image_training = variant['image_training']
     if image_training:
@@ -48,35 +60,35 @@ def experiment(variant):
     M = variant['layer_size']
 
     qf1 = ConcatMlp(
-        input_size=obs_dim + action_dim + model_params_dim + goal_dim,
+        input_size=value_input_size,
         output_size=1,
         hidden_sizes=[M, M],
     )
     qf2 = ConcatMlp(
-        input_size=obs_dim + action_dim + model_params_dim + goal_dim,
+        input_size=value_input_size,
         output_size=1,
         hidden_sizes=[M, M],
     )
     target_qf1 = ConcatMlp(
-        input_size=obs_dim + action_dim + model_params_dim + goal_dim,
+        input_size=value_input_size,
         output_size=1,
         hidden_sizes=[M, M],
     )
     target_qf2 = ConcatMlp(
-        input_size=obs_dim + action_dim + model_params_dim + goal_dim,
+        input_size=value_input_size,
         output_size=1,
         hidden_sizes=[M, M],
     )
     if image_training:
         policy = TanhCNNGaussianPolicy(
             output_size=action_dim,
-            added_fc_input_size=robot_obs_dim + goal_dim,
+            added_fc_input_size=added_fc_input_size,
             aux_output_size=12,
             **variant['policy_kwargs'],
         )
     else:
         policy = TanhGaussianPolicy(
-            obs_dim=obs_dim + model_params_dim + goal_dim,
+            obs_dim=policy_obs_dim,
             action_dim=action_dim,
             hidden_sizes=[M, M],
             **variant['policy_kwargs']
@@ -96,7 +108,7 @@ def experiment(variant):
         **variant['path_collector_kwargs']
     )
 
-    if variant['env_kwargs']['randomize_params']:
+    if 'randomize_params' in variant['env_kwargs'].keys() and variant['env_kwargs']['randomize_params']:
         preset_eval_path_collector = PresetEvalKeyPathCollector(
             eval_env,
             eval_policy,
@@ -114,7 +126,7 @@ def experiment(variant):
             return NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
         env_fns = [make_env for _ in range(variant['num_processes'])]
         vec_env = SubprocVecEnv(env_fns)
-        vec_env.seed(variant['env_kwargs']['random_seed'])
+        vec_env.seed(variant['random_seed'])
 
         expl_path_collector = VectorizedKeyPathCollector(
             vec_env,
