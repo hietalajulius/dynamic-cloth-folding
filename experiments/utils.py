@@ -173,7 +173,8 @@ def get_variant(args):
             uniform_jnt_tend=bool(args.uniform_jnt_tend),
             image_size=args.image_size,
             random_seed=args.seed,
-            velocity_in_obs=bool(args.velocity_in_obs)
+            velocity_in_obs=bool(args.velocity_in_obs),
+            max_advance=float(args.max_advance)
         )
     else:
         raise ValueError("Incorrect env_type provided")
