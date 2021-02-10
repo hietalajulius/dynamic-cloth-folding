@@ -199,13 +199,14 @@ def get_variant(args):
                 'image', 'model_params', 'robot_observation']
         else:
             variant['replay_buffer_kwargs']['internal_keys'] = [
-                'image']
+                'image', 'robot_observation']
 
     else:
         if not args.env_type == 'panda_gym_reach':
             variant['path_collector_kwargs']['additional_keys'] = [
-                'model_params']
-            variant['replay_buffer_kwargs']['internal_keys'] = ['model_params']
+                'robot_observation']
+            variant['replay_buffer_kwargs']['internal_keys'] = [
+                'model_params', 'robot_observation']
         else:
             variant['path_collector_kwargs']['additional_keys'] = []
             variant['replay_buffer_kwargs']['internal_keys'] = []

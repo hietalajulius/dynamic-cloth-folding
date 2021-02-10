@@ -2,7 +2,7 @@ import rlkit.torch.pytorch_util as ptu
 from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import KeyPathCollector, EvalKeyPathCollector, VectorizedKeyPathCollector, PresetEvalKeyPathCollector
-from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy
+from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, GaussianPolicy, GaussianCNNPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.her.cloth.her import ClothSacHERTrainer
 from rlkit.torch.networks import ConcatMlp
@@ -32,26 +32,29 @@ def experiment(variant):
     obs_dim = expl_env.observation_space.spaces['observation'].low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
     action_dim = eval_env.action_space.low.size
+    policy_obs_dim = obs_dim + goal_dim
+    value_input_size = obs_dim + action_dim + goal_dim
+    added_fc_input_size = goal_dim
 
     if 'model_params' in expl_env.observation_space.spaces:
         model_params_dim = expl_env.observation_space.spaces['model_params'].low.size
-        policy_obs_dim = obs_dim + model_params_dim + goal_dim
-        value_input_size = obs_dim + action_dim + model_params_dim + goal_dim
-    else:
-        policy_obs_dim = obs_dim + goal_dim
-        value_input_size = obs_dim + action_dim + goal_dim
+        value_input_size += model_params_dim
 
-    if 'robot_obs' in expl_env.observation_space.spaces:
+    if 'robot_observation' in expl_env.observation_space.spaces:
         robot_obs_dim = expl_env.observation_space.spaces['robot_observation'].low.size
-        added_fc_input_size = robot_obs_dim + goal_dim
-    else:
-        added_fc_input_size = goal_dim
+        policy_obs_dim += robot_obs_dim
+        value_input_size += robot_obs_dim
+        added_fc_input_size += robot_obs_dim
 
     image_training = variant['image_training']
     if image_training:
         path_collector_observation_key = 'image'
     else:
         path_collector_observation_key = 'observation'
+
+    print("POL obs dim", policy_obs_dim)
+    print("VAL INP SIZE", value_input_size)
+    print("OBS DIMS", obs_dim, goal_dim, action_dim)
 
     observation_key = 'observation'
     desired_goal_key = 'desired_goal'
@@ -79,20 +82,42 @@ def experiment(variant):
         output_size=1,
         hidden_sizes=[M, M],
     )
+
+    use_tanh = False
     if image_training:
-        policy = TanhCNNGaussianPolicy(
-            output_size=action_dim,
-            added_fc_input_size=added_fc_input_size,
-            aux_output_size=12,
-            **variant['policy_kwargs'],
-        )
+        if use_tanh:
+            policy = TanhCNNGaussianPolicy(
+                output_size=action_dim,
+                added_fc_input_size=added_fc_input_size,
+                aux_output_size=12,
+                **variant['policy_kwargs'],
+            )
+        else:
+            policy = GaussianCNNPolicy(
+                output_size=action_dim,
+                added_fc_input_size=added_fc_input_size,
+                aux_output_size=12,
+                max_log_std=0,
+                min_log_std=-7,
+                **variant['policy_kwargs'],
+            )
     else:
-        policy = TanhGaussianPolicy(
-            obs_dim=policy_obs_dim,
-            action_dim=action_dim,
-            hidden_sizes=[M, M],
-            **variant['policy_kwargs']
-        )
+        if use_tanh:
+            policy = TanhGaussianPolicy(
+                obs_dim=policy_obs_dim,
+                action_dim=action_dim,
+                hidden_sizes=[M, M],
+                **variant['policy_kwargs']
+            )
+        else:
+            policy = GaussianPolicy(
+                obs_dim=policy_obs_dim,
+                action_dim=action_dim,
+                hidden_sizes=[M, M],
+                max_log_std=0,
+                min_log_std=-7,
+                **variant['policy_kwargs']
+            )
 
     eval_policy = MakeDeterministic(policy)
 
