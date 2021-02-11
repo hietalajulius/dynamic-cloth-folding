@@ -31,14 +31,14 @@ def experiment(variant):
         options = {}
         options["env_name"] = "Cloth"
         options["robots"] = "Panda"
-        controller_name = "OSC_POSE"
-        #controller_name = "IK_POSE"
+        #controller_name = "OSC_POSE"
+        controller_name = "IK_POSE"
         options["controller_configs"] = load_controller_config(
             default_controller=controller_name)
         options["controller_configs"]["interpolation"] = "linear"
         env = suite.make(
             **options,
-            has_renderer=True,
+            has_renderer=False,
             has_offscreen_renderer=False,
             ignore_done=True,
             use_camera_obs=False,
@@ -108,7 +108,7 @@ def experiment(variant):
         hidden_sizes=[M, M],
     )
 
-    use_tanh = False
+    use_tanh = True
     if image_training:
         if use_tanh:
             policy = TanhCNNGaussianPolicy(
@@ -179,14 +179,14 @@ def experiment(variant):
             options = {}
             options["env_name"] = "Cloth"
             options["robots"] = "Panda"
-            controller_name = "OSC_POSE"
-            #controller_name = "IK_POSE"
+            #controller_name = "OSC_POSE"
+            controller_name = "IK_POSE"
             options["controller_configs"] = load_controller_config(
                 default_controller=controller_name)
             options["controller_configs"]["interpolation"] = "linear"
             env = suite.make(
                 **options,
-                has_renderer=True,
+                has_renderer=False,
                 has_offscreen_renderer=False,
                 ignore_done=True,
                 use_camera_obs=False,
