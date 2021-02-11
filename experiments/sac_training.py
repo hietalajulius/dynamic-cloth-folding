@@ -19,15 +19,40 @@ from utils import get_variant, argsparser
 import numpy as np
 import copy
 
+from robosuite.controllers import load_controller_config
+from robosuite.utils.input_utils import *
+
 
 set_level(50)
 
 
 def experiment(variant):
-    eval_env = NormalizedBoxEnv(
-        gym.make(variant['env_name'], **variant['env_kwargs']))
-    expl_env = NormalizedBoxEnv(
-        gym.make(variant['env_name'], **variant['env_kwargs']))
+    if variant['env_type'] == 'robosuite':
+        options = {}
+        options["env_name"] = "Cloth"
+        options["robots"] = "Panda"
+        controller_name = "OSC_POSE"
+        #controller_name = "IK_POSE"
+        options["controller_configs"] = load_controller_config(
+            default_controller=controller_name)
+        options["controller_configs"]["interpolation"] = "linear"
+        env = suite.make(
+            **options,
+            has_renderer=True,
+            has_offscreen_renderer=False,
+            ignore_done=True,
+            use_camera_obs=False,
+            control_freq=10,
+            constraints=variant['env_kwargs']['constraints']
+        )
+
+        eval_env = NormalizedBoxEnv(env)
+        expl_env = NormalizedBoxEnv(env)
+    else:
+        eval_env = NormalizedBoxEnv(
+            gym.make(variant['env_name'], **variant['env_kwargs']))
+        expl_env = NormalizedBoxEnv(
+            gym.make(variant['env_name'], **variant['env_kwargs']))
 
     obs_dim = expl_env.observation_space.spaces['observation'].low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
@@ -149,7 +174,31 @@ def experiment(variant):
 
         def make_env():
             return NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
-        env_fns = [make_env for _ in range(variant['num_processes'])]
+
+        def make_suite_env():
+            options = {}
+            options["env_name"] = "Cloth"
+            options["robots"] = "Panda"
+            controller_name = "OSC_POSE"
+            #controller_name = "IK_POSE"
+            options["controller_configs"] = load_controller_config(
+                default_controller=controller_name)
+            options["controller_configs"]["interpolation"] = "linear"
+            env = suite.make(
+                **options,
+                has_renderer=True,
+                has_offscreen_renderer=False,
+                ignore_done=True,
+                use_camera_obs=False,
+                control_freq=10,
+                constraints=variant['env_kwargs']['constraints']
+            )
+            return NormalizedBoxEnv(env)
+
+        if variant['env_type'] == 'robosuite':
+            env_fns = [make_suite_env for _ in range(variant['num_processes'])]
+        else:
+            env_fns = [make_env for _ in range(variant['num_processes'])]
         vec_env = SubprocVecEnv(env_fns)
         vec_env.seed(variant['random_seed'])
 

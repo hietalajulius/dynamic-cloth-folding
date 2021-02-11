@@ -176,6 +176,10 @@ def get_variant(args):
             velocity_in_obs=bool(args.velocity_in_obs),
             max_advance=float(args.max_advance)
         )
+    elif variant['env_type'] == 'robosuite':
+        variant['env_kwargs'] = dict(
+            constraints=task_definitions.constraints[args.task]
+        )
     else:
         raise ValueError("Incorrect env_type provided")
 
