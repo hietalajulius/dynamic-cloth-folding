@@ -26,26 +26,28 @@ from robosuite.utils.input_utils import *
 set_level(50)
 
 
+def get_robosuite_env(variant):
+    options = {}
+    options["env_name"] = variant["env_name"]
+    options["robots"] = "Panda"
+    controller_name = variant["ctrl_name"]
+    options["controller_configs"] = load_controller_config(
+        default_controller=controller_name)
+    options["controller_configs"]["interpolation"] = "linear"
+    env = suite.make(
+        **options,
+        **variant['env_kwargs'],
+        has_renderer=False,
+        has_offscreen_renderer=False,
+        ignore_done=True,
+        use_camera_obs=False,
+    )
+    return env
+
+
 def experiment(variant):
     if variant['env_type'] == 'robosuite':
-        options = {}
-        options["env_name"] = "Cloth"
-        options["robots"] = "Panda"
-        #controller_name = "OSC_POSE"
-        controller_name = "IK_POSE"
-        options["controller_configs"] = load_controller_config(
-            default_controller=controller_name)
-        options["controller_configs"]["interpolation"] = "linear"
-        env = suite.make(
-            **options,
-            has_renderer=False,
-            has_offscreen_renderer=False,
-            ignore_done=True,
-            use_camera_obs=False,
-            control_freq=10,
-            constraints=variant['env_kwargs']['constraints']
-        )
-
+        env = get_robosuite_env(variant)
         eval_env = NormalizedBoxEnv(env)
         expl_env = NormalizedBoxEnv(env)
     else:
@@ -76,10 +78,6 @@ def experiment(variant):
         path_collector_observation_key = 'image'
     else:
         path_collector_observation_key = 'observation'
-
-    print("POL obs dim", policy_obs_dim)
-    print("VAL INP SIZE", value_input_size)
-    print("OBS DIMS", obs_dim, goal_dim, action_dim)
 
     observation_key = 'observation'
     desired_goal_key = 'desired_goal'
@@ -176,23 +174,7 @@ def experiment(variant):
             return NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
 
         def make_suite_env():
-            options = {}
-            options["env_name"] = "Cloth"
-            options["robots"] = "Panda"
-            #controller_name = "OSC_POSE"
-            controller_name = "IK_POSE"
-            options["controller_configs"] = load_controller_config(
-                default_controller=controller_name)
-            options["controller_configs"]["interpolation"] = "linear"
-            env = suite.make(
-                **options,
-                has_renderer=False,
-                has_offscreen_renderer=False,
-                ignore_done=True,
-                use_camera_obs=False,
-                control_freq=10,
-                constraints=variant['env_kwargs']['constraints']
-            )
+            env = get_robosuite_env(variant)
             return NormalizedBoxEnv(env)
 
         if variant['env_type'] == 'robosuite':

@@ -51,8 +51,10 @@ def argsparser():
     parser.add_argument('--env_type', type=str, required=True)
 
     # NOTE: only applies to some envs
+    parser.add_argument('--ctrl_name', type=str, default="OSC_POSE")
+    parser.add_argument('--max_action', type=float, default=1.)
     parser.add_argument('--debug_render_success', type=int, default=0)
-    parser.add_argument('--ctrl_frequency', type=int, default=10)
+    parser.add_argument('--control_freq', type=int, default=10)
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--task', type=str, default="sideways_3")
     parser.add_argument('--velocity_in_obs', type=int, default=1)
@@ -161,7 +163,7 @@ def get_variant(args):
             velocity_in_obs=bool(args.velocity_in_obs)
         )
     elif variant['env_type'] == 'gym':
-        n_substeps = int(1/(args.ctrl_frequency*args.model_timestep))
+        n_substeps = int(1/(args.control_freq*args.model_timestep))
         variant['env_kwargs'] = dict(
             n_substeps=n_substeps,
             constraints=task_definitions.constraints[args.task],
@@ -178,8 +180,11 @@ def get_variant(args):
         )
     elif variant['env_type'] == 'robosuite':
         variant['env_kwargs'] = dict(
-            constraints=task_definitions.constraints[args.task]
+            max_action=float(args.max_action),
+            constraints=task_definitions.constraints[args.task],
+            control_freq=int(args.control_freq)
         )
+        variant['ctrl_name'] = str(args.ctrl_name)
     else:
         raise ValueError("Incorrect env_type provided")
 
