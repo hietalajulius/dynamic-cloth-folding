@@ -180,9 +180,18 @@ def get_variant(args):
         )
     elif variant['env_type'] == 'robosuite':
         variant['env_kwargs'] = dict(
+            sparse_dense=bool(args.sparse_dense),
             max_action=float(args.max_action),
             constraints=task_definitions.constraints[args.task],
-            control_freq=int(args.control_freq)
+            control_freq=int(args.control_freq),
+            pixels=bool(args.image_training),
+            goal_noise_range=tuple(args.goal_noise_range),
+            randomize_params=bool(args.randomize_params),
+            randomize_geoms=bool(args.randomize_geoms),
+            uniform_jnt_tend=bool(args.uniform_jnt_tend),
+            image_size=args.image_size,
+            random_seed=args.seed,
+            velocity_in_obs=bool(args.velocity_in_obs)
         )
         variant['ctrl_name'] = str(args.ctrl_name)
     else:
