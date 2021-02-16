@@ -47,8 +47,8 @@ def argsparser():
     parser.add_argument('--max_path_length', default=50, type=int)
 
     # Env
-    parser.add_argument('--env_name', type=str, required=False)
-    parser.add_argument('--env_type', type=str, required=True)
+    parser.add_argument('--env_name', type=str, default="Cloth")
+    parser.add_argument('--env_type', type=str, default="robosuite")
 
     # NOTE: only applies to some envs
     parser.add_argument('--ctrl_name', type=str, default="OSC_POSE")

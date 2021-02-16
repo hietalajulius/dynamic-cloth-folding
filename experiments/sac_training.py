@@ -21,9 +21,22 @@ import copy
 
 from robosuite.controllers import load_controller_config
 from robosuite.utils.input_utils import *
+from robosuite.wrappers import DomainRandomizationWrapper
+
+import robosuite.utils.macros as macros
 
 
 set_level(50)
+
+DEFAULT_CAMERA_ARGS = {
+    'camera_names': None,  # all cameras are randomized
+    'randomize_position': True,
+    'randomize_rotation': True,
+    'randomize_fovy': True,
+    'position_perturbation_size': 0.01,
+    'rotation_perturbation_size': 0.087,
+    'fovy_perturbation_size': 5.,
+}
 
 
 def get_robosuite_env(variant):
@@ -38,37 +51,44 @@ def get_robosuite_env(variant):
         **options,
         **variant['env_kwargs'],
         has_renderer=False,
-        has_offscreen_renderer=False,
-        ignore_done=True,
+        has_offscreen_renderer=True,
+        ignore_done=False,
         use_camera_obs=False,
     )
     return env
 
 
+macros.USING_INSTANCE_RANDOMIZATION = True
+
+
 def experiment(variant):
     if variant['env_type'] == 'robosuite':
         env = get_robosuite_env(variant)
-        eval_env = NormalizedBoxEnv(env)
-        expl_env = NormalizedBoxEnv(env)
+        env = NormalizedBoxEnv(env)
+        camera_randomization_args = DEFAULT_CAMERA_ARGS
+        camera_randomization_args['camera_names'] = ['clothview']
+        env = DomainRandomizationWrapper(
+            env, randomize_on_reset=True,
+            randomize_every_n_steps=0, custom_randomize_color=True, randomize_color=False,  camera_randomization_args=camera_randomization_args)
+        eval_env = env
+
     else:
         eval_env = NormalizedBoxEnv(
             gym.make(variant['env_name'], **variant['env_kwargs']))
-        expl_env = NormalizedBoxEnv(
-            gym.make(variant['env_name'], **variant['env_kwargs']))
 
-    obs_dim = expl_env.observation_space.spaces['observation'].low.size
+    obs_dim = eval_env.observation_space.spaces['observation'].low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
     action_dim = eval_env.action_space.low.size
     policy_obs_dim = obs_dim + goal_dim
     value_input_size = obs_dim + action_dim + goal_dim
     added_fc_input_size = goal_dim
 
-    if 'model_params' in expl_env.observation_space.spaces:
-        model_params_dim = expl_env.observation_space.spaces['model_params'].low.size
+    if 'model_params' in eval_env.observation_space.spaces:
+        model_params_dim = eval_env.observation_space.spaces['model_params'].low.size
         value_input_size += model_params_dim
 
-    if 'robot_observation' in expl_env.observation_space.spaces:
-        robot_obs_dim = expl_env.observation_space.spaces['robot_observation'].low.size
+    if 'robot_observation' in eval_env.observation_space.spaces:
+        robot_obs_dim = eval_env.observation_space.spaces['robot_observation'].low.size
         policy_obs_dim += robot_obs_dim
         value_input_size += robot_obs_dim
         added_fc_input_size += robot_obs_dim
@@ -149,8 +169,7 @@ def experiment(variant):
         eval_env,
         eval_policy,
         render=True,
-        render_kwargs=dict(
-            mode='rgb_array', image_capture=True, width=1000, height=1000),
+        render_kwargs=dict(image_capture=True, width=1000, height=1000),
         observation_key=path_collector_observation_key,
         desired_goal_key=desired_goal_key,
         **variant['path_collector_kwargs']
@@ -175,7 +194,7 @@ def experiment(variant):
 
         def make_suite_env():
             env = get_robosuite_env(variant)
-            return NormalizedBoxEnv(env)
+            return env  # NormalizedBoxEnv(env)
 
         if variant['env_type'] == 'robosuite':
             env_fns = [make_suite_env for _ in range(variant['num_processes'])]
@@ -195,7 +214,7 @@ def experiment(variant):
     else:
         print("Single env path collection")
         expl_path_collector = KeyPathCollector(
-            expl_env,
+            eval_env,
             policy,
             observation_key=path_collector_observation_key,
             desired_goal_key=desired_goal_key,
@@ -231,7 +250,7 @@ def experiment(variant):
 
     algorithm = TorchBatchRLAlgorithm(
         trainer=trainer,
-        exploration_env=expl_env,
+        exploration_env=eval_env,
         evaluation_env=eval_env,
         exploration_data_collector=expl_path_collector,
         evaluation_data_collector=eval_path_collector,
