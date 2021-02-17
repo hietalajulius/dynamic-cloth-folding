@@ -56,7 +56,7 @@ def argsparser():
     parser.add_argument('--debug_render_success', type=int, default=0)
     parser.add_argument('--control_freq', type=int, default=10)
     parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--task', type=str, default="sideways_3")
+    parser.add_argument('--task', type=str, default="sideways_franka_1")
     parser.add_argument('--velocity_in_obs', type=int, default=1)
     parser.add_argument('--image_training', default=0, type=int)
     parser.add_argument('--image_size', type=int, default=100)

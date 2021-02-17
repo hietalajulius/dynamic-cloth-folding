@@ -24,7 +24,7 @@ from robosuite.utils.input_utils import *
 from robosuite.wrappers import DomainRandomizationWrapper
 
 import robosuite.utils.macros as macros
-
+from gym.envs.robotics import reward_calculation
 
 set_level(50)
 
@@ -55,6 +55,13 @@ def get_robosuite_env(variant):
         ignore_done=False,
         use_camera_obs=False,
     )
+
+    env = NormalizedBoxEnv(env)
+    camera_randomization_args = DEFAULT_CAMERA_ARGS
+    camera_randomization_args['camera_names'] = ['clothview']
+    env = DomainRandomizationWrapper(
+        env, randomize_on_reset=True,
+        randomize_every_n_steps=0, custom_randomize_color=True, randomize_color=False,  camera_randomization_args=camera_randomization_args)
     return env
 
 
@@ -64,12 +71,6 @@ macros.USING_INSTANCE_RANDOMIZATION = True
 def experiment(variant):
     if variant['env_type'] == 'robosuite':
         env = get_robosuite_env(variant)
-        env = NormalizedBoxEnv(env)
-        camera_randomization_args = DEFAULT_CAMERA_ARGS
-        camera_randomization_args['camera_names'] = ['clothview']
-        env = DomainRandomizationWrapper(
-            env, randomize_on_reset=True,
-            randomize_every_n_steps=0, custom_randomize_color=True, randomize_color=False,  camera_randomization_args=camera_randomization_args)
         eval_env = env
 
     else:
@@ -194,14 +195,14 @@ def experiment(variant):
 
         def make_suite_env():
             env = get_robosuite_env(variant)
-            return env  # NormalizedBoxEnv(env)
+            return env
 
         if variant['env_type'] == 'robosuite':
             env_fns = [make_suite_env for _ in range(variant['num_processes'])]
         else:
             env_fns = [make_env for _ in range(variant['num_processes'])]
         vec_env = SubprocVecEnv(env_fns)
-        vec_env.seed(variant['random_seed'])
+        #vec_env.seed(variant['random_seed'])
 
         expl_path_collector = VectorizedKeyPathCollector(
             vec_env,
@@ -221,7 +222,8 @@ def experiment(variant):
             **variant['path_collector_kwargs']
         )
 
-    reward_function = copy.deepcopy(eval_env.reward_function)
+    reward_function = reward_calculation.get_reward_function(
+            variant['env_kwargs']['constraints'], 3, variant['env_kwargs']['sparse_dense'])
     ob_spaces = copy.deepcopy(eval_env.observation_space.spaces)
     action_space = copy.deepcopy(eval_env.action_space)
     replay_buffer = FutureObsDictRelabelingBuffer(
