@@ -24,7 +24,7 @@ from robosuite.utils.input_utils import *
 from robosuite.wrappers import DomainRandomizationWrapper
 
 import robosuite.utils.macros as macros
-
+from gym.envs.robotics import reward_calculation
 
 set_level(50)
 
@@ -205,7 +205,8 @@ def experiment(variant):
             **variant['path_collector_kwargs']
         )
 
-    reward_function = copy.deepcopy(eval_env.reward_function)
+    reward_function = reward_calculation.get_reward_function(
+        variant['env_kwargs']['constraints'], 3, variant['env_kwargs']['sparse_dense'])
     ob_spaces = copy.deepcopy(eval_env.observation_space.spaces)
     action_space = copy.deepcopy(eval_env.action_space)
     replay_buffer = FutureObsDictRelabelingBuffer(
