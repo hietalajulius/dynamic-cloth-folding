@@ -49,6 +49,7 @@ def argsparser():
     # Env
     parser.add_argument('--env_name', type=str, default="Cloth")
     parser.add_argument('--env_type', type=str, default="robosuite")
+    parser.add_argument('--domain_randomization', type=int, default=0)
 
     # NOTE: only applies to some envs
     parser.add_argument('--ctrl_name', type=str, default="OSC_POSE")
@@ -123,6 +124,7 @@ def get_variant(args):
 
     variant['env_name'] = args.env_name
     variant['env_type'] = args.env_type
+    variant['domain_randomization'] = bool(args.domain_randomization)
     variant['random_seed'] = args.seed
     variant['version'] = args.title
     variant['image_training'] = bool(args.image_training)

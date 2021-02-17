@@ -55,21 +55,25 @@ def get_robosuite_env(variant):
         ignore_done=False,
         use_camera_obs=False,
     )
-    return env
+    return NormalizedBoxEnv(env)
 
 
-macros.USING_INSTANCE_RANDOMIZATION = True
+def randomize_env(env):
+    camera_randomization_args = DEFAULT_CAMERA_ARGS
+    camera_randomization_args['camera_names'] = ['clothview2']
+    return DomainRandomizationWrapper(
+        env, randomize_on_reset=True,
+        randomize_every_n_steps=0, custom_randomize_color=True, randomize_color=False,  camera_randomization_args=camera_randomization_args)
 
 
 def experiment(variant):
+    if variant['domain_randomization']:
+        macros.USING_INSTANCE_RANDOMIZATION = True
+
     if variant['env_type'] == 'robosuite':
         env = get_robosuite_env(variant)
-        env = NormalizedBoxEnv(env)
-        camera_randomization_args = DEFAULT_CAMERA_ARGS
-        camera_randomization_args['camera_names'] = ['clothview']
-        env = DomainRandomizationWrapper(
-            env, randomize_on_reset=True,
-            randomize_every_n_steps=0, custom_randomize_color=True, randomize_color=False,  camera_randomization_args=camera_randomization_args)
+        if variant['domain_randomization']:
+            env = randomize_env(env)
         eval_env = env
 
     else:
@@ -126,41 +130,21 @@ def experiment(variant):
         hidden_sizes=[M, M],
     )
 
-    use_tanh = True
     if image_training:
-        if use_tanh:
-            policy = TanhCNNGaussianPolicy(
-                output_size=action_dim,
-                added_fc_input_size=added_fc_input_size,
-                aux_output_size=12,
-                **variant['policy_kwargs'],
-            )
-        else:
-            policy = GaussianCNNPolicy(
-                output_size=action_dim,
-                added_fc_input_size=added_fc_input_size,
-                aux_output_size=12,
-                max_log_std=0,
-                min_log_std=-7,
-                **variant['policy_kwargs'],
-            )
+        policy = TanhCNNGaussianPolicy(
+            output_size=action_dim,
+            added_fc_input_size=added_fc_input_size,
+            aux_output_size=12,
+            **variant['policy_kwargs'],
+        )
+
     else:
-        if use_tanh:
-            policy = TanhGaussianPolicy(
-                obs_dim=policy_obs_dim,
-                action_dim=action_dim,
-                hidden_sizes=[M, M],
-                **variant['policy_kwargs']
-            )
-        else:
-            policy = GaussianPolicy(
-                obs_dim=policy_obs_dim,
-                action_dim=action_dim,
-                hidden_sizes=[M, M],
-                max_log_std=0,
-                min_log_std=-7,
-                **variant['policy_kwargs']
-            )
+        policy = TanhGaussianPolicy(
+            obs_dim=policy_obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=[M, M],
+            **variant['policy_kwargs']
+        )
 
     eval_policy = MakeDeterministic(policy)
 
@@ -169,7 +153,6 @@ def experiment(variant):
         eval_env,
         eval_policy,
         render=True,
-        render_kwargs=dict(image_capture=True, width=1000, height=1000),
         observation_key=path_collector_observation_key,
         desired_goal_key=desired_goal_key,
         **variant['path_collector_kwargs']
@@ -194,14 +177,15 @@ def experiment(variant):
 
         def make_suite_env():
             env = get_robosuite_env(variant)
-            return env  # NormalizedBoxEnv(env)
+            if variant['domain_randomization']:
+                env = randomize_env(env)
+            return env
 
         if variant['env_type'] == 'robosuite':
             env_fns = [make_suite_env for _ in range(variant['num_processes'])]
         else:
             env_fns = [make_env for _ in range(variant['num_processes'])]
         vec_env = SubprocVecEnv(env_fns)
-        vec_env.seed(variant['random_seed'])
 
         expl_path_collector = VectorizedKeyPathCollector(
             vec_env,
@@ -227,7 +211,7 @@ def experiment(variant):
     replay_buffer = FutureObsDictRelabelingBuffer(
         ob_spaces=ob_spaces,
         action_space=action_space,
-        observation_key=observation_key,  # Image key passed in additional keys
+        observation_key=observation_key,
         desired_goal_key=desired_goal_key,
         achieved_goal_key=achieved_goal_key,
         **variant['replay_buffer_kwargs']

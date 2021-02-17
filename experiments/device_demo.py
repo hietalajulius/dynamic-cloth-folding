@@ -184,7 +184,8 @@ if __name__ == "__main__":
         obs = env.reset()
 
         # Setup rendering
-        cam_id = 1
+        camera_id = env.sim.model.camera_name2id('clothview2')
+        env.viewer.set_camera(camera_id=camera_id)
         print("CAMMSMMS", env.sim.model.camera_names)
         num_cam = len(env.sim.model.camera_names)
         env.render()
