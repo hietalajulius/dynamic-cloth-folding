@@ -67,6 +67,6 @@ if __name__ == "__main__":
     while True:
         env.reset()
         for i in range(1000):
-            action = np.zeros(3)*0.1
+            action = np.ones(3)*0.01
             obs, reward, done, _ = env.step(action)
             env.render()

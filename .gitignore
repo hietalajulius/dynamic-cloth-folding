@@ -43,3 +43,4 @@ experiments/.ipynb_checkpoints
 experiments/__pycache__
 *.mdl
 *.pkl
+experiments/trajs
