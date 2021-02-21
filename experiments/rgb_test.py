@@ -85,29 +85,31 @@ if __name__ == "__main__":
 
     # do visualization
     traj = 0
-    # while True:
-    traj += 1
-    traj_deltas = []
-    o = env.reset()
-    for i in range(50):
-        o_for_agent = obs_processor(o)
-        a, agent_info, aux_output = agent.get_action(o_for_agent)
-        traj_deltas.append(a)
-        #print("Action", i+1, ": ", a)
-        o, reward, done, _ = env.step(a)
-        env.sim._render_context_offscreen.render(
-            1000, 1000, camera_id)
-        image_obs = env.sim._render_context_offscreen.read_pixels(
-            1000, 1000, depth=False)
+    while True:
+        traj += 1
+        traj_deltas = []
+        o = env.reset()
+        for i in range(20):
+            print(i)
+            o_for_agent = obs_processor(o)
+            a, agent_info, aux_output = agent.get_action(o_for_agent)
+            traj_deltas.append(a)
+            #print("Action", i+1, ": ", a)
+            o, reward, done, _ = env.step(a)
 
-        image_obs = image_obs[::-1, :, :]
+            env.sim._render_context_offscreen.render(
+                1000, 1000, camera_id)
+            image_obs = env.sim._render_context_offscreen.read_pixels(
+                1000, 1000, depth=False)
 
-        image = image_obs.reshape((1000, 1000, 3)).copy()
-        cv2.imshow('goal', image)
-        cv2.waitKey(10)
-        time.sleep(2)
-    print("actual traj")
-    print(env.robots[0].controller.ee_poss)
-    print(np.array(env.robots[0].controller.ee_poss).shape)
+            image_obs = image_obs[::-1, :, :]
+
+            image = image_obs.reshape((1000, 1000, 3)).copy()
+            cv2.imshow('goal', image)
+            cv2.waitKey(10)
+
+    #print("actual traj")
+    # print(env.robots[0].controller.ee_poss)
+    # print(np.array(env.robots[0].controller.ee_poss).shape)
     #traj_deltas = np.array(traj_deltas)
     #np.save("trajs/traj" + str(traj) + ".npy", traj_deltas)
