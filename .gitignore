@@ -2,8 +2,8 @@ experiments/images
 experiments/tblogs
 experiments/current_policy.mdl
 experiments/sample.txt
-async_policy/*
-policy/*
+experiments/async_policy/*
+experiments/policy/*
 .DS_Store
 experiments/logs
 experiments/.ipynb_checkpoints
@@ -41,6 +41,4 @@ experiments/.ipynb_checkpoints
 /experiments/stats
 /experiments/stats2
 experiments/__pycache__
-*.mdl
-*.pkl
 experiments/trajs
