@@ -3,8 +3,10 @@ import linecache
 import argparse
 from gym.envs.robotics import task_definitions
 from panda_gym.gym_envs.utils import env_field
-#env = gym.make('Franka-v1', constraints=task_definitions.constraints['diagonal_1'])
 import os
+from robosuite.controllers import load_controller_config
+from robosuite.utils.input_utils import *
+from rlkit.envs.wrappers import NormalizedBoxEnv
 
 if os.environ['USER'] == 'hietalj4':
     print("Host paniikki")
@@ -17,6 +19,35 @@ else:
     print("Host mac")
     os.environ["FRANKA_TEMPLATE_PATH"] = '/Users/juliushietala/robotics/panda-gym/panda_gym/franka_sim/templates'
     os.environ["FRANKA_MESH_PATH"] = '/Users/juliushietala/robotics/panda-gym/panda_gym/franka_sim/meshes'
+
+
+def get_robosuite_env(variant):
+    options = {}
+    options["env_name"] = variant["env_name"]
+    options["robots"] = "Panda"
+    controller_name = variant['ctrl_kwargs']["ctrl_name"]
+    options["controller_configs"] = load_controller_config(
+        default_controller=controller_name)
+
+    outp_override = variant["ctrl_kwargs"]["output_max"]
+    options["controller_configs"]['output_max'][:3] = [
+        outp_override for _ in range(3)]
+    options["controller_configs"]['output_min'][:3] = [
+        -outp_override for _ in range(3)]
+
+    options["controller_configs"]["interpolation"] = variant["ctrl_kwargs"]["interpolator"]
+    options["controller_configs"]["ramp_ratio"] = variant["ctrl_kwargs"]["ramp_ratio"]
+    options["controller_configs"]["damping_ratio"] = variant["ctrl_kwargs"]["damping_ratio"]
+    options["controller_configs"]["kp"] = variant["ctrl_kwargs"]["kp"]
+    env = suite.make(
+        **options,
+        **variant['env_kwargs'],
+        has_renderer=False,
+        has_offscreen_renderer=True,
+        ignore_done=False,
+        use_camera_obs=False,
+    )
+    return NormalizedBoxEnv(env)
 
 
 def argsparser():
@@ -51,8 +82,16 @@ def argsparser():
     parser.add_argument('--env_type', type=str, default="robosuite")
     parser.add_argument('--domain_randomization', type=int, default=0)
 
-    # NOTE: only applies to some envs
+    # Controller
+    parser.add_argument('--output_max', type=float, default=0.05)
+    parser.add_argument('--interpolator', type=str, default="linear")
     parser.add_argument('--ctrl_name', type=str, default="OSC_POSE")
+    parser.add_argument('--ramp_ratio', type=float, default=0.2)
+    parser.add_argument('--damping_ratio', type=float, default=1.0)
+    parser.add_argument('--kp', type=float, default=150.0)
+
+    # NOTE: only applies to some envs
+
     parser.add_argument('--max_action', type=float, default=1.)
     parser.add_argument('--debug_render_success', type=int, default=0)
     parser.add_argument('--control_freq', type=int, default=10)
@@ -195,7 +234,8 @@ def get_variant(args):
             random_seed=args.seed,
             velocity_in_obs=bool(args.velocity_in_obs)
         )
-        variant['ctrl_name'] = str(args.ctrl_name)
+        variant['ctrl_kwargs'] = dict(ctrl_name=str(args.ctrl_name), output_max=args.output_max,
+                                      interpolator=args.interpolator, ramp_ratio=args.ramp_ratio, damping_ratio=args.damping_ratio, kp=args.kp)
     else:
         raise ValueError("Incorrect env_type provided")
 

@@ -15,8 +15,7 @@ import torch
 import cProfile
 from rlkit.envs.wrappers import SubprocVecEnv
 from gym.logger import set_level
-from utils import get_variant, argsparser
-import numpy as np
+from utils import get_variant, argsparser, get_robosuite_env
 import copy
 
 from robosuite.controllers import load_controller_config
@@ -25,6 +24,7 @@ from robosuite.wrappers import DomainRandomizationWrapper
 
 import robosuite.utils.macros as macros
 from gym.envs.robotics import reward_calculation
+import numpy as np
 
 set_level(50)
 
@@ -37,25 +37,6 @@ DEFAULT_CAMERA_ARGS = {
     'rotation_perturbation_size': 0.087,
     'fovy_perturbation_size': 5.,
 }
-
-
-def get_robosuite_env(variant):
-    options = {}
-    options["env_name"] = variant["env_name"]
-    options["robots"] = "Panda"
-    controller_name = variant["ctrl_name"]
-    options["controller_configs"] = load_controller_config(
-        default_controller=controller_name)
-    options["controller_configs"]["interpolation"] = "linear"
-    env = suite.make(
-        **options,
-        **variant['env_kwargs'],
-        has_renderer=False,
-        has_offscreen_renderer=True,
-        ignore_done=False,
-        use_camera_obs=False,
-    )
-    return NormalizedBoxEnv(env)
 
 
 def randomize_env(env):

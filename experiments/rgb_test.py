@@ -8,12 +8,13 @@ from robosuite.utils.input_utils import *
 from robosuite.wrappers import DomainRandomizationWrapper
 
 from gym.envs.robotics import task_definitions
-from utils import get_variant, argsparser
+from utils import get_variant, argsparser, get_robosuite_env
 import cv2
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, GaussianPolicy, GaussianCNNPolicy
 import torch
 import numpy as np
 import time
+import matplotlib.pyplot as plt
 
 
 DEFAULT_CAMERA_ARGS = {
@@ -25,25 +26,6 @@ DEFAULT_CAMERA_ARGS = {
     'rotation_perturbation_size': 0.087,
     'fovy_perturbation_size': 5.,
 }
-
-
-def get_robosuite_env(variant):
-    options = {}
-    options["env_name"] = variant["env_name"]
-    options["robots"] = "Panda"
-    controller_name = variant["ctrl_name"]
-    options["controller_configs"] = load_controller_config(
-        default_controller=controller_name)
-    options["controller_configs"]["interpolation"] = "linear"
-    env = suite.make(
-        **options,
-        **variant['env_kwargs'],
-        has_renderer=False,
-        has_offscreen_renderer=True,
-        ignore_done=False,
-        use_camera_obs=False,
-    )
-    return env
 
 
 def obs_processor(o):
@@ -77,39 +59,85 @@ if __name__ == "__main__":
     )
 
     agent.load_state_dict(torch.load(
-        '/Users/juliushietala/Desktop/current_policy.mdl', map_location=torch.device('cpu')))
+        'current_policy_3cm.mdl', map_location=torch.device('cpu')))
 
-    #agent = MakeDeterministic(agent)
+    # agent = MakeDeterministic(agent)
 
-    camera_id = env.sim.model.camera_name2id('sideview')
+    camera_id_1 = env.sim.model.camera_name2id('sideview')
+    camera_id_2 = env.sim.model.camera_name2id('frontview')
 
-    # do visualization
-    traj = 0
-    while True:
-        traj += 1
-        traj_deltas = []
-        o = env.reset()
-        for i in range(20):
-            print(i)
-            o_for_agent = obs_processor(o)
-            a, agent_info, aux_output = agent.get_action(o_for_agent)
-            traj_deltas.append(a)
-            #print("Action", i+1, ": ", a)
-            o, reward, done, _ = env.step(a)
+    cameras_to_render = ['frontview']
 
+    error_distances = []
+    current_ee_positions = []
+    current_ee_goals = []
+
+    substep_errors = []
+    substep_positions = []
+    substep_goals = []
+
+    o = env.reset()
+    for _ in range(15):
+        del env.sim._render_context_offscreen._markers[:]
+
+        o_for_agent = obs_processor(o)
+        a, agent_info, aux_output = agent.get_action(o_for_agent)
+        o, reward, done, info = env.step(a)
+
+        error_distances.append(info['error_distance'])
+        current_ee_positions.append(info['ee_pos'])
+        current_ee_goals.append(info['ee_goal'])
+
+        substep_errors += info['substep_errors']
+        substep_positions += info['substep_positions']
+        substep_goals += info['substep_goals']
+
+        for idx, goal_marker in enumerate(current_ee_goals):
+            env.sim._render_context_offscreen.add_marker(size=np.array(
+                [.001, .001, .001]), pos=goal_marker, label=str(1+idx))
+
+        for camera in cameras_to_render:
+            camera_id = env.sim.model.camera_name2id(camera)
             env.sim._render_context_offscreen.render(
                 1000, 1000, camera_id)
             image_obs = env.sim._render_context_offscreen.read_pixels(
                 1000, 1000, depth=False)
-
             image_obs = image_obs[::-1, :, :]
-
             image = image_obs.reshape((1000, 1000, 3)).copy()
-            cv2.imshow('goal', image)
-            cv2.waitKey(10)
+            cv2.imshow(camera, image)
 
-    #print("actual traj")
-    # print(env.robots[0].controller.ee_poss)
-    # print(np.array(env.robots[0].controller.ee_poss).shape)
-    #traj_deltas = np.array(traj_deltas)
-    #np.save("trajs/traj" + str(traj) + ".npy", traj_deltas)
+        cv2.waitKey(10)
+        time.sleep(1)
+
+error_distances = np.array(error_distances)
+current_ee_positions = np.array(current_ee_positions)
+current_ee_goals = np.array(current_ee_goals)
+
+substep_errors = np.array(substep_errors)
+substep_positions = np.array(substep_positions)
+substep_goals = np.array(substep_goals)
+
+#data1 = current_ee_positions
+#data2 = current_ee_goals
+
+data1 = substep_positions
+data2 = substep_goals
+
+fig = plt.figure(figsize=(30, 30))
+ax1 = fig.add_subplot(111, projection='3d')
+ax1.view_init(10, -10)
+
+ax1.set_xlabel('X')
+ax1.set_ylabel('Y')
+ax1.set_zlabel('Z')
+
+ax1.plot(data1[:, 0],
+         data1[:, 1], data1[:, 2], linewidth=3)
+
+ax1.plot(data2[:, 0],
+         data2[:, 1], data2[:, 2], linewidth=3)
+
+ax1.text(substep_positions[0, 0], substep_positions[0, 1], substep_positions[0, 2], '%s' %
+         ("start"), size=20, zorder=1, color='k')
+
+plt.show()
