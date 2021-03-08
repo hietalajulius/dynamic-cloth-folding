@@ -222,6 +222,7 @@ def experiment(variant):
         evaluation_data_collector=eval_path_collector,
         preset_evaluation_data_collector=preset_eval_path_collector,
         replay_buffer=replay_buffer,
+        title=variant['version'],
         **variant['algorithm_kwargs']
     )
     algorithm.to(ptu.device)
