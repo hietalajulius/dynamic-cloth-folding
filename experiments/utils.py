@@ -95,6 +95,7 @@ def argsparser():
     parser.add_argument('--env_type', type=str, default="robosuite")
     parser.add_argument('--domain_randomization', type=int, default=0)
 
+    # {'kp': 800.0, 'ramp_ratio': 0.2, 'damping_ratio': 0.7, 'score': 0.05137783876823295}]
     # Controller
     parser.add_argument('--control_delta', type=int, default=1)
     parser.add_argument('--output_max', type=float, default=0.05)
@@ -104,8 +105,8 @@ def argsparser():
     parser.add_argument('--interpolator', type=str, default="linear")
     parser.add_argument('--ctrl_name', type=str, default="OSC_POSE")
     parser.add_argument('--ramp_ratio', type=float, default=0.2)
-    parser.add_argument('--damping_ratio', type=float, default=1.0)
-    parser.add_argument('--kp', type=float, default=150.0)
+    parser.add_argument('--damping_ratio', type=float, default=0.7)
+    parser.add_argument('--kp', type=float, default=800.0)
 
     # NOTE: only applies to some envs
 
