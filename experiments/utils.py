@@ -35,15 +35,28 @@ def get_robosuite_env(variant):
     options["controller_configs"]['output_min'][:3] = [
         -outp_override for _ in range(3)]
 
+    options["controller_configs"]['input_min'] = - \
+        variant["ctrl_kwargs"]["input_max"]
+    options["controller_configs"]['input_max'] = variant["ctrl_kwargs"]["input_max"]
+
     options["controller_configs"]["interpolation"] = variant["ctrl_kwargs"]["interpolator"]
     options["controller_configs"]["ramp_ratio"] = variant["ctrl_kwargs"]["ramp_ratio"]
     options["controller_configs"]["damping_ratio"] = variant["ctrl_kwargs"]["damping_ratio"]
     options["controller_configs"]["kp"] = variant["ctrl_kwargs"]["kp"]
+
+    if variant["ctrl_kwargs"]["position_limits"] == "None":
+        pos_limits = None
+    else:
+        pos_limits = variant["ctrl_kwargs"]["position_limits"]
+    options["controller_configs"]["position_limits"] = pos_limits
+
+    options["controller_configs"]["control_delta"] = variant["ctrl_kwargs"]["control_delta"]
+
     env = suite.make(
         **options,
         **variant['env_kwargs'],
         has_renderer=False,
-        has_offscreen_renderer=True,
+        has_offscreen_renderer=variant['robosuite_kwargs']['offscreen_renderer'],
         ignore_done=False,
         use_camera_obs=False,
     )
@@ -83,7 +96,11 @@ def argsparser():
     parser.add_argument('--domain_randomization', type=int, default=0)
 
     # Controller
+    parser.add_argument('--control_delta', type=int, default=1)
     parser.add_argument('--output_max', type=float, default=0.05)
+    parser.add_argument('--input_max', type=float, default=1.)
+    parser.add_argument('--position_limits',
+                        default=[[-0.12, -0.25, 0.12], [0.12, 0.05, 0.4]])
     parser.add_argument('--interpolator', type=str, default="linear")
     parser.add_argument('--ctrl_name', type=str, default="OSC_POSE")
     parser.add_argument('--ramp_ratio', type=float, default=0.2)
@@ -92,6 +109,8 @@ def argsparser():
 
     # NOTE: only applies to some envs
 
+    parser.add_argument('--offscreen_renderer', type=int, default=1)
+    parser.add_argument('--constant_goal', type=int, default=0)
     parser.add_argument('--max_action', type=float, default=1.)
     parser.add_argument('--debug_render_success', type=int, default=0)
     parser.add_argument('--control_freq', type=int, default=10)
@@ -221,6 +240,7 @@ def get_variant(args):
         )
     elif variant['env_type'] == 'robosuite':
         variant['env_kwargs'] = dict(
+            constant_goal=bool(args.constant_goal),
             sparse_dense=bool(args.sparse_dense),
             max_action=float(args.max_action),
             constraints=task_definitions.constraints[args.task],
@@ -234,8 +254,10 @@ def get_variant(args):
             random_seed=args.seed,
             velocity_in_obs=bool(args.velocity_in_obs)
         )
-        variant['ctrl_kwargs'] = dict(ctrl_name=str(args.ctrl_name), output_max=args.output_max,
-                                      interpolator=args.interpolator, ramp_ratio=args.ramp_ratio, damping_ratio=args.damping_ratio, kp=args.kp)
+        variant['robosuite_kwargs'] = dict(
+            offscreen_renderer=bool(args.offscreen_renderer))
+        variant['ctrl_kwargs'] = dict(ctrl_name=str(args.ctrl_name), output_max=args.output_max, input_max=args.input_max, position_limits=args.position_limits,
+                                      interpolator=args.interpolator, ramp_ratio=args.ramp_ratio, damping_ratio=args.damping_ratio, kp=args.kp, control_delta=bool(args.control_delta))
     else:
         raise ValueError("Incorrect env_type provided")
 
