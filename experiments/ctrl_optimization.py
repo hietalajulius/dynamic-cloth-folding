@@ -98,12 +98,14 @@ def eval_settings(variant, kp, dr, rr, deltas, render=False, plot=False):
     current_ideal_pos = start.copy()
 
     for delta in deltas:
+        multip = 2
+        #print("DELTA", np.round(delta*multip, decimals=3))
         if variant["ctrl_kwargs"]["control_delta"]:
             ee_pos = env.sim.data.get_site_xpos('gripper0_grip_site').copy()
             current_desired_start = ee_pos
             current_desired_end = ee_pos + delta
-            _, reward, done, info = env.step(
-                delta/variant['ctrl_kwargs']['output_max'])
+            _, reward, done, info = env.step(multip *
+                                             delta/variant['ctrl_kwargs']['output_max'])
         else:
             current_desired_start = current_ideal_pos
             current_desired_end = current_ideal_pos + delta
@@ -166,10 +168,11 @@ if __name__ == "__main__":
     # {'kp': 800.0, 'ramp_ratio': 0.2, 'damping_ratio': 0.7, 'score': 0.05137783876823295}]
 
     # 'kp': 650.0, 'ramp_ratio': 0.5, 'damping_ratio': 0.5
+    # 'kp': 500.0, 'ramp_ratio': 0.1, 'damping_ratio': 1.5,
     if eval_:
-        eval_kp = 650
-        eval_dr = 0.5
-        eval_rr = 0.5
+        eval_kp = 500
+        eval_dr = 1.5
+        eval_rr = 0.1
 
         variant['robosuite_kwargs']['offscreen_renderer'] = True
 
@@ -179,10 +182,10 @@ if __name__ == "__main__":
         print(f"Tracking: {tracking_score}, ATE: {ate}")
     else:
         variant['robosuite_kwargs']['offscreen_renderer'] = False
-        kp_range = np.linspace(2000, 4000, 10)
-        damping_ratio_range = np.linspace(0.3, 3, 10)
-        #ramp_ratio_range = [0.1, 0.2, 0.5, 0.7, 1]
-        ramp_ratio_range = [1]
+        kp_range = np.linspace(500, 2000, 10)
+        damping_ratio_range = np.linspace(0.5, 2, 10)
+        ramp_ratio_range = [0.1, 0.2, 0.5, 0.7, 1]
+        #ramp_ratio_range = [1]
 
         best_tracking_score = np.inf
         best_settings = dict()
@@ -203,6 +206,7 @@ if __name__ == "__main__":
                         best_settings['ramp_ratio'] = rr
                         best_settings['damping_ratio'] = dr
                         best_settings['score'] = tracking_score
+                        best_settings['ATE'] = ate
 
                         best_tracking_score = tracking_score
                         print("New best settings", best_settings, "\n")

@@ -1,0 +1,69 @@
+deltas = [delta1, delta2, delta3, ...]
+
+desired_rotation_matrix = current_end_effector_rotation_matrix()
+initial_joint_positions = current_joint_positions()
+
+kp;
+damping_ratio;
+
+kd = 2 * sqrt(kp) * damping_ratio
+
+joint_kp = 10
+joint_kv = sqrt(joint_kp) * 2
+
+i = 0
+new_goal_every = 100
+
+while i < deltas.length * new_goal_every
+
+    j = current_jacobian()
+    j_r = current_rotation_jacobian()
+    j_p = current_position_jacobian()
+    m = current_mass_matrix()
+    ee_pos = current_end_effector_position()
+    ee_vel = current_end_effector_velocity()
+    q_vel = current_joint_velocities()
+    q_pos = current_joint_positions()
+    current_rotation_matrix = current_end_effector_rotation_matrix()
+
+    if i % new_goal_every == 0
+        goal = ee_pos + deltas.next()
+
+    position_error = goal - ee_pos
+    velocity_position_error = -ee_vel
+    desired_force = kp * position_error + kd * velocity_error
+
+    rc1 = current_rotation_matrix[0:3, 0]
+    rc2 = current_rotation_matrix[0:3, 1]
+    rc3 = current_rotation_matrix[0:3, 2]
+    rd1 = desired_rotation_matrix[0:3, 0]
+    rd2 = desired_rotation_matrix[0:3, 1]
+    rd3 = desired_rotation_matrix[0:3, 2]
+    orientation_position_error = 0.5 * cross_product(rc1, rd1) + cross_product(rc2, rd2) + cross_product(rc3, rd3))
+    orientation_velocity_error = - j_r * q_vel
+    desired_torque = kp * orientation_position_error + kd * orientation_velocity_error
+
+    lambda_inverse = (j * m.inverse()) * j.transpose()
+    lambda_position_inverse = (j_pos * m.inverse()) * j_pos.transpose()
+    lambda_orientation_inverse = (j_ori * m.inverse()) * j_ori.transpose()
+
+    lambda = pseudoinverse(lambda_inverse)
+    lambda_position = pseudoinverse(lambda_position_inverse)
+    lambda_orientation = pseudoinverse(lambda_orientation_inverse)
+
+    force = lambda_position * desired_force
+    torque = lambda_orientation * desired_torque
+    wrench = concatenate([force, torque])
+    control_torques = j.transpose() * wrench
+
+    j_bar = (m.inverse() * j.transpose()) * lambda
+    nullspace_matrix = identity() - j_bar * j
+    pose_torques = m * (joint_kp * (initial_joint_positions - q_pos) - joint_kv * q_vel)
+    nullspace_torques = nullspace_matrix.transpose() * pose_torques
+    
+    torques = control_torques + nullspace_torques
+
+    update_desired_torques(torques)
+    i++
+
+

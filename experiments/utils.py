@@ -96,17 +96,18 @@ def argsparser():
     parser.add_argument('--domain_randomization', type=int, default=0)
 
     # {'kp': 800.0, 'ramp_ratio': 0.2, 'damping_ratio': 0.7, 'score': 0.05137783876823295}]
+    # {'kp': 500.0, 'ramp_ratio': 0.1, 'damping_ratio': 1.5, 'score': 0.04553776563369524, 'ATE': 0.0030863284079210413}
     # Controller
     parser.add_argument('--control_delta', type=int, default=1)
-    parser.add_argument('--output_max', type=float, default=0.05)
+    parser.add_argument('--output_max', type=float, default=0.02)
     parser.add_argument('--input_max', type=float, default=1.)
     parser.add_argument('--position_limits',
                         default=[[-0.12, -0.25, 0.12], [0.12, 0.05, 0.4]])
     parser.add_argument('--interpolator', type=str, default="linear")
     parser.add_argument('--ctrl_name', type=str, default="OSC_POSE")
-    parser.add_argument('--ramp_ratio', type=float, default=0.2)
-    parser.add_argument('--damping_ratio', type=float, default=0.7)
-    parser.add_argument('--kp', type=float, default=800.0)
+    parser.add_argument('--ramp_ratio', type=float, default=0.1)
+    parser.add_argument('--damping_ratio', type=float, default=1.5)
+    parser.add_argument('--kp', type=float, default=500.0)
 
     # NOTE: only applies to some envs
 
