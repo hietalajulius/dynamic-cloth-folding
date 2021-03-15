@@ -4,6 +4,7 @@ experiments/current_policy.mdl
 experiments/sample.txt
 experiments/async_policy/*
 experiments/policy/*
+policies/*
 .DS_Store
 experiments/logs
 experiments/.ipynb_checkpoints

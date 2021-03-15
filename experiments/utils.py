@@ -7,6 +7,10 @@ import os
 from robosuite.controllers import load_controller_config
 from robosuite.utils.input_utils import *
 from rlkit.envs.wrappers import NormalizedBoxEnv
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+import time
 
 if os.environ['USER'] == 'hietalj4':
     print("Host paniikki")
@@ -19,6 +23,69 @@ else:
     print("Host mac")
     os.environ["FRANKA_TEMPLATE_PATH"] = '/Users/juliushietala/robotics/panda-gym/panda_gym/franka_sim/templates'
     os.environ["FRANKA_MESH_PATH"] = '/Users/juliushietala/robotics/panda-gym/panda_gym/franka_sim/meshes'
+
+
+def plot_trajectory(ee_initial, current_ee_positions, ideal_positions, desired_starts, desired_ends):
+    fig = plt.figure(figsize=(30, 30))
+    ax1 = fig.add_subplot(111, projection='3d')
+    ax1.view_init(10, -10)
+
+    ax1.set_xlabel('X')
+    ax1.set_ylabel('Y')
+    ax1.set_zlabel('Z')
+
+    ax1.plot(current_ee_positions[:, 0], current_ee_positions[:,
+                                                              1], current_ee_positions[:, 2], linewidth=3, label="achieved", color="blue")
+    for i, (ds, de) in enumerate(zip(desired_starts, desired_ends)):
+        ax1.plot([ds[0], de[0]], [ds[1], de[1]], [ds[2], de[2]],
+                 linewidth=2, label="desired " + str(i), color="orange")
+
+    ax1.plot(ideal_positions[:, 0], ideal_positions[:, 1],
+             ideal_positions[:, 2], linewidth=3, label="predefined", color="green")
+
+    ax1.text(ee_initial[0], ee_initial[1],
+             ee_initial[2], "start", size=10, zorder=1, color='k')
+
+    plt.legend()
+
+    plt.show()
+
+
+def render_env(env):
+    cameras_to_render = ["birdview", "frontview"]
+
+    for camera in cameras_to_render:
+        camera_id = env.sim.model.camera_name2id(camera)
+        env.sim._render_context_offscreen.render(
+            1000, 1000, camera_id)
+        image_obs = env.sim._render_context_offscreen.read_pixels(
+            1000, 1000, depth=False)
+        image_obs = image_obs[::-1, :, :]
+        image = image_obs.reshape((1000, 1000, 3)).copy()
+        cv2.imshow(camera, image)
+
+    cv2.waitKey(10)
+    time.sleep(0.1)
+
+
+def get_obs_processor(observation_key, additional_keys, desired_goal_key):
+    def obs_processor(o):
+        obs = o[observation_key]
+        for additional_key in additional_keys:
+            obs = np.hstack((obs, o[additional_key]))
+
+        return np.hstack((obs, o[desired_goal_key]))
+    return obs_processor
+
+
+def get_tracking_score(ee_positions, goals):
+    norm = np.linalg.norm(ee_positions-goals, axis=1)
+    return np.sum(norm)
+
+
+def ATE(ee_positions, goals):
+    squared_norms = np.linalg.norm(ee_positions-goals, axis=1)**2
+    return np.sqrt(squared_norms.mean())
 
 
 def get_robosuite_env(variant):
@@ -98,6 +165,7 @@ def argsparser():
     # {'kp': 800.0, 'ramp_ratio': 0.2, 'damping_ratio': 0.7, 'score': 0.05137783876823295}]
     # {'kp': 500.0, 'ramp_ratio': 0.1, 'damping_ratio': 1.5, 'score': 0.04553776563369524, 'ATE': 0.0030863284079210413}
     # Controller
+    parser.add_argument('--ctrl_eval', type=int, default=0)
     parser.add_argument('--control_delta', type=int, default=1)
     parser.add_argument('--output_max', type=float, default=0.02)
     parser.add_argument('--input_max', type=float, default=1.)
@@ -258,8 +326,18 @@ def get_variant(args):
         )
         variant['robosuite_kwargs'] = dict(
             offscreen_renderer=bool(args.offscreen_renderer))
-        variant['ctrl_kwargs'] = dict(ctrl_name=str(args.ctrl_name), output_max=args.output_max, input_max=args.input_max, position_limits=args.position_limits,
-                                      interpolator=args.interpolator, ramp_ratio=args.ramp_ratio, damping_ratio=args.damping_ratio, kp=args.kp, control_delta=bool(args.control_delta))
+        variant['ctrl_kwargs'] = dict(
+            ctrl_name=str(args.ctrl_name),
+            output_max=args.output_max,
+            input_max=args.input_max,
+            position_limits=args.position_limits,
+            ctrl_eval=bool(
+                args.ctrl_eval),
+            interpolator=args.interpolator,
+            ramp_ratio=args.ramp_ratio,
+            damping_ratio=args.damping_ratio,
+            kp=args.kp,
+            control_delta=bool(args.control_delta))
     else:
         raise ValueError("Incorrect env_type provided")
 
