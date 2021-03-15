@@ -193,7 +193,7 @@ def argsparser():
     parser.add_argument('--randomize_geoms', type=int, default=0)
     parser.add_argument('--uniform_jnt_tend', type=int, default=1)
     parser.add_argument('--sparse_dense', type=int, default=1)
-    parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.02))
+    parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.01))
     parser.add_argument('--max_advance', type=float, default=0.05)
 
     # XML model / env TODO: merge these better with panda-gym
