@@ -34,7 +34,7 @@ class TestAgent(object):
 
 
 def eval_settings(variant, agent, render=False, plot=False, max_steps=20, obs_processor=None):
-    env = get_robosuite_env(variant)
+    env = get_robosuite_env(variant, evaluation=render)
     o = env.reset()
     agent.reset()
 
@@ -110,10 +110,9 @@ if __name__ == "__main__":
 
     if variant['ctrl_kwargs']['ctrl_eval']:
 
-        actions = get_actions(0, variant)
+        actions = get_actions(
+            variant['ctrl_kwargs']['ctrl_eval_file'], variant)
         agent = TestAgent(actions)
-
-        variant['robosuite_kwargs']['offscreen_renderer'] = True
 
         tracking_score, ate, _, _ = eval_settings(
             variant, agent, render=True, plot=True, max_steps=actions.shape[0])
@@ -122,7 +121,6 @@ if __name__ == "__main__":
     else:
         stats_df = pd.DataFrame(
             columns=['kp', 'damping_ratio', 'ramp_ratio', 'output_max', 'action_file', 'score', 'ate'])
-        variant['robosuite_kwargs']['offscreen_renderer'] = False
         kp_range = np.linspace(100, 2000, 10)
         damping_ratio_range = np.linspace(0.5, 2, 10)
         ramp_ratio_range = [0.1, 0.2, 0.5, 0.7, 1]

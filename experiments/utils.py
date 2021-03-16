@@ -88,7 +88,7 @@ def ATE(ee_positions, goals):
     return np.sqrt(squared_norms.mean())
 
 
-def get_robosuite_env(variant):
+def get_robosuite_env(variant, evaluation=False):
     options = {}
     options["env_name"] = variant["env_name"]
     options["robots"] = "Panda"
@@ -117,13 +117,16 @@ def get_robosuite_env(variant):
         pos_limits = variant["ctrl_kwargs"]["position_limits"]
     options["controller_configs"]["position_limits"] = pos_limits
 
-    options["controller_configs"]["control_delta"] = variant["ctrl_kwargs"]["control_delta"]
+    if variant['image_training'] or evaluation:
+        has_offscreen_renderer = True
+    else:
+        has_offscreen_renderer = False
 
     env = suite.make(
         **options,
         **variant['env_kwargs'],
         has_renderer=False,
-        has_offscreen_renderer=variant['robosuite_kwargs']['offscreen_renderer'],
+        has_offscreen_renderer=has_offscreen_renderer,
         ignore_done=False,
         use_camera_obs=False,
     )
@@ -137,6 +140,7 @@ def argsparser():
     parser.add_argument('--title', default="notitle", type=str)
     parser.add_argument('--num_processes', type=int, default=1)
     parser.add_argument('--cprofile', type=int, default=0)
+    parser.add_argument('--log_tabular_only', type=int, default=0)
 
     # Train
     parser.add_argument('--train_steps', default=1000, type=int)
@@ -162,24 +166,21 @@ def argsparser():
     parser.add_argument('--env_type', type=str, default="robosuite")
     parser.add_argument('--domain_randomization', type=int, default=0)
 
-    # {'kp': 800.0, 'ramp_ratio': 0.2, 'damping_ratio': 0.7, 'score': 0.05137783876823295}]
-    # {'kp': 500.0, 'ramp_ratio': 0.1, 'damping_ratio': 1.5, 'score': 0.04553776563369524, 'ATE': 0.0030863284079210413}
     # Controller
+    parser.add_argument('--ctrl_eval_file', type=int, default=0)
     parser.add_argument('--ctrl_eval', type=int, default=0)
-    parser.add_argument('--control_delta', type=int, default=1)
-    parser.add_argument('--output_max', type=float, default=0.02)
+    parser.add_argument('--output_max', type=float, default=0.03)
     parser.add_argument('--input_max', type=float, default=1.)
     parser.add_argument('--position_limits',
                         default=[[-0.12, -0.25, 0.12], [0.12, 0.05, 0.4]])
     parser.add_argument('--interpolator', type=str, default="linear")
     parser.add_argument('--ctrl_name', type=str, default="OSC_POSE")
-    parser.add_argument('--ramp_ratio', type=float, default=0.1)
+    parser.add_argument('--ramp_ratio', type=float, default=0.5)
     parser.add_argument('--damping_ratio', type=float, default=1.5)
-    parser.add_argument('--kp', type=float, default=500.0)
+    parser.add_argument('--kp', type=float, default=700.0)
 
     # NOTE: only applies to some envs
 
-    parser.add_argument('--offscreen_renderer', type=int, default=1)
     parser.add_argument('--constant_goal', type=int, default=0)
     parser.add_argument('--max_action', type=float, default=1.)
     parser.add_argument('--debug_render_success', type=int, default=0)
@@ -257,6 +258,7 @@ def get_variant(args):
     variant['version'] = args.title
     variant['image_training'] = bool(args.image_training)
     variant['num_processes'] = int(args.num_processes)
+    variant['log_tabular_only'] = bool(args.log_tabular_only)
 
     variant['algorithm_kwargs'] = dict(
         num_epochs=args.num_epochs,
@@ -324,8 +326,7 @@ def get_variant(args):
             random_seed=args.seed,
             velocity_in_obs=bool(args.velocity_in_obs)
         )
-        variant['robosuite_kwargs'] = dict(
-            offscreen_renderer=bool(args.offscreen_renderer))
+
         variant['ctrl_kwargs'] = dict(
             ctrl_name=str(args.ctrl_name),
             output_max=args.output_max,
@@ -333,11 +334,11 @@ def get_variant(args):
             position_limits=args.position_limits,
             ctrl_eval=bool(
                 args.ctrl_eval),
+            ctrl_eval_file=args.ctrl_eval_file,
             interpolator=args.interpolator,
             ramp_ratio=args.ramp_ratio,
             damping_ratio=args.damping_ratio,
-            kp=args.kp,
-            control_delta=bool(args.control_delta))
+            kp=args.kp)
     else:
         raise ValueError("Incorrect env_type provided")
 

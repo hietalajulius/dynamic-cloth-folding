@@ -47,7 +47,7 @@ if __name__ == "__main__":
         )
     else:
         M = variant['layer_size']
-        policy_name = 'ctrl-test_current_policy.mdl'
+        policy_name = '../policies/ctrl-test_current_policy.mdl'
         agent = TanhGaussianPolicy(
             obs_dim=policy_obs_dim,
             action_dim=action_dim,

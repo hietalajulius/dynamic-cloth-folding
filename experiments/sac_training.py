@@ -52,7 +52,7 @@ def experiment(variant):
         macros.USING_INSTANCE_RANDOMIZATION = True
 
     if variant['env_type'] == 'robosuite':
-        env = get_robosuite_env(variant)
+        env = get_robosuite_env(variant, evaluation=True)
         if variant['domain_randomization']:
             env = randomize_env(env)
         eval_env = env
@@ -186,7 +186,7 @@ def experiment(variant):
             **variant['path_collector_kwargs']
         )
 
-    reward_function = reward_calculation.get_reward_function(
+    task_reward_function = reward_calculation.get_task_reward_function(
         variant['env_kwargs']['constraints'], 3, variant['env_kwargs']['sparse_dense'])
     ob_spaces = copy.deepcopy(eval_env.observation_space.spaces)
     action_space = copy.deepcopy(eval_env.action_space)
@@ -198,7 +198,7 @@ def experiment(variant):
         achieved_goal_key=achieved_goal_key,
         **variant['replay_buffer_kwargs']
     )
-    replay_buffer.set_reward_function(reward_function)
+    replay_buffer.set_task_reward_function(task_reward_function)
 
     policy_target_entropy = -np.prod(
         eval_env.action_space.shape).item()
@@ -244,7 +244,8 @@ if __name__ == "__main__":
         print("Training with CPU")
 
     file_path = args.title + "-run-" + str(args.run)
-    setup_logger(file_path, variant=variant)
+    setup_logger(file_path, variant=variant,
+                 log_tabular_only=variant['log_tabular_only'])
 
     if bool(args.cprofile):
         print("Profiling with cProfile")
