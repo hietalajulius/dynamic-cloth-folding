@@ -33,7 +33,7 @@ class TestAgent(object):
         self.current_action = 0
 
 
-def eval_settings(variant, agent, render=False, plot=False, max_steps=20, obs_processor=None):
+def eval_settings(variant, agent, render=False, plot=False, max_steps=20, obs_processor=None, plot_predefined=True):
     env = get_robosuite_env(variant, evaluation=render)
     o = env.reset()
     agent.reset()
@@ -91,27 +91,41 @@ def eval_settings(variant, agent, render=False, plot=False, max_steps=20, obs_pr
 
     if plot:
         plot_trajectory(start, current_ee_positions,
-                        ideal_positions, desired_starts, desired_ends)
+                        ideal_positions, desired_starts, desired_ends, plot_predefined)
 
     return tracking_score, ate, success, current_ee_positions
 
 
-def get_actions(idx, variant):
+def get_positions(idx):
     positions = np.load(f"../traj_opt/ee_reached_{str(idx)}.npy")
     positions = [[-0.07334889, -0.03174962, 0.14356065]] + positions.tolist()
     return np.array([np.array(positions[i+1]) - np.array(positions[i])
-                     for i in range(len(positions)-1)]) / variant['ctrl_kwargs']['output_max']
+                     for i in range(len(positions)-1)])
 
 
 if __name__ == "__main__":
 
     args = argsparser()
     variant = get_variant(args)
+    save_deltas_to_csv = True
 
     if variant['ctrl_kwargs']['ctrl_eval']:
 
-        actions = get_actions(
-            variant['ctrl_kwargs']['ctrl_eval_file'], variant)
+        positions = get_positions(
+            variant['ctrl_kwargs']['ctrl_eval_file'])
+
+        deltas = []
+        if save_deltas_to_csv:
+            for idx in range(positions.shape[0]-1):
+                delta = positions[idx+1]-positions[idx]
+                print("DLETA", delta)
+                deltas.append(delta)
+            deltas = np.array(deltas)
+            np.savetxt("../traj_opt/deltas.csv",
+                       deltas, delimiter=",", fmt='%f')
+
+        actions = positions / variant['ctrl_kwargs']['output_max']
+
         agent = TestAgent(actions)
 
         tracking_score, ate, _, _ = eval_settings(

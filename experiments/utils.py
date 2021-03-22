@@ -25,7 +25,7 @@ else:
     os.environ["FRANKA_MESH_PATH"] = '/Users/juliushietala/robotics/panda-gym/panda_gym/franka_sim/meshes'
 
 
-def plot_trajectory(ee_initial, current_ee_positions, ideal_positions, desired_starts, desired_ends):
+def plot_trajectory(ee_initial, current_ee_positions, ideal_positions, desired_starts, desired_ends, plot_predefined):
     fig = plt.figure(figsize=(30, 30))
     ax1 = fig.add_subplot(111, projection='3d')
     ax1.view_init(10, -10)
@@ -40,8 +40,9 @@ def plot_trajectory(ee_initial, current_ee_positions, ideal_positions, desired_s
         ax1.plot([ds[0], de[0]], [ds[1], de[1]], [ds[2], de[2]],
                  linewidth=2, label="desired " + str(i), color="orange")
 
-    ax1.plot(ideal_positions[:, 0], ideal_positions[:, 1],
-             ideal_positions[:, 2], linewidth=3, label="predefined", color="green")
+    if plot_predefined:
+        ax1.plot(ideal_positions[:, 0], ideal_positions[:, 1],
+                 ideal_positions[:, 2], linewidth=3, label="predefined", color="green")
 
     ax1.text(ee_initial[0], ee_initial[1],
              ee_initial[2], "start", size=10, zorder=1, color='k')

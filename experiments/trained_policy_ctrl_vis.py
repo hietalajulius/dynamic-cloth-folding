@@ -47,7 +47,7 @@ if __name__ == "__main__":
         )
     else:
         M = variant['layer_size']
-        policy_name = '../policies/ctrl-test_current_policy.mdl'
+        policy_name = '../policies/sync/ctrl-opt-mod_current_policy.mdl'
         agent = TanhGaussianPolicy(
             obs_dim=policy_obs_dim,
             action_dim=action_dim,
@@ -64,7 +64,7 @@ if __name__ == "__main__":
         'observation', ['robot_observation'], 'desired_goal')
 
     tracking_score, ate, s, current_ee_positions = eval_settings(
-        variant, agent, render=True, plot=True, max_steps=15, obs_processor=obs_processor)
+        variant, agent, render=True, plot=True, max_steps=15, obs_processor=obs_processor, plot_predefined=False)
 
     if save_new:
         np.save(
