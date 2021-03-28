@@ -65,31 +65,31 @@
                 <geom name="robot0_link0_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="robot0_link0_vis"/>
                 <geom name="robot0_link0_collision" type="mesh" rgba="0 0.5 0 1" mesh="robot0_link0"/>
                 <body name="robot0_link1" pos="0 0 0.333">
-                    <joint name="robot0_joint1" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973" armature="5" damping="0.0" frictionloss="0.0"/>
+                    <joint name="robot0_joint1" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"  damping="0.0" frictionloss="0.0"/>
                     <geom name="robot0_link1_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="robot0_link1_vis"/>
                     <geom name="robot0_link1_collision" type="mesh" rgba="0 0.5 0 1" mesh="robot0_link1"/>
                     <body name="robot0_link2" pos="0 0 0" quat="0.707107 -0.707107 0 0">
-                        <joint name="robot0_joint2" pos="0 0 0" axis="0 0 1" limited="true" range="-1.7628 1.7628" armature="2.5" damping="0.0" frictionloss="0.0"/>
+                        <joint name="robot0_joint2" pos="0 0 0" axis="0 0 1" limited="true" range="-1.7628 1.7628"  damping="0.0" frictionloss="0.0"/>
                         <geom name="robot0_link2_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="robot0_link2_vis"/>
                         <geom name="robot0_link2_collision" type="mesh" rgba="0 0.5 0 1" mesh="robot0_link2"/>
                         <body name="robot0_link3" pos="0 -0.316 0" quat="0.707107 0.707107 0 0">
-                            <joint name="robot0_joint3" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973" armature="1.66667" damping="0.0" frictionloss="0.0"/>
+                            <joint name="robot0_joint3" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"  damping="0.0" frictionloss="0.0"/>
                             <geom name="robot0_link3_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="robot0_link3_vis"/>
                             <geom name="robot0_link3_collision" type="mesh" rgba="0 0.5 0 1" mesh="robot0_link3"/>
                             <body name="robot0_link4" pos="0.0825 0 0" quat="0.707107 0.707107 0 0">
-                                <joint name="robot0_joint4" pos="0 0 0" axis="0 0 1" limited="true" range="-3.0718 -0.0698" armature="1.25" damping="0.0" frictionloss="0.0"/>
+                                <joint name="robot0_joint4" pos="0 0 0" axis="0 0 1" limited="true" range="-3.0718 -0.0698" damping="0.0" frictionloss="0.0"/>
                                 <geom name="robot0_link4_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="robot0_link4_vis"/>
                                 <geom name="robot0_link4_collision" type="mesh" rgba="0 0.5 0 1" mesh="robot0_link4"/>
                                 <body name="robot0_link5" pos="-0.0825 0.384 0" quat="0.707107 -0.707107 0 0">
-                                    <joint name="robot0_joint5" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973" armature="1" damping="0.0" frictionloss="0.0"/>
+                                    <joint name="robot0_joint5" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"  damping="0.0" frictionloss="0.0"/>
                                     <geom name="robot0_link5_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="robot0_link5_vis"/>
                                     <geom name="robot0_link5_collision" type="mesh" rgba="0 0.5 0 1" mesh="robot0_link5"/>
                                     <body name="robot0_link6" pos="0 0 0" quat="0.707107 0.707107 0 0">
-                                        <joint name="robot0_joint6" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0175 3.7525" armature="0.833333" damping="0.0" frictionloss="0.0"/>
+                                        <joint name="robot0_joint6" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0175 3.7525"  damping="0.0" frictionloss="0.0"/>
                                         <geom name="robot0_link6_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="robot0_link6_vis"/>
                                         <geom name="robot0_link6_collision" type="mesh" rgba="0 0.5 0 1" mesh="robot0_link6"/>
                                         <body name="robot0_link7" pos="0.088 0 0" quat="0.707107 0.707107 0 0">
-                                            <joint name="robot0_joint7" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973" armature="0.714286" damping="0.0" frictionloss="0.0"/>
+                                            <joint name="robot0_joint7" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"  damping="0.0" frictionloss="0.0"/>
                                             <geom name="robot0_link7_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="robot0_link7_vis"/>
                                             <geom name="robot0_link7_collision" type="mesh" rgba="0 0.5 0 1" mesh="robot0_link7"/>
                                             <body name="robot0_right_hand" pos="0 0 0.1065" quat="0.923785 0 0 -0.382911">
@@ -133,13 +133,13 @@
         </body>
     </worldbody>
     <actuator>
-        <general name="robot0_torq_j1" joint="robot0_joint1" ctrllimited="true" ctrlrange="-80 80"/>
-        <general name="robot0_torq_j2" joint="robot0_joint2" ctrllimited="true" ctrlrange="-80 80"/>
-        <general name="robot0_torq_j3" joint="robot0_joint3" ctrllimited="true" ctrlrange="-80 80"/>
-        <general name="robot0_torq_j4" joint="robot0_joint4" ctrllimited="true" ctrlrange="-80 80"/>
-        <general name="robot0_torq_j5" joint="robot0_joint5" ctrllimited="true" ctrlrange="-80 80"/>
-        <general name="robot0_torq_j6" joint="robot0_joint6" ctrllimited="true" ctrlrange="-12 12"/>
-        <general name="robot0_torq_j7" joint="robot0_joint7" ctrllimited="true" ctrlrange="-12 12"/>
+        <general name="robot0_torq_j1" joint="robot0_joint1" />
+        <general name="robot0_torq_j2" joint="robot0_joint2" />
+        <general name="robot0_torq_j3" joint="robot0_joint3" />
+        <general name="robot0_torq_j4" joint="robot0_joint4" />
+        <general name="robot0_torq_j5" joint="robot0_joint5" />
+        <general name="robot0_torq_j6" joint="robot0_joint6" />
+        <general name="robot0_torq_j7" joint="robot0_joint7" />
     </actuator>
     <sensor>
         <force site="gripper0_ft_frame" name="gripper0_force_ee"/>

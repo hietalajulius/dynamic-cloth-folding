@@ -3,45 +3,40 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import argparse
+
+def plot(ax, data, label):
+    ax.plot(range(data.shape[0]), data, label=label)
 
 
+def main(args):
+    sim = bool(args.sim)
+    real = bool(args.real)
+
+    if sim:
+        ee_trajectory_sim = np.genfromtxt('/home/julius/robotics/osc_ws/src/osc/trajectories/ee_trajectory_sim.csv', delimiter=',')
+        ee_trajectory_desired_sim = np.genfromtxt('/home/julius/robotics/osc_ws/src/osc/trajectories/ee_trajectory_desired_sim.csv', delimiter=',')
+
+    if real:
+        ee_trajectory_real = np.genfromtxt('/home/julius/robotics/osc_ws/src/osc/trajectories/ee_trajectory_real.csv', delimiter=',')
+        ee_trajectory_desired_real = np.genfromtxt('/home/julius/robotics/osc_ws/src/osc/trajectories/ee_trajectory_desired_real.csv', delimiter=',')
+    
+
+    fig, axs = plt.subplots(9)
+
+    for i, ax in enumerate(axs):
+        if sim:
+            plot(ax, ee_trajectory_sim[:,i], "sim")
+        if real:
+            plot(ax, ee_trajectory_real[:,i], "real")
+
+    plt.legend()
+    plt.show()
 
 
-
-ee_velocities = np.genfromtxt('/home/julius/robotics/osc_ws/src/osc/trajectories/ee_velocities.csv', delimiter=',')
-ee_velocities_sim = np.genfromtxt('/home/julius/robotics/osc_ws/src/osc/trajectories/ee_velocities_sim.csv', delimiter=',')
-ee_accelerations = np.genfromtxt('/home/julius/robotics/osc_ws/src/osc/trajectories/ee_accelerations.csv', delimiter=',')
-ee_accelerations_sim = np.genfromtxt('/home/julius/robotics/osc_ws/src/osc/trajectories/ee_accelerations_sim.csv', delimiter=',')
-#ee_velocities_sim = np.genfromtxt('/home/julius/robotics/osc_ws/src/osc/trajectories/ee_velocities.csv', delimiter=',')
-#ee_accelerations_sim = np.genfromtxt('/home/julius/robotics/osc_ws/src/osc/trajectories/ee_accelerations.csv', delimiter=',')
-
-
-fig, axs = plt.subplots(6)
-
-start = 18000
-end = 20000
-
-start_sim = 14300
-end_sim = ee_accelerations_sim.shape[0]
-
-
-axs[0].plot(range(ee_velocities[start:end,0].shape[0]), ee_velocities[start:end,0], label="real")
-axs[0].plot(range(ee_velocities_sim[start_sim:end_sim,0].shape[0]), ee_velocities_sim[start_sim:end_sim,0], label="sim")
-
-axs[1].plot(range(ee_velocities[start:end,1].shape[0]), ee_velocities[start:end,1], label="real")
-axs[1].plot(range(ee_velocities_sim[start_sim:end_sim,1].shape[0]), ee_velocities_sim[start_sim:end_sim,1], label="sim")
-
-axs[2].plot(range(ee_velocities[start:end,2].shape[0]), ee_velocities[start:end,2], label="real")
-axs[2].plot(range(ee_velocities_sim[start_sim:end_sim,2].shape[0]), ee_velocities_sim[start_sim:end_sim,2], label="sim")
-
-axs[3].plot(range(ee_accelerations[start:end,0].shape[0]), ee_accelerations[start:end,0], label="real")
-axs[3].plot(range(ee_accelerations_sim[start_sim:end_sim,0].shape[0]), ee_accelerations_sim[start_sim:end_sim,0], label="sim")
-
-axs[4].plot(range(ee_accelerations[start:end,1].shape[0]), ee_accelerations[start:end,1], label="real")
-axs[4].plot(range(ee_accelerations_sim[start_sim:end_sim,1].shape[0]), ee_accelerations_sim[start_sim:end_sim,1], label="sim")
-
-axs[5].plot(range(ee_accelerations[start:end,2].shape[0]), ee_accelerations[start:end,2], label="real")
-axs[5].plot(range(ee_accelerations_sim[start_sim:end_sim,2].shape[0]), ee_accelerations_sim[start_sim:end_sim,2], label="sim")
-
-plt.legend()
-plt.show()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("Parser")
+    parser.add_argument('--sim',  default=0, type=int)
+    parser.add_argument('--real',  default=0, type=int)
+    args = parser.parse_args()
+    main(args)
