@@ -51,15 +51,17 @@ def experiment(variant):
     if variant['domain_randomization']:
         macros.USING_INSTANCE_RANDOMIZATION = True
 
-    if variant['env_type'] == 'robosuite':
-        env = get_robosuite_env(variant, evaluation=True)
-        if variant['domain_randomization']:
-            env = randomize_env(env)
-        eval_env = env
+    env = get_robosuite_env(variant, evaluation=True)
+    if variant['domain_randomization']:
+        env = randomize_env(env)
+    eval_env = env
 
-    else:
-        eval_env = NormalizedBoxEnv(
-            gym.make(variant['env_name'], **variant['env_kwargs']))
+    # TODO: Make sure inertials are in order everywhere
+
+    with open("compiled_mujoco_model.xml", "w") as f:
+        eval_env.sim.save(f, format='xml', keep_inertials=True)
+
+    print("Saved compiled xml mujoco model")
 
     obs_dim = eval_env.observation_space.spaces['observation'].low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
@@ -153,19 +155,13 @@ def experiment(variant):
     if variant['num_processes'] > 1:
         print("Vectorized path collection")
 
-        def make_env():
-            return NormalizedBoxEnv(gym.make(variant['env_name'], **variant['env_kwargs']))
-
         def make_suite_env():
             env = get_robosuite_env(variant)
             if variant['domain_randomization']:
                 env = randomize_env(env)
             return env
 
-        if variant['env_type'] == 'robosuite':
-            env_fns = [make_suite_env for _ in range(variant['num_processes'])]
-        else:
-            env_fns = [make_env for _ in range(variant['num_processes'])]
+        env_fns = [make_suite_env for _ in range(variant['num_processes'])]
         vec_env = SubprocVecEnv(env_fns)
 
         expl_path_collector = VectorizedKeyPathCollector(
@@ -230,7 +226,11 @@ def experiment(variant):
     with mujoco_py.ignore_mujoco_warnings():
         algorithm.train()
 
-    return eval_policy
+    torch.save(eval_policy.state_dict(), variant['version'] + '.mdl')
+
+    if variant['num_processes'] > 1:
+        vec_env.close()
+        print("Closed subprocesses")
 
 
 if __name__ == "__main__":
@@ -247,9 +247,5 @@ if __name__ == "__main__":
     setup_logger(file_path, variant=variant,
                  log_tabular_only=variant['log_tabular_only'])
 
-    if bool(args.cprofile):
-        print("Profiling with cProfile")
-        cProfile.run('experiment(variant)', file_path + '-stats')
-    else:
-        trained_policy = experiment(variant)
-        torch.save(trained_policy.state_dict(), file_path + '.mdl')
+    print("Profiling with cProfile")
+    cProfile.run('experiment(variant)', "profmain.prof")

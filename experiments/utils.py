@@ -2,7 +2,6 @@ import tracemalloc
 import linecache
 import argparse
 from gym.envs.robotics import task_definitions
-from panda_gym.gym_envs.utils import env_field
 import os
 from robosuite.controllers import load_controller_config
 from robosuite.utils.input_utils import *
@@ -11,18 +10,6 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import time
-
-if os.environ['USER'] == 'hietalj4':
-    print("Host paniikki")
-    os.environ["FRANKA_TEMPLATE_PATH"] = '/m/home/home0/06/hietalj4/unix/robotics/panda-gym/panda_gym/franka_sim/templates'
-    os.environ["FRANKA_MESH_PATH"] = '/m/home/home0/06/hietalj4/unix/robotics/panda-gym/panda_gym/franka_sim/meshes'
-elif os.environ['USER'] == 'clothmanip':
-    os.environ["FRANKA_TEMPLATE_PATH"] = '/home/clothmanip/robotics/panda-gym/panda_gym/franka_sim/templates'
-    os.environ["FRANKA_MESH_PATH"] = '/home/clothmanip/robotics/panda-gym/panda_gym/franka_sim/meshes'
-else:
-    print("Host mac")
-    os.environ["FRANKA_TEMPLATE_PATH"] = '/Users/juliushietala/robotics/panda-gym/panda_gym/franka_sim/templates'
-    os.environ["FRANKA_MESH_PATH"] = '/Users/juliushietala/robotics/panda-gym/panda_gym/franka_sim/meshes'
 
 
 def plot_trajectory(ee_initial, current_ee_positions, ideal_positions, desired_starts, desired_ends, plot_predefined):
@@ -92,7 +79,7 @@ def ATE(ee_positions, goals):
 def get_robosuite_env(variant, evaluation=False):
     options = {}
     options["env_name"] = variant["env_name"]
-    options["robots"] = "Panda"
+    options["robots"] = "PandaReal"
     controller_name = variant['ctrl_kwargs']["ctrl_name"]
     options["controller_configs"] = load_controller_config(
         default_controller=controller_name)
@@ -140,7 +127,7 @@ def argsparser():
     parser.add_argument('--run',  default=1, type=int)
     parser.add_argument('--title', default="notitle", type=str)
     parser.add_argument('--num_processes', type=int, default=1)
-    parser.add_argument('--cprofile', type=int, default=0)
+    # TODO: no traditional logging at all
     parser.add_argument('--log_tabular_only', type=int, default=0)
 
     # Train
@@ -162,30 +149,27 @@ def argsparser():
     # Collection
     parser.add_argument('--max_path_length', default=50, type=int)
 
-    # Env
-    parser.add_argument('--env_name', type=str, default="Cloth")
-    parser.add_argument('--env_type', type=str, default="robosuite")
-    parser.add_argument('--domain_randomization', type=int, default=0)
-
-    # Controller
+    # Controller optimization
     parser.add_argument('--ctrl_eval_file', type=int, default=0)
     parser.add_argument('--ctrl_eval', type=int, default=0)
-    parser.add_argument('--output_max', type=float, default=0.03)
+
+    # Controller
+    parser.add_argument('--output_max', type=float, default=0.035)
     parser.add_argument('--input_max', type=float, default=1.)
     parser.add_argument('--position_limits',
                         default=[[-0.12, -0.25, 0.12], [0.12, 0.05, 0.4]])
-    parser.add_argument('--interpolator', type=str, default="linear")
-    parser.add_argument('--ctrl_name', type=str, default="OSC_POSE")
-    parser.add_argument('--ramp_ratio', type=float, default=0.1)
-    parser.add_argument('--damping_ratio', type=float, default=0.6)
-    parser.add_argument('--kp', type=float, default=600.0)
+    parser.add_argument('--interpolator', type=str,
+                        default="filter")  # TODO: fix this shit
+    parser.add_argument('--ctrl_name', type=str, default="OSC_POS_VEL")
+    parser.add_argument('--ramp_ratio', type=float,
+                        default=0.03)  # TODO: fix this shit
+    parser.add_argument('--damping_ratio', type=float, default=1)
+    parser.add_argument('--kp', type=float, default=1000.0)
 
-    # NOTE: only applies to some envs
-
+    # Env
+    parser.add_argument('--env_name', type=str, default="Cloth")
+    parser.add_argument('--domain_randomization', type=int, default=0)
     parser.add_argument('--constant_goal', type=int, default=0)
-    parser.add_argument('--max_action', type=float, default=1.)
-    parser.add_argument('--debug_render_success', type=int, default=0)
-    parser.add_argument('--control_freq', type=int, default=10)
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--task', type=str, default="sideways_franka_1")
     parser.add_argument('--velocity_in_obs', type=int, default=1)
@@ -198,13 +182,9 @@ def argsparser():
     parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.01))
     parser.add_argument('--max_advance', type=float, default=0.05)
 
-    # XML model / env TODO: merge these better with panda-gym
-    parser.add_argument('--finger_type', type=str, default="3dprinted")
-    parser.add_argument('--model_timestep', type=float, default=0.01)
-
     args = parser.parse_args()
 
-    file = open("sample.txt", "w")
+    file = open("params.txt", "w")
     file.write(str(args.__dict__))
     return args
 
@@ -253,7 +233,6 @@ def get_variant(args):
     )
 
     variant['env_name'] = args.env_name
-    variant['env_type'] = args.env_type
     variant['domain_randomization'] = bool(args.domain_randomization)
     variant['random_seed'] = args.seed
     variant['version'] = args.title
@@ -280,68 +259,32 @@ def get_variant(args):
         fraction_goals_rollout_goals=1 - args.her_percent
     )
 
-    if variant['env_type'] == 'panda_gym_reach':
-        variant['env_kwargs'] = dict()
-    elif variant['env_type'] == 'panda_gym_franka':
-        variant['env_kwargs'] = dict(
-            constraints=task_definitions.constraints[args.task],
-            sparse_dense=bool(args.sparse_dense),
-            pixels=bool(args.image_training),
-            goal_noise_range=tuple(args.goal_noise_range),
-            randomize_params=bool(args.randomize_params),
-            randomize_geoms=bool(args.randomize_geoms),
-            uniform_jnt_tend=bool(args.uniform_jnt_tend),
-            image_size=args.image_size,
-            random_seed=args.seed,
-            velocity_in_obs=bool(args.velocity_in_obs)
-        )
-    elif variant['env_type'] == 'gym':
-        n_substeps = int(1/(args.control_freq*args.model_timestep))
-        variant['env_kwargs'] = dict(
-            n_substeps=n_substeps,
-            constraints=task_definitions.constraints[args.task],
-            sparse_dense=bool(args.sparse_dense),
-            pixels=bool(args.image_training),
-            goal_noise_range=tuple(args.goal_noise_range),
-            randomize_params=bool(args.randomize_params),
-            randomize_geoms=bool(args.randomize_geoms),
-            uniform_jnt_tend=bool(args.uniform_jnt_tend),
-            image_size=args.image_size,
-            random_seed=args.seed,
-            velocity_in_obs=bool(args.velocity_in_obs),
-            max_advance=float(args.max_advance)
-        )
-    elif variant['env_type'] == 'robosuite':
-        variant['env_kwargs'] = dict(
-            constant_goal=bool(args.constant_goal),
-            sparse_dense=bool(args.sparse_dense),
-            max_action=float(args.max_action),
-            constraints=task_definitions.constraints[args.task],
-            control_freq=int(args.control_freq),
-            pixels=bool(args.image_training),
-            goal_noise_range=tuple(args.goal_noise_range),
-            randomize_params=bool(args.randomize_params),
-            randomize_geoms=bool(args.randomize_geoms),
-            uniform_jnt_tend=bool(args.uniform_jnt_tend),
-            image_size=args.image_size,
-            random_seed=args.seed,
-            velocity_in_obs=bool(args.velocity_in_obs)
-        )
+    variant['env_kwargs'] = dict(
+        constant_goal=bool(args.constant_goal),
+        sparse_dense=bool(args.sparse_dense),
+        constraints=task_definitions.constraints[args.task],
+        pixels=bool(args.image_training),
+        goal_noise_range=tuple(args.goal_noise_range),
+        randomize_params=bool(args.randomize_params),
+        randomize_geoms=bool(args.randomize_geoms),
+        uniform_jnt_tend=bool(args.uniform_jnt_tend),
+        image_size=args.image_size,
+        random_seed=args.seed,
+        velocity_in_obs=bool(args.velocity_in_obs)
+    )
 
-        variant['ctrl_kwargs'] = dict(
-            ctrl_name=str(args.ctrl_name),
-            output_max=args.output_max,
-            input_max=args.input_max,
-            position_limits=args.position_limits,
-            ctrl_eval=bool(
-                args.ctrl_eval),
-            ctrl_eval_file=args.ctrl_eval_file,
-            interpolator=args.interpolator,
-            ramp_ratio=args.ramp_ratio,
-            damping_ratio=args.damping_ratio,
-            kp=args.kp)
-    else:
-        raise ValueError("Incorrect env_type provided")
+    variant['ctrl_kwargs'] = dict(
+        ctrl_name=str(args.ctrl_name),
+        output_max=args.output_max,
+        input_max=args.input_max,
+        position_limits=args.position_limits,
+        ctrl_eval=bool(
+            args.ctrl_eval),
+        ctrl_eval_file=args.ctrl_eval_file,
+        interpolator=args.interpolator,
+        ramp_ratio=args.ramp_ratio,
+        damping_ratio=args.damping_ratio,
+        kp=args.kp)
 
     if args.image_training:
         channels = 1
@@ -358,21 +301,13 @@ def get_variant(args):
         )
         variant['path_collector_kwargs']['additional_keys'] = [
             'robot_observation']
-        if not args.env_type == 'panda_gym_reach':
-            variant['replay_buffer_kwargs']['internal_keys'] = [
-                'image', 'model_params', 'robot_observation']
-        else:
-            variant['replay_buffer_kwargs']['internal_keys'] = [
-                'image', 'robot_observation']
+        variant['replay_buffer_kwargs']['internal_keys'] = [
+            'image', 'model_params', 'robot_observation']
 
     else:
-        if not args.env_type == 'panda_gym_reach':
-            variant['path_collector_kwargs']['additional_keys'] = [
-                'robot_observation']
-            variant['replay_buffer_kwargs']['internal_keys'] = [
-                'model_params', 'robot_observation']
-        else:
-            variant['path_collector_kwargs']['additional_keys'] = []
-            variant['replay_buffer_kwargs']['internal_keys'] = []
+        variant['path_collector_kwargs']['additional_keys'] = [
+            'robot_observation']
+        variant['replay_buffer_kwargs']['internal_keys'] = [
+            'model_params', 'robot_observation']
 
     return variant
