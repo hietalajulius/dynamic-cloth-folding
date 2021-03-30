@@ -176,9 +176,9 @@ def argsparser():
                         default=[[-0.12, -0.25, 0.12], [0.12, 0.05, 0.4]])
     parser.add_argument('--interpolator', type=str, default="linear")
     parser.add_argument('--ctrl_name', type=str, default="OSC_POSE")
-    parser.add_argument('--ramp_ratio', type=float, default=0.5)
-    parser.add_argument('--damping_ratio', type=float, default=1.5)
-    parser.add_argument('--kp', type=float, default=700.0)
+    parser.add_argument('--ramp_ratio', type=float, default=0.1)
+    parser.add_argument('--damping_ratio', type=float, default=0.6)
+    parser.add_argument('--kp', type=float, default=600.0)
 
     # NOTE: only applies to some envs
 

@@ -96,7 +96,7 @@ def eval_settings(variant, agent, render=False, plot=False, max_steps=20, obs_pr
     return tracking_score, ate, success, current_ee_positions
 
 
-def get_positions(idx):
+def get_deltas(idx):
     positions = np.load(f"../traj_opt/ee_reached_{str(idx)}.npy")
     positions = [[-0.07334889, -0.03174962, 0.14356065]] + positions.tolist()
     return np.array([np.array(positions[i+1]) - np.array(positions[i])
@@ -111,20 +111,13 @@ if __name__ == "__main__":
 
     if variant['ctrl_kwargs']['ctrl_eval']:
 
-        positions = get_positions(
+        deltas = get_deltas(
             variant['ctrl_kwargs']['ctrl_eval_file'])
 
-        deltas = []
-        if save_deltas_to_csv:
-            for idx in range(positions.shape[0]-1):
-                delta = positions[idx+1]-positions[idx]
-                print("DLETA", delta)
-                deltas.append(delta)
-            deltas = np.array(deltas)
-            np.savetxt("../traj_opt/deltas.csv",
-                       deltas, delimiter=",", fmt='%f')
+        np.savetxt("../traj_opt/deltas.csv",
+                   deltas, delimiter=",", fmt='%f')
 
-        actions = positions / variant['ctrl_kwargs']['output_max']
+        actions = deltas / variant['ctrl_kwargs']['output_max']
 
         agent = TestAgent(actions)
 
