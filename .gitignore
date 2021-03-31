@@ -8,3 +8,4 @@ experiments/sample.txt
 policies
 .DS_Store
 traj_opt/.ipynb_checkpoints
+*MUJOCO_LOG.TXT
