@@ -19,6 +19,8 @@ import copy
 import pandas as pd
 
 
+
+
 class TestAgent(object):
     def __init__(self, actions):
         self.actions = actions
@@ -33,25 +35,23 @@ class TestAgent(object):
         self.current_action = 0
 
 
-def eval_settings(variant, agent, render=False, plot=False, max_steps=20, obs_processor=None, plot_predefined=True):
+def eval_settings(variant, agent, render=False, plot=False, max_steps=20, obs_processor=None):
     env = get_robosuite_env(variant, evaluation=render)
     o = env.reset()
     agent.reset()
 
     start = env.sim.data.get_site_xpos(
         'gripper0_grip_site').copy()
-
-    current_ee_positions = []
-    desired_starts = []
-    desired_ends = []
-
-    ideal_positions = []
-
-    current_ideal_pos = start.copy()
-
     success = False
 
-    current_desired_start = start
+    ee_position = np.zeros(3)
+
+    current_desired_start = np.zeros(3)
+    current_ee_positions = [current_desired_start]
+    desired_starts = []
+    desired_ends = []
+    actual_deltas = []
+    actual_velocities = []
 
     for _ in range(max_steps):
         if not obs_processor is None:
@@ -60,27 +60,24 @@ def eval_settings(variant, agent, render=False, plot=False, max_steps=20, obs_pr
         else:
             delta = agent.get_action(o)
 
+        desired_starts.append(current_desired_start)
+
         delta_pos_in_space = delta[:3] * variant['ctrl_kwargs']['output_max']
-        #delta_vel_in_space = delta[3:] * 0.5
-
-        #delta_in_space = np.concatenate([delta_pos_in_space, delta_vel_in_space])
-
-        
         current_desired_end = current_desired_start + delta_pos_in_space
+
         o, reward, done, info = env.step(delta)
         if reward >= 0:
             success = True
 
-        current_desired_start = current_desired_end
+        current_ee_positions.append(ee_position)
+        new_ee_position = env.sim.data.get_site_xpos('gripper0_grip_site').copy() - start
+        actual_deltas.append(new_ee_position.copy() - ee_position.copy())
+        ee_position = new_ee_position
+        actual_velocities.append(env.sim.data.get_site_xvelp('gripper0_grip_site'))
 
-        current_ideal_pos += delta_pos_in_space
 
-        current_ee_positions.append(
-            env.sim.data.get_site_xpos('gripper0_grip_site').copy())
-        ideal_positions.append(current_ideal_pos.copy())
-
-        desired_starts.append(current_desired_start.copy())
         desired_ends.append(current_desired_end.copy())
+        current_desired_start = current_desired_end
 
         if render:
             render_env(env)
@@ -88,18 +85,20 @@ def eval_settings(variant, agent, render=False, plot=False, max_steps=20, obs_pr
     current_ee_positions = np.array(current_ee_positions)
     desired_starts = np.array(desired_starts)
     desired_ends = np.array(desired_ends)
-    ideal_positions = np.array(ideal_positions)
+    actual_deltas = np.array(actual_deltas)
+    actual_velocities = np.array(actual_velocities)
 
     tracking_score = get_tracking_score(
-        current_ee_positions, desired_ends)
+        current_ee_positions[:-1], desired_ends)
 
-    ate = ATE(current_ee_positions, desired_ends)
+    ate = ATE(current_ee_positions[:-1], desired_ends)
 
     if plot:
-        plot_trajectory(start, current_ee_positions,
-                        ideal_positions, desired_starts, desired_ends, plot_predefined)
+        plot_trajectory(start, current_ee_positions, desired_starts, desired_ends)
 
-    return tracking_score, ate, success, current_ee_positions
+    trajectory = np.concatenate([actual_deltas, actual_velocities], axis=1)
+
+    return tracking_score, ate, success, trajectory
 
 
 def get_deltas(idx):

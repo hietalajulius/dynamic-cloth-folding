@@ -15,13 +15,15 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 
-from ctrl_optimization import eval_settings
-from utils import get_variant, argsparser, get_robosuite_env, ATE, get_tracking_score, plot_trajectory, render_env, get_obs_processor
 
+from ctrl_optimization import eval_settings
+from utils import get_variant, argsparser, get_robosuite_env, ATE, plot_trajectory, render_env, get_obs_processor
+
+prefix = "/home/julius/robotics/" #/home/clothmanip/school/" #
 
 if __name__ == "__main__":
     save_new = False
-    save_idx = 0
+    save_filename = "../traj_opt/actual_deltas_and_inferred_velocities.csv"
     args = argsparser()
     variant = get_variant(args)
 
@@ -47,7 +49,7 @@ if __name__ == "__main__":
         )
     else:
         M = variant['layer_size']
-        policy_name = '/home/clothmanip/robotics/cloth-manipulation/real_test_policies/notitle_current_policy.mdl'
+        policy_name = prefix+'cloth-manipulation/real_test_policies/notitle_current_policy.mdl'
         agent = TanhGaussianPolicy(
             obs_dim=policy_obs_dim,
             action_dim=action_dim,
@@ -63,11 +65,10 @@ if __name__ == "__main__":
     obs_processor = get_obs_processor(
         'observation', ['robot_observation'], 'desired_goal')
 
-    tracking_score, ate, s, current_ee_positions = eval_settings(
-        variant, agent, render=True, plot=True, max_steps=15, obs_processor=obs_processor, plot_predefined=False)
+    tracking_score, ate, s, trajectory = eval_settings(
+        variant, agent, render=True, plot=True, max_steps=9, obs_processor=obs_processor)
 
     if save_new:
-        np.save(
-            f"traj_opt/ee_reached_{str(save_idx)}.npy", current_ee_positions)
+        np.savetxt(save_filename, trajectory, delimiter=",", fmt='%f')
 
     print(f"Tracking: {tracking_score}, ATE: {ate}")

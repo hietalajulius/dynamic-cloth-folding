@@ -5,19 +5,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import argparse
 
-prefix = "/home/clothmanip/school/" #/home/julius/robotics/
+prefix = "/home/julius/robotics/" # "/home/clothmanip/school/" #
 
 def plot(ax, data, label):
     ax.plot(range(data.shape[0]), data, label=label)
 
-
+#/home/julius/robotics/cloth-manipulation/traj_opt/actual_deltas_and_inferred_velocities.csv
 def main(args):
     sim = bool(args.sim)
     real = bool(args.real)
     desired = bool(args.desired)
     predefined = bool(args.predefined)
-
-    ee_predefined_deltas = np.genfromtxt(prefix+'osc_ws/src/real_deltas_velocities.csv', delimiter=',')
+    ee_predefined_deltas = np.genfromtxt(prefix+'cloth-manipulation/traj_opt/actual_deltas_and_inferred_velocities.csv', delimiter=',')
     ee_predefined_targets = np.array([np.sum(ee_predefined_deltas[:i,:3], axis=0) for i in range(ee_predefined_deltas.shape[0])])
     ee_predefined_velocities = ee_predefined_deltas[:,3:]
     ee_predefined_accelerations = [np.zeros(3)] #TODO: Save these in the ctrl logging
@@ -43,7 +42,11 @@ def main(args):
     vel_range = 0.5
     acc_range = 30
 
-    starts = np.array([-0.1, -0.18, -0.02, -0.2, -0.05, -0.2, -15, -15, -15])
+    x_min = np.min(ee_predefined_targets[:, 0])
+    y_min = np.min(ee_predefined_targets[:, 1])
+    z_min = np.min(ee_predefined_targets[:, 2])
+
+    starts = np.array([x_min, y_min, z_min, -0.2, -0.05, -0.2, -15, -15, -15])
     ends = np.zeros(9)
     ends[:3] = starts[:3] + pos_range
     ends[3:6] = starts[3:6] + vel_range

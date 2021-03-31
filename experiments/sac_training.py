@@ -59,7 +59,7 @@ def experiment(variant):
     # TODO: Make sure inertials are in order everywhere
 
     with open("compiled_mujoco_model.xml", "w") as f:
-        eval_env.sim.save(f, format='xml', keep_inertials=True)
+        eval_env.sim.save(f, format='xml', keep_inertials=False)
 
     print("Saved compiled xml mujoco model")
 
@@ -248,4 +248,4 @@ if __name__ == "__main__":
                  log_tabular_only=variant['log_tabular_only'])
 
     print("Profiling with cProfile")
-    cProfile.run('experiment(variant)', "profmain.prof")
+    cProfile.run('experiment(variant)', "./profiling/profmain.prof")
