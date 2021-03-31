@@ -20,8 +20,8 @@ from utils import get_variant, argsparser, get_robosuite_env, ATE, get_tracking_
 
 
 if __name__ == "__main__":
-    save_new = True
-    save_idx = 4
+    save_new = False
+    save_idx = 0
     args = argsparser()
     variant = get_variant(args)
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         )
     else:
         M = variant['layer_size']
-        policy_name = '../policies/sync/ctrl-opt-mod_current_policy.mdl'
+        policy_name = '/home/clothmanip/robotics/cloth-manipulation/real_test_policies/notitle_current_policy.mdl'
         agent = TanhGaussianPolicy(
             obs_dim=policy_obs_dim,
             action_dim=action_dim,

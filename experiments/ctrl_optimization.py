@@ -51,6 +51,8 @@ def eval_settings(variant, agent, render=False, plot=False, max_steps=20, obs_pr
 
     success = False
 
+    current_desired_start = start
+
     for _ in range(max_steps):
         if not obs_processor is None:
             o = obs_processor(o)
@@ -58,16 +60,20 @@ def eval_settings(variant, agent, render=False, plot=False, max_steps=20, obs_pr
         else:
             delta = agent.get_action(o)
 
-        delta_in_space = delta * variant['ctrl_kwargs']['output_max']
+        delta_pos_in_space = delta[:3] * variant['ctrl_kwargs']['output_max']
+        #delta_vel_in_space = delta[3:] * 0.5
 
-        ee_pos = env.sim.data.get_site_xpos('gripper0_grip_site').copy()
-        current_desired_start = ee_pos
-        current_desired_end = ee_pos + delta_in_space
+        #delta_in_space = np.concatenate([delta_pos_in_space, delta_vel_in_space])
+
+        
+        current_desired_end = current_desired_start + delta_pos_in_space
         o, reward, done, info = env.step(delta)
         if reward >= 0:
             success = True
 
-        current_ideal_pos += delta_in_space
+        current_desired_start = current_desired_end
+
+        current_ideal_pos += delta_pos_in_space
 
         current_ee_positions.append(
             env.sim.data.get_site_xpos('gripper0_grip_site').copy())
