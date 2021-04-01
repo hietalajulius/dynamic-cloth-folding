@@ -1,5 +1,4 @@
 import rlkit.torch.pytorch_util as ptu
-from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import KeyPathCollector, EvalKeyPathCollector, VectorizedKeyPathCollector, PresetEvalKeyPathCollector
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, GaussianPolicy, GaussianCNNPolicy
@@ -244,6 +243,7 @@ if __name__ == "__main__":
         print("Training with CPU")
 
     file_path = args.title + "-run-" + str(args.run)
+
     setup_logger(file_path, variant=variant,
                  log_tabular_only=variant['log_tabular_only'])
 
