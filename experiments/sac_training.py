@@ -14,16 +14,12 @@ import torch
 import cProfile
 from rlkit.envs.wrappers import SubprocVecEnv
 from gym.logger import set_level
-from utils import get_variant, argsparser, get_robosuite_env
+from utils import get_variant, argsparser
 import copy
-
-from robosuite.controllers import load_controller_config
-from robosuite.utils.input_utils import *
-from robosuite.wrappers import DomainRandomizationWrapper
-
-import robosuite.utils.macros as macros
 from gym.envs.robotics import reward_calculation
 import numpy as np
+from envs.cloth import ClothEnv
+from rlkit.envs.wrappers import NormalizedBoxEnv
 
 set_level(50)
 
@@ -38,29 +34,34 @@ DEFAULT_CAMERA_ARGS = {
 }
 
 
+'''
 def randomize_env(env):
     camera_randomization_args = DEFAULT_CAMERA_ARGS
     camera_randomization_args['camera_names'] = ['clothview2']
     return DomainRandomizationWrapper(
         env, randomize_on_reset=True,
         randomize_every_n_steps=0, custom_randomize_color=True, randomize_color=False,  camera_randomization_args=camera_randomization_args)
-
-
-def experiment(variant):
     if variant['domain_randomization']:
         macros.USING_INSTANCE_RANDOMIZATION = True
-
-    env = get_robosuite_env(variant, evaluation=True)
+'''
+def experiment(variant):
+    env = ClothEnv(**variant['env_kwargs'])
+    env = NormalizedBoxEnv(env)
+    '''
     if variant['domain_randomization']:
         env = randomize_env(env)
+    '''
     eval_env = env
 
     # TODO: Make sure inertials are in order everywhere
 
-    with open("compiled_mujoco_model.xml", "w") as f:
+    with open("compiled_mujoco_model_no_inertias.xml", "w") as f:
         eval_env.sim.save(f, format='xml', keep_inertials=False)
 
-    print("Saved compiled xml mujoco model")
+    with open("compiled_mujoco_model_with_intertias.xml", "w") as f:
+        eval_env.sim.save(f, format='xml', keep_inertials=True)
+
+    print("Saved compiled xml mujoco models")
 
     obs_dim = eval_env.observation_space.spaces['observation'].low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
@@ -154,13 +155,16 @@ def experiment(variant):
     if variant['num_processes'] > 1:
         print("Vectorized path collection")
 
-        def make_suite_env():
-            env = get_robosuite_env(variant)
+        def make_env():
+            env = ClothEnv(**variant['env_kwargs'])
+            env = NormalizedBoxEnv(env)
+            '''
             if variant['domain_randomization']:
                 env = randomize_env(env)
+            '''
             return env
 
-        env_fns = [make_suite_env for _ in range(variant['num_processes'])]
+        env_fns = [make_env for _ in range(variant['num_processes'])]
         vec_env = SubprocVecEnv(env_fns)
 
         expl_path_collector = VectorizedKeyPathCollector(

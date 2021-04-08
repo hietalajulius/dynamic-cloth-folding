@@ -3,8 +3,6 @@ import linecache
 import argparse
 from gym.envs.robotics import task_definitions
 import os
-from robosuite.controllers import load_controller_config
-from robosuite.utils.input_utils import *
 from rlkit.envs.wrappers import NormalizedBoxEnv
 import numpy as np
 import cv2
@@ -71,52 +69,6 @@ def ATE(ee_positions, goals):
     squared_norms = np.linalg.norm(ee_positions-goals, axis=1)**2
     return np.sqrt(squared_norms.mean())
 
-
-def get_robosuite_env(variant, evaluation=False):
-    options = {}
-    options["env_name"] = variant["env_name"]
-    options["robots"] = "PandaReal"
-    controller_name = variant['ctrl_kwargs']["ctrl_name"]
-    options["controller_configs"] = load_controller_config(
-        default_controller=controller_name)
-
-    outp_override = variant["ctrl_kwargs"]["output_max"]
-    options["controller_configs"]['output_max'][:3] = [
-        outp_override for _ in range(3)]
-    options["controller_configs"]['output_min'][:3] = [
-        -outp_override for _ in range(3)]
-
-    options["controller_configs"]['input_min'] = - \
-        variant["ctrl_kwargs"]["input_max"]
-    options["controller_configs"]['input_max'] = variant["ctrl_kwargs"]["input_max"]
-
-    options["controller_configs"]["interpolation"] = variant["ctrl_kwargs"]["interpolator"]
-    options["controller_configs"]["ramp_ratio"] = variant["ctrl_kwargs"]["ramp_ratio"]
-    options["controller_configs"]["damping_ratio"] = variant["ctrl_kwargs"]["damping_ratio"]
-    options["controller_configs"]["kp"] = variant["ctrl_kwargs"]["kp"]
-
-    if variant["ctrl_kwargs"]["position_limits"] == "None":
-        pos_limits = None
-    else:
-        pos_limits = variant["ctrl_kwargs"]["position_limits"]
-    options["controller_configs"]["position_limits"] = pos_limits
-
-    if variant['image_training'] or evaluation:
-        has_offscreen_renderer = True
-    else:
-        has_offscreen_renderer = False
-
-    env = suite.make(
-        **options,
-        **variant['env_kwargs'],
-        has_renderer=False,
-        has_offscreen_renderer=has_offscreen_renderer,
-        ignore_done=False,
-        use_camera_obs=False,
-    )
-    return NormalizedBoxEnv(env)
-
-
 def argsparser():
     parser = argparse.ArgumentParser("Parser")
     # Generic
@@ -149,23 +101,12 @@ def argsparser():
     parser.add_argument('--ctrl_eval_file', type=int, default=0)
     parser.add_argument('--ctrl_eval', type=int, default=0)
 
-    # Controller
+    # Env
+    parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--output_max', type=float, default=0.03)
-    parser.add_argument('--input_max', type=float, default=1.)
-    parser.add_argument('--position_limits', default=None)
-    parser.add_argument('--interpolator', type=str,
-                        default="filter")  # TODO: fix this shit
-    parser.add_argument('--ctrl_name', type=str, default="OSC_POS_VEL")
-    parser.add_argument('--ramp_ratio', type=float,
-                        default=0.03)  # TODO: fix this shit
     parser.add_argument('--damping_ratio', type=float, default=1)
     parser.add_argument('--kp', type=float, default=1000.0)
-
-    # Env
-    parser.add_argument('--env_name', type=str, default="Cloth")
-    parser.add_argument('--domain_randomization', type=int, default=0)
     parser.add_argument('--constant_goal', type=int, default=0)
-    parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--task', type=str, default="sideways_franka_1")
     parser.add_argument('--velocity_in_obs', type=int, default=1)
     parser.add_argument('--image_training', default=0, type=int)
@@ -226,9 +167,6 @@ def get_variant(args):
         replay_buffer_kwargs=dict(),
         algorithm_kwargs=dict()
     )
-
-    variant['env_name'] = args.env_name
-    variant['domain_randomization'] = bool(args.domain_randomization)
     variant['random_seed'] = args.seed
     variant['version'] = args.title
     variant['image_training'] = bool(args.image_training)
@@ -257,6 +195,7 @@ def get_variant(args):
     variant['env_kwargs'] = dict(
         reward_offset=args.reward_offset,
         constant_goal=bool(args.constant_goal),
+        output_max=args.output_max,
         sparse_dense=bool(args.sparse_dense),
         constraints=task_definitions.constraints[args.task],
         pixels=bool(args.image_training),
@@ -269,18 +208,6 @@ def get_variant(args):
         velocity_in_obs=bool(args.velocity_in_obs)
     )
 
-    variant['ctrl_kwargs'] = dict(
-        ctrl_name=str(args.ctrl_name),
-        output_max=args.output_max,
-        input_max=args.input_max,
-        position_limits=args.position_limits,
-        ctrl_eval=bool(
-            args.ctrl_eval),
-        ctrl_eval_file=args.ctrl_eval_file,
-        interpolator=args.interpolator,
-        ramp_ratio=args.ramp_ratio,
-        damping_ratio=args.damping_ratio,
-        kp=args.kp)
 
     if args.image_training:
         channels = 1
