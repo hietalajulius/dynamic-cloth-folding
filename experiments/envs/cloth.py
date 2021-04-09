@@ -6,6 +6,7 @@ import copy
 from gym.utils import seeding
 from gym.envs.robotics import reward_calculation
 import gym
+import time
 
 np.set_printoptions(suppress=True)
 
@@ -73,6 +74,9 @@ class ClothEnv(object):
         self.min_geom_size = 0.005  # TODO: pass ranges in from outside
         self.max_geom_size = 0.011
 
+        self.limits_min = [-0.05, -0.3, 0.0]
+        self.limits_max = [0.25, 0.1, 0.3]
+
         self.current_geom_size = self.max_geom_size/2
 
         self.current_joint_stiffness = self.max_stiffness/2
@@ -96,6 +100,10 @@ class ClothEnv(object):
             mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
 
         self.initial_state = copy.deepcopy(self.sim.get_state())
+
+        self.ctrl_goals = []
+        self.pos_goals = []
+        self.ee_positions = []
         self.reset_osc()
         
 
@@ -138,22 +146,33 @@ class ClothEnv(object):
             ))
 
     def reset_osc(self):
+        if len(self.ee_positions) > 0:
+            traj = np.array([[self.ctrl_goals, self.ctrl_goals, self.ee_positions]]).reshape((-1,9))
+            np.savetxt(f"./eval_trajs/{str(time.time())}-traj.csv",
+                   traj, delimiter=",", fmt='%f')
         self.initial_O_T_EE = None
         self.initial_joint_osc = None
+        self.initial_ee_p = None
         self.desired_pos_step = None
         self.desired_pos_ctrl = None
+        self.ctrl_goals = []
+        self.pos_goals = []
+        self.ee_positions = []
         self.update_osc_vals()
 
     def reset(self):
         self.sim.set_state(self.initial_state)
         self.sim.forward()
         self.reset_osc()
-        del self.viewer._markers[:]
         self.goal = self._sample_goal()
-        for i in range(int(self.goal.shape[0]/3)):
-            self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=self.goal[i*self.single_goal_dim: (i+1) *
-                 self.single_goal_dim], label=str(i))
-        
+        del self.viewer._markers[:]
+
+
+        '''
+        print("RESET")
+        print(self.goal)
+        print(self._get_ee_position())
+        '''
 
         if self.randomize_params:
             self.current_joint_stiffness = self.np_random.uniform(
@@ -207,16 +226,32 @@ class ClothEnv(object):
         self.sim.data.qfrc_applied[self.joint_vel_addr] = self.sim.data.qfrc_bias[self.joint_vel_addr] + tau
         mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
 
-    def step(self, action):
-        action = action.copy()*self.max_advance
-        self.desired_pos_step += action
+    def step(self, action, evaluation=False):
+        if evaluation:
+            self.ee_positions.append(self._get_ee_position())
+            self.ctrl_goals.append(self.desired_pos_ctrl)
+            self.pos_goals.append(self.desired_pos_step)
+        act = action.copy()*self.max_advance
+        desired_pos_step_absolute = self.desired_pos_step + act
+        min_absolute = self.initial_ee_p + self.limits_min
+        max_absolute = self.initial_ee_p + self.limits_max
+        self.desired_pos_step = np.clip(desired_pos_step_absolute, min_absolute, max_absolute)
         for _ in range(self.substeps):
             for _ in range(self.between_steps):
                 self.desired_pos_ctrl = self.filter*self.desired_pos_step + (1-self.filter)*self.desired_pos_ctrl
             self.step_env()
+        '''
+        print("Step")
+        print(action.copy())
+        print(act)
+        print(self.desired_pos_step)
+        print(self.desired_pos_ctrl)
+        print(self._get_ee_position())
+        print("\n")
+        '''
 
         obs = self._get_obs()
-        reward, done, info = self._post_action(obs)
+        reward, done, info = self._post_action(obs,evaluation=evaluation)
 
         return obs, reward, done, info
 
@@ -225,7 +260,17 @@ class ClothEnv(object):
 
 
         
-    def _post_action(self, obs):
+    def _post_action(self, obs, evaluation=False):
+        if evaluation:
+            del self.viewer._markers[:]
+            for i in range(int(self.goal.shape[0]/3)):
+                self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=self.goal[i*self.single_goal_dim: (i+1) *
+                    self.single_goal_dim], label="d"+str(i))
+                self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=obs['achieved_goal'][i*self.single_goal_dim: (i+1) *
+                    self.single_goal_dim], label="a"+str(i))
+
+
+
         base_task_reward = self.compute_task_reward(np.reshape(
             obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict(real_sim=True))[0]
 
@@ -234,7 +279,7 @@ class ClothEnv(object):
         control_penalty = -error_norm
 
         task_reward = base_task_reward + self.reward_offset
-        reward = task_reward + control_penalty
+        reward = task_reward # + control_penalty
 
         success = False
         if base_task_reward > -1:
@@ -337,6 +382,8 @@ class ClothEnv(object):
             self.desired_pos_ctrl = p.copy()
         if self.desired_pos_step is None:
             self.desired_pos_step = p.copy()
+        if self.initial_ee_p is None:
+            self.initial_ee_p = p.copy()
 
     def _get_ee_position(self):
         return self.sim.data.get_site_xpos(self.ee_site_name).copy()

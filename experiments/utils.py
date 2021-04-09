@@ -80,8 +80,8 @@ def argsparser():
 
     # Train
     parser.add_argument('--train_steps', default=1000, type=int)
-    parser.add_argument('--num_epochs', default=50, type=int)
-    parser.add_argument('--save_policy_every_epoch', default=1, type=int)
+    parser.add_argument('--num_epochs', default=500, type=int)
+    parser.add_argument('--save_policy_every_epoch', default=5, type=int)
     parser.add_argument('--num_cycles', default=20, type=int)
     parser.add_argument('--min_expl_steps', type=int, default=0)
     parser.add_argument('--num_eval_rollouts', type=int, default=20)
@@ -103,11 +103,11 @@ def argsparser():
 
     # Env
     parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--output_max', type=float, default=0.03)
+    parser.add_argument('--output_max', type=float, default=0.02)
     parser.add_argument('--damping_ratio', type=float, default=1)
     parser.add_argument('--kp', type=float, default=1000.0)
-    parser.add_argument('--constant_goal', type=int, default=0)
-    parser.add_argument('--task', type=str, default="sideways_franka_1")
+    parser.add_argument('--constant_goal', type=int, default=1)
+    parser.add_argument('--task', type=str, default="diagonal_franka_1")
     parser.add_argument('--velocity_in_obs', type=int, default=1)
     parser.add_argument('--image_training', default=0, type=int)
     parser.add_argument('--image_size', type=int, default=100)
