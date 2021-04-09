@@ -7,8 +7,11 @@ from gym.utils import seeding
 from gym.envs.robotics import reward_calculation
 import gym
 import time
+from gym import utils
+import os
 
-np.set_printoptions(suppress=True)
+#np.set_printoptions(suppress=True)
+
 
 class ClothEnv(object):
     def __init__(
@@ -25,18 +28,23 @@ class ClothEnv(object):
         image_size,
         constant_goal,
         constraints,
-        reward_offset
+        reward_offset,
+        has_viewer=False
     ):  
         self.seed()
         self.mjpy_model = mujoco_py.load_model_from_path("/home/clothmanip/school/osc_ws/src/osc/mujoco_models/laptop/testmodel_cloth_10ms.xml")
         self.sim = mujoco_py.MjSim(self.mjpy_model)
-        self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, device_id=-1)
+        if has_viewer:
+            self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, device_id=-1)
+            self.viewer.cam.distance = 1
+            self.viewer.cam.azimuth = 160
+            self.viewer.cam.lookat[0] = 0
+            self.viewer.cam.lookat[1] = 0
+            self.viewer.cam.lookat[2] = 0.2
+        else:
+            self.viewer = None
         #TODO: fix in image train
-        self.viewer.cam.distance = 1
-        self.viewer.cam.azimuth = 160
-        self.viewer.cam.lookat[0] = 0
-        self.viewer.cam.lookat[1] = 0
-        self.viewer.cam.lookat[2] = 0.2
+        
 
         self.single_goal_dim = 3
         #TODO: parametrize ctrl frequency
@@ -76,6 +84,8 @@ class ClothEnv(object):
 
         self.limits_min = [-0.05, -0.3, 0.0]
         self.limits_max = [0.25, 0.1, 0.3]
+
+        self.episode_success = False
 
         self.current_geom_size = self.max_geom_size/2
 
@@ -145,6 +155,7 @@ class ClothEnv(object):
                                             shape=obs['model_params'].shape, dtype='float32')
             ))
 
+
     def reset_osc(self):
         if len(self.ee_positions) > 0:
             traj = np.array([[self.ctrl_goals, self.ctrl_goals, self.ee_positions]]).reshape((-1,9))
@@ -165,7 +176,9 @@ class ClothEnv(object):
         self.sim.forward()
         self.reset_osc()
         self.goal = self._sample_goal()
-        del self.viewer._markers[:]
+        if not self.viewer is None:
+            del self.viewer._markers[:]
+        self.episode_success = False
 
 
         '''
@@ -201,6 +214,7 @@ class ClothEnv(object):
         return self._get_obs()
 
     def run_controller(self):
+        #print("OSC STEP START", os.getpid())
         tau = osc_binding.step_controller(self.initial_O_T_EE,
                                                 self.O_T_EE,
                                                 self.initial_joint_osc,
@@ -217,14 +231,20 @@ class ClothEnv(object):
                                                 1000,
                                                 1.0
                                                 )
-        return tau.flatten()
+        #print("OSC STEP END", os.getpid())
+        torques = tau.flatten()
+        return torques
 
-    def step_env(self):
+    def step_env(self, i):
+        #print("MJSTEP1 START", i, os.getpid())
         mujoco_py.functions.mj_step1(self.sim.model, self.sim.data)
+        #print("MJSTEP1 DONE", i, os.getpid())
         self.update_osc_vals()
         tau = self.run_controller()
         self.sim.data.qfrc_applied[self.joint_vel_addr] = self.sim.data.qfrc_bias[self.joint_vel_addr] + tau
+        #print("MJSTEP2 START", i, os.getpid())
         mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
+        #print("MJSTEP2 START", i, os.getpid())
 
     def step(self, action, evaluation=False):
         if evaluation:
@@ -236,10 +256,10 @@ class ClothEnv(object):
         min_absolute = self.initial_ee_p + self.limits_min
         max_absolute = self.initial_ee_p + self.limits_max
         self.desired_pos_step = np.clip(desired_pos_step_absolute, min_absolute, max_absolute)
-        for _ in range(self.substeps):
-            for _ in range(self.between_steps):
+        for i in range(self.substeps):
+            for j in range(self.between_steps):
                 self.desired_pos_ctrl = self.filter*self.desired_pos_step + (1-self.filter)*self.desired_pos_ctrl
-            self.step_env()
+            self.step_env(i)
         '''
         print("Step")
         print(action.copy())
@@ -250,9 +270,11 @@ class ClothEnv(object):
         print("\n")
         '''
 
+        #print("GET OBS", os.getpid())
         obs = self._get_obs()
+        #print("POST ACT", os.getpid())
         reward, done, info = self._post_action(obs,evaluation=evaluation)
-
+        #print("RETURN", os.getpid())
         return obs, reward, done, info
 
     def compute_task_reward(self, achieved_goal, desired_goal, info):
@@ -512,3 +534,12 @@ class ClothEnv(object):
 
     def clear_aux_positions(self):
         del self.viewer._markers[:]
+
+
+
+class ClothEnvPickled(ClothEnv, utils.EzPickle):
+    def __init__(self, **kwargs):
+        print("Creating pickled env")
+        ClothEnv.__init__(
+            self, **kwargs)
+        utils.EzPickle.__init__(self)

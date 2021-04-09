@@ -18,7 +18,7 @@ from utils import get_variant, argsparser
 import copy
 from gym.envs.robotics import reward_calculation
 import numpy as np
-from envs.cloth import ClothEnv
+from envs.cloth import ClothEnvPickled as ClothEnv
 from rlkit.envs.wrappers import NormalizedBoxEnv
 
 set_level(50)
@@ -45,7 +45,7 @@ def randomize_env(env):
         macros.USING_INSTANCE_RANDOMIZATION = True
 '''
 def experiment(variant):
-    env = ClothEnv(**variant['env_kwargs'])
+    env = ClothEnv(**variant['env_kwargs'], has_viewer=True)
     env = NormalizedBoxEnv(env)
     '''
     if variant['domain_randomization']:
@@ -226,8 +226,8 @@ def experiment(variant):
     )
     algorithm.to(ptu.device)
 
-    with mujoco_py.ignore_mujoco_warnings():
-        algorithm.train()
+    #with mujoco_py.ignore_mujoco_warnings():
+    algorithm.train()
 
     torch.save(eval_policy.state_dict(), variant['version'] + '.mdl')
 
