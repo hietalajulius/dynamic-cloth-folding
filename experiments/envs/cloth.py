@@ -32,7 +32,7 @@ class ClothEnv(object):
         has_viewer=False
     ):  
         self.seed()
-        self.mjpy_model = mujoco_py.load_model_from_path("/home/clothmanip/school/osc_ws/src/osc/mujoco_models/laptop/testmodel_cloth_10ms.xml")
+        self.mjpy_model = mujoco_py.load_model_from_path("./compiled_mujoco_model_no_inertias.xml")
         self.sim = mujoco_py.MjSim(self.mjpy_model)
         if has_viewer:
             self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, device_id=-1)
