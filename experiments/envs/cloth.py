@@ -303,10 +303,12 @@ class ClothEnv(object):
 
         # Use values in controller's frame
         error_norm = np.linalg.norm(self.desired_pos_step - self._get_ee_position())
-        cosine_similarity = 1 - spatial.distance.cosine(self.previous_velocity_vector, self.current_delta_vector)
-        scaled_cosine_similarity = cosine_similarity*0.03
+        scaled_error_norm = 10*error_norm
 
-        control_penalty = -error_norm + scaled_cosine_similarity
+        cosine_similarity = 1 - spatial.distance.cosine(self.previous_velocity_vector, self.current_delta_vector)
+        scaled_cosine_similarity = cosine_similarity*0.3
+
+        control_penalty = -scaled_error_norm + scaled_cosine_similarity
 
         reward = task_reward  + control_penalty
 
@@ -332,6 +334,7 @@ class ClothEnv(object):
 
         info = {
                 "task_reward": task_reward,
+                "scaled_error_norm": scaled_error_norm,
                 "cosine_similarity" : cosine_similarity,
                 "scaled_cosine_similarity": scaled_cosine_similarity,
                 "control_penalty": control_penalty,
