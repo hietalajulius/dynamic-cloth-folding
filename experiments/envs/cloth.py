@@ -9,6 +9,7 @@ import gym
 import time
 from gym import utils
 import os
+from scipy import spatial
 
 #np.set_printoptions(suppress=True)
 
@@ -32,7 +33,7 @@ class ClothEnv(object):
         has_viewer=False
     ):  
         self.seed()
-        self.mjpy_model = mujoco_py.load_model_from_path("./compiled_mujoco_model_no_inertias.xml")
+        self.mjpy_model = mujoco_py.load_model_from_path("/home/clothmanip/school/osc_ws/src/osc/mujoco_models/laptop/testmodel_cloth_10ms.xml")
         self.sim = mujoco_py.MjSim(self.mjpy_model)
         if has_viewer:
             self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, device_id=-1)
@@ -120,7 +121,7 @@ class ClothEnv(object):
         self.goal = self._sample_goal()
 
         self.task_reward_function = reward_calculation.get_task_reward_function(
-            self.constraints, self.single_goal_dim, self.sparse_dense)
+            self.constraints, self.single_goal_dim, self.sparse_dense, self.reward_offset)
 
         self.action_space = gym.spaces.Box(-1,
                                            1, shape=(3,), dtype='float32')
@@ -158,7 +159,7 @@ class ClothEnv(object):
 
     def reset_osc(self):
         if len(self.ee_positions) > 0:
-            traj = np.array([[self.ctrl_goals, self.ctrl_goals, self.ee_positions]]).reshape((-1,9))
+            traj = np.concatenate([np.array(self.pos_goals), np.array(self.ctrl_goals), np.array(self.ee_positions)], axis=1)
             np.savetxt(f"./eval_trajs/{str(time.time())}-traj.csv",
                    traj, delimiter=",", fmt='%f')
         self.initial_O_T_EE = None
@@ -166,6 +167,8 @@ class ClothEnv(object):
         self.initial_ee_p = None
         self.desired_pos_step = None
         self.desired_pos_ctrl = None
+        self.current_delta_vector = None
+        self.previous_velocity_vector = None
         self.ctrl_goals = []
         self.pos_goals = []
         self.ee_positions = []
@@ -252,6 +255,8 @@ class ClothEnv(object):
             self.ctrl_goals.append(self.desired_pos_ctrl)
             self.pos_goals.append(self.desired_pos_step)
         act = action.copy()*self.max_advance
+        self.current_delta_vector = act
+        self.previous_velocity_vector = self._get_ee_velocity()
         desired_pos_step_absolute = self.desired_pos_step + act
         min_absolute = self.initial_ee_p + self.limits_min
         max_absolute = self.initial_ee_p + self.limits_max
@@ -293,24 +298,24 @@ class ClothEnv(object):
 
 
 
-        base_task_reward = self.compute_task_reward(np.reshape(
+        task_reward = self.compute_task_reward(np.reshape(
             obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict(real_sim=True))[0]
 
         # Use values in controller's frame
         error_norm = np.linalg.norm(self.desired_pos_step - self._get_ee_position())
-        control_penalty = -error_norm
+        cosine_similarity = 1 - spatial.distance.cosine(self.previous_velocity_vector, self.current_delta_vector)
+        scaled_cosine_similarity = cosine_similarity*0.03
 
-        task_reward = base_task_reward + self.reward_offset
-        reward = task_reward # + control_penalty
+        control_penalty = -error_norm + scaled_cosine_similarity
+
+        reward = task_reward  + control_penalty
 
         success = False
-        if base_task_reward > -1:
+        if task_reward - self.reward_offset > -1:
             success = True
             if not self.episode_success:
                 print("Real sim success",
                       np.round(reward, decimals=1),
-                      np.round(task_reward, decimals=1),
-                      np.round(base_task_reward, decimals=1),
                       np.round(task_reward, decimals=1),
                       np.round(control_penalty, decimals=1),
                       "Joint values:",
@@ -325,12 +330,14 @@ class ClothEnv(object):
                 corner_positions = np.concatenate(
                     [corner_positions, cloth_positions[site]])
 
-        info = {"base_task_reward": base_task_reward,
+        info = {
                 "task_reward": task_reward,
+                "cosine_similarity" : cosine_similarity,
+                "scaled_cosine_similarity": scaled_cosine_similarity,
                 "control_penalty": control_penalty,
                 "reward": reward,
                 'is_success': success,
-                'squared_error_norm': error_norm**2,
+                'error_norm': error_norm,
                 'corner_positions': corner_positions}
 
         done = False  # Let run for max steps

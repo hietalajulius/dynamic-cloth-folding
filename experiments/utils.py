@@ -92,7 +92,7 @@ def argsparser():
     # Replay buffer
     # HER 0.8 from paper
     parser.add_argument('--her_percent', default=0.8, type=float)
-    parser.add_argument('--buffer_size', default=1E5, type=int)
+    parser.add_argument('--buffer_size', default=1E6, type=int)
 
     # Collection
     parser.add_argument('--max_path_length', default=25, type=int)
@@ -103,11 +103,11 @@ def argsparser():
 
     # Env
     parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--output_max', type=float, default=0.02)
+    parser.add_argument('--output_max', type=float, default=0.07)
     parser.add_argument('--damping_ratio', type=float, default=1)
     parser.add_argument('--kp', type=float, default=1000.0)
     parser.add_argument('--constant_goal', type=int, default=1)
-    parser.add_argument('--task', type=str, default="sideways_franka_1")
+    parser.add_argument('--task', type=str, default="sideways_franka_easy")
     parser.add_argument('--velocity_in_obs', type=int, default=1)
     parser.add_argument('--image_training', default=0, type=int)
     parser.add_argument('--image_size', type=int, default=100)
@@ -116,7 +116,7 @@ def argsparser():
     parser.add_argument('--uniform_jnt_tend', type=int, default=1)
     parser.add_argument('--sparse_dense', type=int, default=1)
     parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.01))
-    parser.add_argument('--reward_offset', type=float, default=0.0)
+    parser.add_argument('--reward_offset', type=float, default=1.0)
 
     args = parser.parse_args()
 
