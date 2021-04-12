@@ -199,6 +199,7 @@ class ClothEnv(object):
         self.desired_pos_ctrl = None
         self.current_delta_vector = None
         self.previous_delta_vector = None
+        self.raw_action = None
         self.ctrl_goals = []
         self.pos_goals = []
         self.ee_positions = []
@@ -268,11 +269,19 @@ class ClothEnv(object):
         mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
 
     def step(self, action, evaluation=False):
-        self.pre_action(evaluation)
+        self.pre_action(action,evaluation)
+        self.raw_action = action.copy()
         action = self.clip_action(action)
-        self.previous_delta_vector = copy.copy(self.current_delta_vector)
-        self.current_delta_vector = action          
-        desired_pos_step_absolute = self.desired_pos_step + self.current_delta_vector
+
+        if self.previous_delta_vector is None and not np.allclose(action, np.zeros(3), atol=1e-05):
+            self.previous_delta_vector = action
+        if not np.allclose(self.current_delta_vector, np.zeros(3), atol=1e-05):
+            self.previous_delta_vector = self.current_delta_vector.copy()
+
+        self.current_delta_vector = action
+
+        
+        desired_pos_step_absolute = self.desired_pos_step + action
         min_absolute = self.initial_ee_p + self.limits_min
         max_absolute = self.initial_ee_p + self.limits_max
         self.desired_pos_step = np.clip(desired_pos_step_absolute, min_absolute, max_absolute)
@@ -282,15 +291,19 @@ class ClothEnv(object):
             self.step_env(i)
 
         obs = self._get_obs()
-        reward, done, info = self.post_action(obs,evaluation=evaluation)
+        reward, done, info = self.post_action(obs, evaluation=evaluation)
         return obs, reward, done, info
 
     def clip_action(self, action):
         action = action.copy()*self.max_advance
         if self.sphere_clipping:
-            if not np.allclose(self.previous_delta_vector, np.zeros(3), atol=1e-05) and compute_cosine_similarity(self.previous_delta_vector, action) > 0:
+            first_step = self.previous_delta_vector is None
+            if first_step or compute_cosine_similarity(self.previous_delta_vector, action) > 0:
                 radius = self.max_advance/2
-                sphere_center = radius*(self.previous_delta_vector/np.linalg.norm(self.previous_delta_vector))
+                if not first_step:
+                    sphere_center = radius*(self.previous_delta_vector/np.linalg.norm(self.previous_delta_vector))
+                else:
+                    sphere_center = radius*(action/np.linalg.norm(action))
                 sphere = Sphere(sphere_center, radius)
                 line = Line([0, 0, 0], action)
                 points = sphere.intersect_line(line)
@@ -302,8 +315,6 @@ class ClothEnv(object):
                     action = points[argmax]
                 if not np.allclose(points[argmin], np.zeros(3),atol=1e-05):
                     print("Not close", points[argmin])
-
-
             else:
                 action = np.zeros(3)
 
@@ -312,7 +323,7 @@ class ClothEnv(object):
     def compute_task_reward(self, achieved_goal, desired_goal, info):
         return self.task_reward_function(achieved_goal, desired_goal, info)
 
-    def pre_action(self, evaluation):
+    def pre_action(self, action, evaluation):
         if evaluation:
             self.ee_positions.append(self._get_ee_position())
             self.ctrl_goals.append(self.desired_pos_ctrl)
@@ -324,10 +335,10 @@ class ClothEnv(object):
             action_sphere = self.sim.model.site_name2id('action_sphere')
 
             radius =  self.max_advance/2
-            if not np.allclose(self.previous_delta_vector, np.zeros(3), atol=1e-05):
+            if not self.previous_delta_vector is None:
                 unit_delta = self.previous_delta_vector/np.linalg.norm(self.previous_delta_vector)
             else:
-                unit_delta = self.previous_delta_vector
+                unit_delta = action/np.linalg.norm(action)
             self.sim.model.site_pos[action_sphere] = self.desired_pos_ctrl + radius*unit_delta
 
 
@@ -349,8 +360,8 @@ class ClothEnv(object):
         error_norm = np.linalg.norm(self.desired_pos_step - self._get_ee_position())
         scaled_error_norm = error_norm*self.error_norm_coef
 
-        if not np.allclose(self.previous_delta_vector, np.zeros(3), atol=1e-05):
-            cosine_similarity = compute_cosine_similarity(self.previous_delta_vector, self.current_delta_vector)
+        if not self.previous_delta_vector is None:
+            cosine_similarity = compute_cosine_similarity(self.previous_delta_vector, self.raw_action)
         else:
             cosine_similarity = 0
         scaled_cosine_similarity = cosine_similarity*self.cosine_sim_coef
@@ -363,7 +374,7 @@ class ClothEnv(object):
         if task_reward - self.reward_offset > -1:
             success = True
             if self.episode_success:
-                reward = -np.linalg.norm(self.current_delta_vector)*self.stay_in_place_coef #Reward only staying in place
+                reward = -np.linalg.norm(self.raw_action)*self.stay_in_place_coef #Reward only staying in place
             if not self.episode_success:
                 print("Real sim success",
                       np.round(reward, decimals=1),
@@ -468,8 +479,7 @@ class ClothEnv(object):
             self.initial_ee_p = p.copy()
         if self.current_delta_vector is None:
             self.current_delta_vector = np.zeros(3)
-        if self.previous_delta_vector is None:
-            self.previous_delta_vector = np.zeros(3)
+
 
     def _get_ee_position(self):
         return self.sim.data.get_site_xpos(self.ee_site_name).copy()
