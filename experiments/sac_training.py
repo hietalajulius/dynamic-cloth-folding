@@ -222,6 +222,7 @@ def experiment(variant):
         evaluation_data_collector=eval_path_collector,
         preset_evaluation_data_collector=preset_eval_path_collector,
         replay_buffer=replay_buffer,
+        save_folder=variant['save_folder'],
         title=variant['version'],
         **variant['algorithm_kwargs']
     )
@@ -230,7 +231,7 @@ def experiment(variant):
     with mujoco_py.ignore_mujoco_warnings():
         algorithm.train()
 
-    torch.save(eval_policy.state_dict(), variant['version'] + '.mdl')
+    torch.save(eval_policy.state_dict(), f"{variant['save_folder']}/policies/trained_policy.mdl")
 
     if variant['num_processes'] > 1:
         vec_env.close()
@@ -257,10 +258,12 @@ if __name__ == "__main__":
         profiling_path = f"{variant['save_folder']}/profiling"
         images_path = f"{variant['save_folder']}/images"
         eval_trajs_path = f"{variant['save_folder']}/eval_trajs"
+        policies_path = f"{variant['save_folder']}/policies"
         os.makedirs(variant['save_folder'])
         os.makedirs(profiling_path)
         os.makedirs(images_path)
         os.makedirs(eval_trajs_path)
+        os.makedirs(policies_path)
         file = open(f"{variant['save_folder']}/params.txt", "w")
         file.write(str(variant))
         file.close()
