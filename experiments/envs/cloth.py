@@ -9,9 +9,15 @@ import gym
 import time
 from gym import utils
 import os
+from skspatial.objects import Line, Sphere
 from scipy import spatial
+from template_renderer import TemplateRenderer
 
 #np.set_printoptions(suppress=True)
+
+def compute_cosine_similarity(vec1, vec2):
+    return 1 - spatial.distance.cosine(vec1, vec2)
+
 
 
 class ClothEnv(object):
@@ -30,14 +36,30 @@ class ClothEnv(object):
         constant_goal,
         constraints,
         reward_offset,
+        cosine_sim_coef,
+        error_norm_coef,
+        stay_in_place_coef,
+        kp,
+        damping_ratio,
+        computer,
+        sphere_clipping,
+        ctrl_filter,
+        save_folder,
         has_viewer=False
     ):  
         self.seed()
-        self.mjpy_model = mujoco_py.load_model_from_path("/home/clothmanip/school/osc_ws/src/osc/mujoco_models/laptop/testmodel_cloth_10ms.xml")
+        #TODO: compile mujoco xml based on comp
+        self.computer = computer
+        self.save_folder = save_folder
+        self.sphere_clipping = sphere_clipping
+
+        template_renderer = TemplateRenderer()
+        model_xml = template_renderer.render_template("compiled_mujoco_model_no_inertias.xml")
+        self.mjpy_model = mujoco_py.load_model_from_xml(model_xml)
         self.sim = mujoco_py.MjSim(self.mjpy_model)
         if has_viewer:
             self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, device_id=-1)
-            self.viewer.cam.distance = 1
+            self.viewer.cam.distance = 0.9
             self.viewer.cam.azimuth = 160
             self.viewer.cam.lookat[0] = 0
             self.viewer.cam.lookat[1] = 0
@@ -48,11 +70,18 @@ class ClothEnv(object):
         
 
         self.single_goal_dim = 3
+        self.eval_saves = 0
         #TODO: parametrize ctrl frequency
         self.substeps = 10
         self.between_steps = 10
-        self.filter = 0.03
+        self.delta_tau_max = 10
+        self.filter = ctrl_filter
 
+        self.kp = kp
+        self.damping_ratio = damping_ratio
+        self.cosine_sim_coef = cosine_sim_coef
+        self.error_norm_coef = error_norm_coef
+        self.stay_in_place_coef = stay_in_place_coef
         self.max_advance = output_max
         self.reward_offset = reward_offset
         self.sparse_dense = sparse_dense
@@ -160,15 +189,16 @@ class ClothEnv(object):
     def reset_osc(self):
         if len(self.ee_positions) > 0:
             traj = np.concatenate([np.array(self.pos_goals), np.array(self.ctrl_goals), np.array(self.ee_positions)], axis=1)
-            np.savetxt(f"./eval_trajs/{str(time.time())}-traj.csv",
+            np.savetxt(f"{self.save_folder}/eval_trajs/{self.eval_saves}.csv",
                    traj, delimiter=",", fmt='%f')
+            self.eval_saves += 1
         self.initial_O_T_EE = None
         self.initial_joint_osc = None
         self.initial_ee_p = None
         self.desired_pos_step = None
         self.desired_pos_ctrl = None
         self.current_delta_vector = None
-        self.previous_velocity_vector = None
+        self.previous_delta_vector = None
         self.ctrl_goals = []
         self.pos_goals = []
         self.ee_positions = []
@@ -183,12 +213,6 @@ class ClothEnv(object):
             del self.viewer._markers[:]
         self.episode_success = False
 
-
-        '''
-        print("RESET")
-        print(self.goal)
-        print(self._get_ee_position())
-        '''
 
         if self.randomize_params:
             self.current_joint_stiffness = self.np_random.uniform(
@@ -217,7 +241,6 @@ class ClothEnv(object):
         return self._get_obs()
 
     def run_controller(self):
-        #print("OSC STEP START", os.getpid())
         tau = osc_binding.step_controller(self.initial_O_T_EE,
                                                 self.O_T_EE,
                                                 self.initial_joint_osc,
@@ -229,35 +252,27 @@ class ClothEnv(object):
                                                 self.tau_J_d_osc,
                                                 self.desired_pos_ctrl,
                                                 np.zeros(3),
-                                                10.0,
-                                                1000,
-                                                1000,
-                                                1.0
+                                                self.delta_tau_max,
+                                                self.kp,
+                                                self.kp,
+                                                self.damping_ratio
                                                 )
-        #print("OSC STEP END", os.getpid())
         torques = tau.flatten()
         return torques
 
     def step_env(self, i):
-        #print("MJSTEP1 START", i, os.getpid())
         mujoco_py.functions.mj_step1(self.sim.model, self.sim.data)
-        #print("MJSTEP1 DONE", i, os.getpid())
         self.update_osc_vals()
         tau = self.run_controller()
         self.sim.data.qfrc_applied[self.joint_vel_addr] = self.sim.data.qfrc_bias[self.joint_vel_addr] + tau
-        #print("MJSTEP2 START", i, os.getpid())
         mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
-        #print("MJSTEP2 START", i, os.getpid())
 
     def step(self, action, evaluation=False):
-        if evaluation:
-            self.ee_positions.append(self._get_ee_position())
-            self.ctrl_goals.append(self.desired_pos_ctrl)
-            self.pos_goals.append(self.desired_pos_step)
-        act = action.copy()*self.max_advance
-        self.current_delta_vector = act
-        self.previous_velocity_vector = self._get_ee_velocity()
-        desired_pos_step_absolute = self.desired_pos_step + act
+        self.pre_action(evaluation)
+        action = self.clip_action(action)
+        self.previous_delta_vector = copy.copy(self.current_delta_vector)
+        self.current_delta_vector = action          
+        desired_pos_step_absolute = self.desired_pos_step + self.current_delta_vector
         min_absolute = self.initial_ee_p + self.limits_min
         max_absolute = self.initial_ee_p + self.limits_max
         self.desired_pos_step = np.clip(desired_pos_step_absolute, min_absolute, max_absolute)
@@ -265,56 +280,90 @@ class ClothEnv(object):
             for j in range(self.between_steps):
                 self.desired_pos_ctrl = self.filter*self.desired_pos_step + (1-self.filter)*self.desired_pos_ctrl
             self.step_env(i)
-        '''
-        print("Step")
-        print(action.copy())
-        print(act)
-        print(self.desired_pos_step)
-        print(self.desired_pos_ctrl)
-        print(self._get_ee_position())
-        print("\n")
-        '''
 
-        #print("GET OBS", os.getpid())
         obs = self._get_obs()
-        #print("POST ACT", os.getpid())
-        reward, done, info = self._post_action(obs,evaluation=evaluation)
-        #print("RETURN", os.getpid())
+        reward, done, info = self.post_action(obs,evaluation=evaluation)
         return obs, reward, done, info
+
+    def clip_action(self, action):
+        action = action.copy()*self.max_advance
+        if self.sphere_clipping:
+            if not np.allclose(self.previous_delta_vector, np.zeros(3), atol=1e-05) and compute_cosine_similarity(self.previous_delta_vector, action) > 0:
+                radius = self.max_advance/2
+                sphere_center = radius*(self.previous_delta_vector/np.linalg.norm(self.previous_delta_vector))
+                sphere = Sphere(sphere_center, radius)
+                line = Line([0, 0, 0], action)
+                points = sphere.intersect_line(line)
+                norms = np.linalg.norm(points, axis=1)
+                argmax = np.argmax(norms)
+                argmin = np.argmin(norms)
+                norm_action = np.linalg.norm(action)
+                if norm_action > norms[argmax]:
+                    action = points[argmax]
+                if not np.allclose(points[argmin], np.zeros(3),atol=1e-05):
+                    print("Not close", points[argmin])
+
+
+            else:
+                action = np.zeros(3)
+
+        return action
 
     def compute_task_reward(self, achieved_goal, desired_goal, info):
         return self.task_reward_function(achieved_goal, desired_goal, info)
 
+    def pre_action(self, evaluation):
+        if evaluation:
+            self.ee_positions.append(self._get_ee_position())
+            self.ctrl_goals.append(self.desired_pos_ctrl)
+            self.pos_goals.append(self.desired_pos_step)
+
+            del self.viewer._markers[:]
+            self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=self.desired_pos_ctrl, label="ctrl")
+
+            action_sphere = self.sim.model.site_name2id('action_sphere')
+
+            radius =  self.max_advance/2
+            if not np.allclose(self.previous_delta_vector, np.zeros(3), atol=1e-05):
+                unit_delta = self.previous_delta_vector/np.linalg.norm(self.previous_delta_vector)
+            else:
+                unit_delta = self.previous_delta_vector
+            self.sim.model.site_pos[action_sphere] = self.desired_pos_ctrl + radius*unit_delta
+
 
         
-    def _post_action(self, obs, evaluation=False):
+    def post_action(self, obs, evaluation=False):
         if evaluation:
-            del self.viewer._markers[:]
             for i in range(int(self.goal.shape[0]/3)):
                 self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=self.goal[i*self.single_goal_dim: (i+1) *
                     self.single_goal_dim], label="d"+str(i))
                 self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=obs['achieved_goal'][i*self.single_goal_dim: (i+1) *
                     self.single_goal_dim], label="a"+str(i))
 
+            self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=self.desired_pos_ctrl, label="del")
 
 
         task_reward = self.compute_task_reward(np.reshape(
             obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict(real_sim=True))[0]
 
-        # Use values in controller's frame
         error_norm = np.linalg.norm(self.desired_pos_step - self._get_ee_position())
-        scaled_error_norm = 10*error_norm
+        scaled_error_norm = error_norm*self.error_norm_coef
 
-        cosine_similarity = 1 - spatial.distance.cosine(self.previous_velocity_vector, self.current_delta_vector)
-        scaled_cosine_similarity = cosine_similarity*0.3
+        if not np.allclose(self.previous_delta_vector, np.zeros(3), atol=1e-05):
+            cosine_similarity = compute_cosine_similarity(self.previous_delta_vector, self.current_delta_vector)
+        else:
+            cosine_similarity = 0
+        scaled_cosine_similarity = cosine_similarity*self.cosine_sim_coef
 
         control_penalty = -scaled_error_norm + scaled_cosine_similarity
 
-        reward = task_reward  + control_penalty
+        reward = task_reward + control_penalty
 
         success = False
         if task_reward - self.reward_offset > -1:
             success = True
+            if self.episode_success:
+                reward = -np.linalg.norm(self.current_delta_vector)*self.stay_in_place_coef #Reward only staying in place
             if not self.episode_success:
                 print("Real sim success",
                       np.round(reward, decimals=1),
@@ -334,6 +383,7 @@ class ClothEnv(object):
 
         info = {
                 "task_reward": task_reward,
+                "delta_size": np.linalg.norm(self.current_delta_vector),
                 "scaled_error_norm": scaled_error_norm,
                 "cosine_similarity" : cosine_similarity,
                 "scaled_cosine_similarity": scaled_cosine_similarity,
@@ -416,6 +466,10 @@ class ClothEnv(object):
             self.desired_pos_step = p.copy()
         if self.initial_ee_p is None:
             self.initial_ee_p = p.copy()
+        if self.current_delta_vector is None:
+            self.current_delta_vector = np.zeros(3)
+        if self.previous_delta_vector is None:
+            self.previous_delta_vector = np.zeros(3)
 
     def _get_ee_position(self):
         return self.sim.data.get_site_xpos(self.ee_site_name).copy()
@@ -450,16 +504,16 @@ class ClothEnv(object):
             cloth_velocity = np.array(list(self._get_cloth_velocity(
             ).values()))
             robot_velocity = self._get_ee_velocity()
-            observation = np.concatenate([cloth_position, cloth_velocity])
+            observation = np.concatenate([cloth_position.flatten(), cloth_velocity.flatten(), np.array([int(self.episode_success)])])
+
             robot_observation = np.concatenate(
                 [robot_position, robot_velocity])
         else:
-            observation = cloth_position
+            observation = np.concatenate([cloth_position.flatten(), np.array([int(self.episode_success)])])
             robot_observation = robot_position
 
-        controller_goal = self.desired_pos_step
         robot_observation = np.concatenate(
-            [robot_observation, controller_goal])  # To get an idea of the current goal traj
+            [robot_observation, self.desired_pos_ctrl])
 
         if self.randomize_geoms and self.randomize_params:
             model_params = np.array([self.current_joint_stiffness, self.current_joint_damping,
@@ -471,7 +525,7 @@ class ClothEnv(object):
             model_params = np.array([0])
 
         full_observation = {
-            'observation': observation.flatten().copy(),
+            'observation': observation.copy(),
             'achieved_goal': achieved_goal.copy(),
             'desired_goal': self.goal.copy(),
             'model_params': model_params.copy(),
@@ -532,18 +586,16 @@ class ClothEnv(object):
 
         self.sim.forward()
 
-    def set_aux_positions(self, corner1, corner2, corner3, corner4):
-        self.viewer.add_marker.add_marker(size=np.array(
-            [.001, .001, .001]), pos=corner1, label="corner1")
-        self.viewer.add_marker.add_marker(size=np.array(
-            [.001, .001, .001]), pos=corner2, label="corner2")
-        self.viewer.add_marker.add_marker(size=np.array(
-            [.001, .001, .001]), pos=corner3, label="corner3")
-        self.viewer.add_marker.add_marker(size=np.array(
-            [.001, .001, .001]), pos=corner4, label="corner4")
-
-    def clear_aux_positions(self):
-        del self.viewer._markers[:]
+    def capture_image(self, aux_output, path_length):
+        '''
+        if not aux_output is None:
+            env.set_aux_positions(
+                aux_output[:, 0:3], aux_output[:, 3:6], aux_output[:, 6:9], aux_output[:, 9:12])
+        '''
+        self.viewer.render(1500, 1500)
+        data = self.viewer.read_pixels(1500, 1500, depth=False)
+        data = data[::-1, :, :]
+        cv2.imwrite(f'{self.save_folder}/images/{str(path_length)}.png', data)
 
 
 

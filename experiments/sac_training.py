@@ -20,6 +20,8 @@ from gym.envs.robotics import reward_calculation
 import numpy as np
 from envs.cloth import ClothEnvPickled as ClothEnv
 from rlkit.envs.wrappers import NormalizedBoxEnv
+import os
+from rlkit.core import logger
 
 set_level(50)
 
@@ -45,7 +47,7 @@ def randomize_env(env):
         macros.USING_INSTANCE_RANDOMIZATION = True
 '''
 def experiment(variant):
-    env = ClothEnv(**variant['env_kwargs'], has_viewer=True)
+    env = ClothEnv(**variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'])
     env = NormalizedBoxEnv(env)
     '''
     if variant['domain_randomization']:
@@ -55,10 +57,10 @@ def experiment(variant):
 
     # TODO: Make sure inertials are in order everywhere
 
-    with open("compiled_mujoco_model_no_inertias.xml", "w") as f:
+    with open(f"{variant['save_folder']}/compiled_mujoco_model_no_inertias.xml", "w") as f:
         eval_env.sim.save(f, format='xml', keep_inertials=False)
 
-    with open("compiled_mujoco_model_with_intertias.xml", "w") as f:
+    with open(f"{variant['save_folder']}/compiled_mujoco_model_with_intertias.xml", "w") as f:
         eval_env.sim.save(f, format='xml', keep_inertials=True)
 
     print("Saved compiled xml mujoco models")
@@ -135,7 +137,6 @@ def experiment(variant):
     eval_path_collector = EvalKeyPathCollector(
         eval_env,
         eval_policy,
-        render=True,
         observation_key=path_collector_observation_key,
         desired_goal_key=desired_goal_key,
         **variant['path_collector_kwargs']
@@ -156,7 +157,7 @@ def experiment(variant):
         print("Vectorized path collection")
 
         def make_env():
-            env = ClothEnv(**variant['env_kwargs'])
+            env = ClothEnv(**variant['env_kwargs'], save_folder=variant['save_folder'])
             env = NormalizedBoxEnv(env)
             '''
             if variant['domain_randomization']:
@@ -226,8 +227,8 @@ def experiment(variant):
     )
     algorithm.to(ptu.device)
 
-    #with mujoco_py.ignore_mujoco_warnings():
-    algorithm.train()
+    with mujoco_py.ignore_mujoco_warnings():
+        algorithm.train()
 
     torch.save(eval_policy.state_dict(), variant['version'] + '.mdl')
 
@@ -246,10 +247,27 @@ if __name__ == "__main__":
     else:
         print("Training with CPU")
 
-    file_path = args.title + "-run-" + str(args.run)
-
-    setup_logger(file_path, variant=variant,
+    logger_path = args.title + "-run-" + str(args.run)
+    setup_logger(logger_path, variant=variant,
                  log_tabular_only=variant['log_tabular_only'])
 
+    variant['save_folder'] = f"./trainings/{logger._prefixes[0]}"
+
+    try:
+        profiling_path = f"{variant['save_folder']}/profiling"
+        images_path = f"{variant['save_folder']}/images"
+        eval_trajs_path = f"{variant['save_folder']}/eval_trajs"
+        os.makedirs(variant['save_folder'])
+        os.makedirs(profiling_path)
+        os.makedirs(images_path)
+        os.makedirs(eval_trajs_path)
+        file = open(f"{variant['save_folder']}/params.txt", "w")
+        file.write(str(variant))
+        file.close()
+    except OSError:
+        print ("Creation of the directory %s failed" % variant['save_folder'])
+    else:
+        print ("Successfully created the directory %s" % variant['save_folder'])
+
     print("Profiling with cProfile")
-    cProfile.run('experiment(variant)', "./profiling/profmain.prof")
+    cProfile.run('experiment(variant)', f"{profiling_path}/profmain.prof")

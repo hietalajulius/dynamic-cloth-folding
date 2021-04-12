@@ -1,10 +1,9 @@
 
 experiments/.ipynb_checkpoints
 experiments/__pycache__
-experiments/images
+experiments/trainings
 experiments/tblogs
 experiments/.DS_Store
-experiments/sample.txt
 policies
 .DS_Store
 traj_opt/.ipynb_checkpoints

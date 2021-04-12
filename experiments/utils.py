@@ -74,6 +74,7 @@ def argsparser():
     # Generic
     parser.add_argument('--run',  default=1, type=int)
     parser.add_argument('--title', default="notitle", type=str)
+    parser.add_argument('--computer', default="laptop", type=str)
     parser.add_argument('--num_processes', type=int, default=1)
     # TODO: no traditional logging at all
     parser.add_argument('--log_tabular_only', type=int, default=0)
@@ -103,6 +104,11 @@ def argsparser():
 
     # Env
     parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--filter', type=float, default=0.03)
+    parser.add_argument('--sphere_clipping', type=int, default=0)
+    parser.add_argument('--error_norm_coef', type=float, default=1.0)
+    parser.add_argument('--stay_in_place_coef', type=float, default=1.0)
+    parser.add_argument('--cosine_sim_coef', type=float, default=0.03)
     parser.add_argument('--output_max', type=float, default=0.07)
     parser.add_argument('--damping_ratio', type=float, default=1)
     parser.add_argument('--kp', type=float, default=1000.0)
@@ -119,35 +125,7 @@ def argsparser():
     parser.add_argument('--reward_offset', type=float, default=1.0)
 
     args = parser.parse_args()
-
-    file = open(f"./run_params/{args.title}_params.txt", "w")
-    file.write(str(args.__dict__))
     return args
-
-
-def display_top(snapshot, key_type='lineno', limit=10):
-    snapshot = snapshot.filter_traces((
-        tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
-        tracemalloc.Filter(False, "<unknown>"),
-    ))
-    top_stats = snapshot.statistics(key_type)
-
-    print("Top %s lines" % limit)
-    for index, stat in enumerate(top_stats[:limit], 1):
-        frame = stat.traceback[0]
-        print("#%s: %s:%s: %.1f KiB"
-              % (index, frame.filename, frame.lineno, stat.size / 1024))
-        line = linecache.getline(frame.filename, frame.lineno).strip()
-        if line:
-            print('    %s' % line)
-
-    other = top_stats[limit:]
-    if other:
-        size = sum(stat.size for stat in other)
-        print("%s other: %.1f KiB" % (len(other), size / 1024))
-    total = sum(stat.size for stat in top_stats)
-    print("Total allocated size: %.1f KiB" % (total / 1024))
-
 
 def get_variant(args):
     variant = dict(
@@ -193,6 +171,14 @@ def get_variant(args):
     )
 
     variant['env_kwargs'] = dict(
+        stay_in_place_coef=args.stay_in_place_coef,
+        ctrl_filter=args.filter,
+        sphere_clipping=bool(args.sphere_clipping),
+        kp=args.kp,
+        damping_ratio=args.damping_ratio,
+        computer=args.computer,
+        cosine_sim_coef=args.cosine_sim_coef,
+        error_norm_coef=args.error_norm_coef,
         reward_offset=args.reward_offset,
         constant_goal=bool(args.constant_goal),
         output_max=args.output_max,
