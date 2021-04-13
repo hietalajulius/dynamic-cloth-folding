@@ -360,7 +360,7 @@ class ClothEnv(object):
         error_norm = np.linalg.norm(self.desired_pos_step - self._get_ee_position())
         scaled_error_norm = error_norm*self.error_norm_coef
 
-        if not self.previous_delta_vector is None:
+        if not self.previous_delta_vector is None and not np.allclose(self.raw_action, np.zeros(3), atol=1e-05):
             cosine_similarity = compute_cosine_similarity(self.previous_delta_vector, self.raw_action)
         else:
             cosine_similarity = 0
