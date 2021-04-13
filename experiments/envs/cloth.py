@@ -13,7 +13,7 @@ from skspatial.objects import Line, Sphere
 from scipy import spatial
 from template_renderer import TemplateRenderer
 import math
-import open3d
+
 
 #np.set_printoptions(suppress=True)
 
