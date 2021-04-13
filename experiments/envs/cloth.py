@@ -12,6 +12,8 @@ import os
 from skspatial.objects import Line, Sphere
 from scipy import spatial
 from template_renderer import TemplateRenderer
+import math
+import open3d
 
 #np.set_printoptions(suppress=True)
 
@@ -147,14 +149,14 @@ class ClothEnv(object):
         self.reset_osc()
         
 
-        self.goal = self._sample_goal()
+        self.goal = self.sample_goal()
 
         self.task_reward_function = reward_calculation.get_task_reward_function(
             self.constraints, self.single_goal_dim, self.sparse_dense, self.reward_offset)
 
         self.action_space = gym.spaces.Box(-1,
                                            1, shape=(3,), dtype='float32')
-        obs = self._get_obs()
+        obs = self.get_obs()
 
         if self.pixels:
             self.observation_space = gym.spaces.Dict(dict(
@@ -209,7 +211,7 @@ class ClothEnv(object):
         self.sim.set_state(self.initial_state)
         self.sim.forward()
         self.reset_osc()
-        self.goal = self._sample_goal()
+        self.goal = self.sample_goal()
         if not self.viewer is None:
             del self.viewer._markers[:]
         self.episode_success = False
@@ -239,7 +241,7 @@ class ClothEnv(object):
                 self.min_geom_size, self.max_geom_size)
             self.set_geom_params()
 
-        return self._get_obs()
+        return self.get_obs()
 
     def run_controller(self):
         tau = osc_binding.step_controller(self.initial_O_T_EE,
@@ -278,19 +280,19 @@ class ClothEnv(object):
         if not np.allclose(self.current_delta_vector, np.zeros(3), atol=1e-05):
             self.previous_delta_vector = self.current_delta_vector.copy()
 
-        self.current_delta_vector = action
 
-        
-        desired_pos_step_absolute = self.desired_pos_step + action
+        previous_desired_pos_step = self.desired_pos_step.copy()
+        desired_pos_step_absolute = previous_desired_pos_step + action
         min_absolute = self.initial_ee_p + self.limits_min
         max_absolute = self.initial_ee_p + self.limits_max
         self.desired_pos_step = np.clip(desired_pos_step_absolute, min_absolute, max_absolute)
+        self.current_delta_vector = self.desired_pos_step - previous_desired_pos_step
         for i in range(self.substeps):
             for j in range(self.between_steps):
                 self.desired_pos_ctrl = self.filter*self.desired_pos_step + (1-self.filter)*self.desired_pos_ctrl
             self.step_env(i)
 
-        obs = self._get_obs()
+        obs = self.get_obs()
         reward, done, info = self.post_action(obs, evaluation=evaluation)
         return obs, reward, done, info
 
@@ -325,7 +327,7 @@ class ClothEnv(object):
 
     def pre_action(self, action, evaluation):
         if evaluation:
-            self.ee_positions.append(self._get_ee_position())
+            self.ee_positions.append(self.get_ee_position())
             self.ctrl_goals.append(self.desired_pos_ctrl)
             self.pos_goals.append(self.desired_pos_step)
 
@@ -357,7 +359,7 @@ class ClothEnv(object):
         task_reward = self.compute_task_reward(np.reshape(
             obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict(real_sim=True))[0]
 
-        error_norm = np.linalg.norm(self.desired_pos_step - self._get_ee_position())
+        error_norm = np.linalg.norm(self.desired_pos_step - self.get_ee_position())
         scaled_error_norm = error_norm*self.error_norm_coef
 
         if not self.previous_delta_vector is None and not np.allclose(self.raw_action, np.zeros(3), atol=1e-05):
@@ -386,7 +388,7 @@ class ClothEnv(object):
                 self.episode_success = True
 
         corner_positions = np.array([])
-        cloth_positions = self._get_cloth_position()
+        cloth_positions = self.get_cloth_position()
         for site in self.cloth_site_names:
             if not "4" in site:
                 corner_positions = np.concatenate(
@@ -481,39 +483,39 @@ class ClothEnv(object):
             self.current_delta_vector = np.zeros(3)
 
 
-    def _get_ee_position(self):
+    def get_ee_position(self):
         return self.sim.data.get_site_xpos(self.ee_site_name).copy()
 
-    def _get_ee_velocity(self):
+    def get_ee_velocity(self):
         return self.sim.data.get_site_xvelp(self.ee_site_name).copy()
 
-    def _get_cloth_position(self):
+    def get_cloth_position(self):
         positions = dict()
         for site in self.cloth_site_names:
             positions[site] = self.sim.data.get_site_xpos(site).copy()
         return positions
 
-    def _get_cloth_velocity(self):
+    def get_cloth_velocity(self):
         velocities = dict()
         for site in self.cloth_site_names:
             velocities[site] = self.sim.data.get_site_xvelp(site).copy()
         return velocities
 
-    def _get_obs(self):
+    def get_obs(self):
         achieved_goal = np.zeros(self.single_goal_dim*len(self.constraints))
         for i, constraint in enumerate(self.constraints):
             origin = constraint['origin']
             achieved_goal[i*self.single_goal_dim:(i+1)*self.single_goal_dim] = self.sim.data.get_site_xpos(
                 origin).copy()
 
-        cloth_position = np.array(list(self._get_cloth_position().values()))
+        cloth_position = np.array(list(self.get_cloth_position().values()))
 
-        robot_position = self._get_ee_position()
+        robot_position = self.get_ee_position()
 
         if self.velocity_in_obs:
-            cloth_velocity = np.array(list(self._get_cloth_velocity(
+            cloth_velocity = np.array(list(self.get_cloth_velocity(
             ).values()))
-            robot_velocity = self._get_ee_velocity()
+            robot_velocity = self.get_ee_velocity()
             observation = np.concatenate([cloth_position.flatten(), cloth_velocity.flatten(), np.array([int(self.episode_success)])])
 
             robot_observation = np.concatenate(
@@ -558,7 +560,7 @@ class ClothEnv(object):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
     
-    def _sample_goal(self):
+    def sample_goal(self):
         goal = np.zeros(self.single_goal_dim*len(self.constraints))
 
         if not self.constant_goal:
@@ -602,9 +604,71 @@ class ClothEnv(object):
             env.set_aux_positions(
                 aux_output[:, 0:3], aux_output[:, 3:6], aux_output[:, 6:9], aux_output[:, 9:12])
         '''
-        self.viewer.render(1500, 1500)
-        data = self.viewer.read_pixels(1500, 1500, depth=False)
-        data = data[::-1, :, :]
+        w, h = 1000, 1000
+
+        camera_name = 'agentview'
+        camera_id = self.sim.model.camera_name2id(camera_name)
+        #camera_id = self.viewer.cam.fixedcamid
+        
+        fovy = self.sim.model.cam_fovy[camera_id]
+        #f = h / (2 * math.tan(fovy / 2))
+        #cx = w/2
+        #cy = h/2
+        #camera_matrix = open3d.camera.PinholeCameraIntrinsic(w, h, f, f, cx, cy).intrinsic_matrix
+
+        f = 0.5 * h / math.tan(fovy * math.pi / 360)
+        camera_matrix = np.array(((f, 0, w/ 2), (0, f, h / 2), (0, 0, 1)))
+
+
+        xmat = self.sim.data.get_camera_xmat(camera_name)
+        xpos = self.sim.data.get_camera_xpos(camera_name)
+
+
+        
+        camera_transformation = np.eye(4)
+        camera_transformation[:3,:3] = xmat
+        camera_transformation[:3,3] = xpos
+        camera_transformation = np.linalg.inv(camera_transformation)[:3,:]
+
+
+        ee_in_image = np.ones(4)
+        ee_pos = self.get_ee_position()
+        ee_in_image[:3] = ee_pos
+
+        self.viewer.render(h,w, camera_id)
+        data = np.float32(self.viewer.read_pixels(w, h, depth=False)).copy()
+        
+
+
+
+        data = cv2.rotate(data, cv2.cv2.ROTATE_180)
+
+        data = np.float32(data)
+        
+
+
+        ee = camera_matrix @ camera_transformation @ ee_in_image
+
+        u_ee, v_ee, _ = ee/ee[2]
+        cv2.circle(data, (int(u_ee), int(v_ee)), 10, (0, 255, 0), -1)
+
+
+        cloth_positions = self.get_cloth_position()
+        for site in self.cloth_site_names:
+            if not "4" in site:
+                corner_in_image = np.ones(4)
+                corner_in_image[:3] = cloth_positions[site]
+                corner = (camera_matrix @ camera_transformation) @ corner_in_image
+                u_c, v_c, _ = corner/corner[2]
+                cv2.circle(data, (int(u_c), int(v_c)), 10, (0, 0, 255), -1)
+        
+        #data = self.viewer.read_pixels(w, h, depth=False)
+        data = cv2.rotate(data, cv2.cv2.ROTATE_180)
+        data = np.float32(data[::-1, :, :]).copy()
+        
+
+        
+
         cv2.imwrite(f'{self.save_folder}/images/{str(path_length)}.png', data)
 
 
