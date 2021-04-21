@@ -13,15 +13,15 @@ def main(args):
 
     traj = np.genfromtxt(args.filename, delimiter=',')
 
-    rang = 0.2
+    rang = 0.05
     x_min = np.min(traj[:, 0])
     y_min = np.min(traj[:, 1])
     z_min = np.min(traj[:, 2])
 
-    #ax1.set_xlim3d(x_min, x_min+rang)
-    #ax1.set_ylim3d(y_min, y_min+rang)
-    #ax1.set_zlim3d(z_min, z_min+rang)
-    #ax1.set_box_aspect((1, 1, 1))
+    ax1.set_xlim3d(x_min, x_min+rang)
+    ax1.set_ylim3d(y_min, y_min+rang)
+    ax1.set_zlim3d(z_min, z_min+rang)
+    ax1.set_box_aspect((1, 1, 1))
 
     ax1.set_xlabel('X')
     ax1.set_ylabel('Y')

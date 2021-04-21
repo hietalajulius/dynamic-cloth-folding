@@ -43,7 +43,6 @@ class ClothEnv(object):
         stay_in_place_coef,
         kp,
         damping_ratio,
-        computer,
         sphere_clipping,
         ctrl_filter,
         save_folder,
@@ -51,7 +50,6 @@ class ClothEnv(object):
     ):  
         self.seed()
         #TODO: compile mujoco xml based on comp
-        self.computer = computer
         self.save_folder = save_folder
         self.sphere_clipping = sphere_clipping
 
@@ -66,6 +64,8 @@ class ClothEnv(object):
             self.viewer.cam.lookat[0] = 0
             self.viewer.cam.lookat[1] = 0
             self.viewer.cam.lookat[2] = 0.2
+            self.viewer.vopt.geomgroup[0] = 0
+            self.viewer.vopt.geomgroup[1] = 1
         else:
             self.viewer = None
         #TODO: fix in image train
@@ -92,6 +92,8 @@ class ClothEnv(object):
         self.velocity_in_obs = velocity_in_obs
         self.pixels = pixels
         self.image_size = image_size
+        self.train_camera = "clothview"
+        self.eval_camera = "clothview"
         self.randomize_geoms = randomize_geoms
         self.randomize_params = randomize_params
         self.uniform_jnt_tend = uniform_jnt_tend
@@ -140,6 +142,9 @@ class ClothEnv(object):
             mujoco_py.functions.mj_step1(self.sim.model, self.sim.data)
             self.sim.data.qfrc_applied[self.joint_vel_addr] = self.sim.data.qfrc_bias[self.joint_vel_addr]
             mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
+
+        self.action_sphere_id = self.sim.model.site_name2id('action_sphere')
+        self.sim.model.site_pos[self.action_sphere_id] = np.array([2,2,2])
 
         self.initial_state = copy.deepcopy(self.sim.get_state())
 
@@ -293,7 +298,7 @@ class ClothEnv(object):
             self.step_env(i)
 
         obs = self.get_obs()
-        reward, done, info = self.post_action(obs, evaluation=evaluation)
+        reward, done, info = self.post_action(obs, previous_desired_pos_step, evaluation=evaluation)
         return obs, reward, done, info
 
     def clip_action(self, action):
@@ -332,20 +337,12 @@ class ClothEnv(object):
             self.pos_goals.append(self.desired_pos_step)
 
             del self.viewer._markers[:]
-            self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=self.desired_pos_ctrl, label="ctrl")
+            self.sim.model.site_pos[self.action_sphere_id] = np.array([2,2,2])
 
-            action_sphere = self.sim.model.site_name2id('action_sphere')
-
-            radius =  self.max_advance/2
-            if not self.previous_delta_vector is None:
-                unit_delta = self.previous_delta_vector/np.linalg.norm(self.previous_delta_vector)
-            else:
-                unit_delta = action/np.linalg.norm(action)
-            self.sim.model.site_pos[action_sphere] = self.desired_pos_ctrl + radius*unit_delta
 
 
         
-    def post_action(self, obs, evaluation=False):
+    def post_action(self, obs, previous_desired_pos_step, evaluation=False):
         if evaluation:
             for i in range(int(self.goal.shape[0]/3)):
                 self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=self.goal[i*self.single_goal_dim: (i+1) *
@@ -354,6 +351,8 @@ class ClothEnv(object):
                     self.single_goal_dim], label="a"+str(i))
 
             self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=self.desired_pos_ctrl, label="del")
+            self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=previous_desired_pos_step, label="ctrl")
+            self.sim.model.site_pos[self.action_sphere_id] = previous_desired_pos_step
 
 
         task_reward = self.compute_task_reward(np.reshape(
@@ -387,12 +386,21 @@ class ClothEnv(object):
                       np.round(self.current_joint_stiffness, decimals=4))
                 self.episode_success = True
 
-        corner_positions = np.array([])
-        cloth_positions = self.get_cloth_position()
-        for site in self.cloth_site_names:
-            if not "4" in site:
-                corner_positions = np.concatenate(
-                    [corner_positions, cloth_positions[site]])
+        camera_matrix, camera_transformation = self.get_camera_matrices(self.train_camera, self.image_size, self.image_size)
+        corners_in_image = self.get_corner_image_positions(self.image_size, self.image_size, camera_matrix, camera_transformation)
+        
+        if evaluation and self.pixels:
+            data = obs['image'].copy().reshape((100, 100, 1))
+            for corner in corners_in_image:
+                cv2.circle(data, (int(corner[0]), int(corner[1])), 3, (0, 0, 255), -1)
+
+            cv2.imwrite(f'{self.save_folder}/cnn_images/{str(len(self.ee_positions))}.png', data*255)
+        
+
+        flattened_corners = np.array(corners_in_image).flatten()/self.image_size
+        #print("Corners in image from env", flattened_corners)
+        
+        
 
         info = {
                 "task_reward": task_reward,
@@ -404,7 +412,7 @@ class ClothEnv(object):
                 "reward": reward,
                 'is_success': success,
                 'error_norm': error_norm,
-                'corner_positions': corner_positions}
+                'corner_positions': flattened_corners}
 
         done = False  # Let run for max steps
 
@@ -546,11 +554,9 @@ class ClothEnv(object):
 
         if self.pixels:
             camera_id = self.sim.model.camera_name2id(
-                'clothview2')  # TODO: parametrize camera
-            self.sim._render_context_offscreen.render(
-                self.image_size, self.image_size, camera_id)
-            image_obs = self.sim._render_context_offscreen.read_pixels(
-                self.image_size, self.image_size, depth=False)
+                self.train_camera) 
+            self.viewer.render(self.image_size, self.image_size, camera_id)
+            image_obs = self.viewer.read_pixels(self.image_size, self.image_size, depth=False)
             image_obs = image_obs[::-1, :, :]
             image_obs = cv2.cvtColor(image_obs, cv2.COLOR_BGR2GRAY)
             full_observation['image'] = (image_obs / 255).flatten()
@@ -598,61 +604,8 @@ class ClothEnv(object):
 
         self.sim.forward()
 
-    def capture_image(self, aux_output, path_length):
-        '''
-        if not aux_output is None:
-            env.set_aux_positions(
-                aux_output[:, 0:3], aux_output[:, 3:6], aux_output[:, 6:9], aux_output[:, 9:12])
-        '''
-        w, h = 1000, 1000
-
-        camera_name = 'agentview'
-        camera_id = self.sim.model.camera_name2id(camera_name)
-        #camera_id = self.viewer.cam.fixedcamid
-        
-        fovy = self.sim.model.cam_fovy[camera_id]
-        #f = h / (2 * math.tan(fovy / 2))
-        #cx = w/2
-        #cy = h/2
-        #camera_matrix = open3d.camera.PinholeCameraIntrinsic(w, h, f, f, cx, cy).intrinsic_matrix
-
-        f = 0.5 * h / math.tan(fovy * math.pi / 360)
-        camera_matrix = np.array(((f, 0, w/ 2), (0, f, h / 2), (0, 0, 1)))
-
-
-        xmat = self.sim.data.get_camera_xmat(camera_name)
-        xpos = self.sim.data.get_camera_xpos(camera_name)
-
-
-        
-        camera_transformation = np.eye(4)
-        camera_transformation[:3,:3] = xmat
-        camera_transformation[:3,3] = xpos
-        camera_transformation = np.linalg.inv(camera_transformation)[:3,:]
-
-
-        ee_in_image = np.ones(4)
-        ee_pos = self.get_ee_position()
-        ee_in_image[:3] = ee_pos
-
-        self.viewer.render(h,w, camera_id)
-        data = np.float32(self.viewer.read_pixels(w, h, depth=False)).copy()
-        
-
-
-
-        data = cv2.rotate(data, cv2.cv2.ROTATE_180)
-
-        data = np.float32(data)
-        
-
-
-        ee = camera_matrix @ camera_transformation @ ee_in_image
-
-        u_ee, v_ee, _ = ee/ee[2]
-        cv2.circle(data, (int(u_ee), int(v_ee)), 10, (0, 255, 0), -1)
-
-
+    def get_corner_image_positions(self, w, h, camera_matrix, camera_transformation):
+        corners = []
         cloth_positions = self.get_cloth_position()
         for site in self.cloth_site_names:
             if not "4" in site:
@@ -660,14 +613,60 @@ class ClothEnv(object):
                 corner_in_image[:3] = cloth_positions[site]
                 corner = (camera_matrix @ camera_transformation) @ corner_in_image
                 u_c, v_c, _ = corner/corner[2]
-                cv2.circle(data, (int(u_c), int(v_c)), 10, (0, 0, 255), -1)
-        
-        #data = self.viewer.read_pixels(w, h, depth=False)
-        data = cv2.rotate(data, cv2.cv2.ROTATE_180)
-        data = np.float32(data[::-1, :, :]).copy()
-        
 
+                #cv2.circle(data, (w-int(u_c), int(v_c)), 10, (0, 0, 255), -1)
+                corner = [w-u_c, v_c]
+                corners.append(corner)
+        return corners
+
+    def get_camera_matrices(self, camera_name, h, w):
+        camera_id = self.sim.model.camera_name2id(camera_name)        
+        fovy = self.sim.model.cam_fovy[camera_id]
+        f = 0.5 * h / math.tan(fovy * math.pi / 360)
+        camera_matrix = np.array(((f, 0, w/ 2), (0, f, h / 2), (0, 0, 1)))
+        xmat = self.sim.data.get_camera_xmat(camera_name)
+        xpos = self.sim.data.get_camera_xpos(camera_name)
+
+        camera_transformation = np.eye(4)
+        camera_transformation[:3,:3] = xmat
+        camera_transformation[:3,3] = xpos
+        camera_transformation = np.linalg.inv(camera_transformation)[:3,:]
+
+        return camera_matrix, camera_transformation
+
+
+
+    def capture_image(self, aux_output, path_length):
+        w, h = 1000, 1000
+
+        camera_matrix, camera_transformation = self.get_camera_matrices(self.eval_camera, h, w)
+        camera_id = self.sim.model.camera_name2id(self.eval_camera) 
+
+        ee_in_image = np.ones(4)
+        ee_pos = self.get_ee_position()
+        ee_in_image[:3] = ee_pos
+
+        self.viewer.render(h,w, camera_id)
+        data = np.float32(self.viewer.read_pixels(w, h, depth=False)).copy()
+        data = np.float32(data[::-1, :, :]).copy()
+        data = np.float32(data)
+        ee = camera_matrix @ camera_transformation @ ee_in_image
+        u_ee, v_ee, _ = ee/ee[2]
+        cv2.circle(data, (w-int(u_ee), int(v_ee)), 10, (0, 0, 0), -1)
+
+        corners = self.get_corner_image_positions(w, h, camera_matrix, camera_transformation)
+
+        for corner in corners:
+            u = int(corner[0])
+            v = int(corner[1])
+            cv2.circle(data, (u, v), 8, (0, 0, 255), -1)
         
+        if not aux_output is None:
+            for aux_idx in range(int(aux_output.flatten().shape[0]/2)):
+                aux_u = int(aux_output.flatten()[aux_idx*2]*w)
+                aux_v = int(aux_output.flatten()[aux_idx*2+1]*h)
+                cv2.circle(data, (aux_u, aux_v), 8, (0, 255, 0), -1)
+
 
         cv2.imwrite(f'{self.save_folder}/images/{str(path_length)}.png', data)
 

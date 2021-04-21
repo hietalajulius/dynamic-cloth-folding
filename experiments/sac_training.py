@@ -1,7 +1,7 @@
 import rlkit.torch.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import KeyPathCollector, EvalKeyPathCollector, VectorizedKeyPathCollector, PresetEvalKeyPathCollector
-from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, GaussianPolicy, GaussianCNNPolicy
+from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, GaussianPolicy, GaussianCNNPolicy, LegacyTanhCNNGaussianPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.her.cloth.her import ClothSacHERTrainer
 from rlkit.torch.networks import ConcatMlp
@@ -65,6 +65,7 @@ def experiment(variant):
 
     print("Saved compiled xml mujoco models")
 
+    #TODO these into utils
     obs_dim = eval_env.observation_space.spaces['observation'].low.size
     goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
     action_dim = eval_env.action_space.low.size
@@ -116,12 +117,20 @@ def experiment(variant):
     )
 
     if image_training:
-        policy = TanhCNNGaussianPolicy(
-            output_size=action_dim,
-            added_fc_input_size=added_fc_input_size,
-            aux_output_size=12,
-            **variant['policy_kwargs'],
-        )
+        if variant['legacy_cnn']:
+            policy = LegacyTanhCNNGaussianPolicy(
+                output_size=action_dim,
+                added_fc_input_size=added_fc_input_size,
+                aux_output_size=8,
+                **variant['policy_kwargs'],
+            )
+        else:
+            policy = TanhCNNGaussianPolicy(
+                output_size=action_dim,
+                added_fc_input_size=added_fc_input_size,
+                aux_output_size=8,
+                **variant['policy_kwargs'],
+            )
 
     else:
         policy = TanhGaussianPolicy(
@@ -157,7 +166,7 @@ def experiment(variant):
         print("Vectorized path collection")
 
         def make_env():
-            env = ClothEnv(**variant['env_kwargs'], save_folder=variant['save_folder'])
+            env = ClothEnv(**variant['env_kwargs'], save_folder=variant['save_folder'], has_viewer=variant['image_training'])
             env = NormalizedBoxEnv(env)
             '''
             if variant['domain_randomization']:
@@ -257,11 +266,13 @@ if __name__ == "__main__":
     try:
         profiling_path = f"{variant['save_folder']}/profiling"
         images_path = f"{variant['save_folder']}/images"
+        cnn_images_path = f"{variant['save_folder']}/cnn_images"
         eval_trajs_path = f"{variant['save_folder']}/eval_trajs"
         policies_path = f"{variant['save_folder']}/policies"
         os.makedirs(variant['save_folder'])
         os.makedirs(profiling_path)
         os.makedirs(images_path)
+        os.makedirs(cnn_images_path)
         os.makedirs(eval_trajs_path)
         os.makedirs(policies_path)
         file = open(f"{variant['save_folder']}/params.txt", "w")

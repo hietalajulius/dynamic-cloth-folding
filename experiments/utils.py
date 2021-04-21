@@ -74,12 +74,12 @@ def argsparser():
     # Generic
     parser.add_argument('--run',  default=1, type=int)
     parser.add_argument('--title', default="notitle", type=str)
-    parser.add_argument('--computer', default="laptop", type=str)
     parser.add_argument('--num_processes', type=int, default=1)
     # TODO: no traditional logging at all
     parser.add_argument('--log_tabular_only', type=int, default=0)
 
     # Train
+    parser.add_argument('--legacy_cnn', default=0, type=int)
     parser.add_argument('--train_steps', default=1000, type=int)
     parser.add_argument('--num_epochs', default=1000, type=int)
     parser.add_argument('--save_policy_every_epoch', default=1, type=int)
@@ -89,6 +89,9 @@ def argsparser():
     parser.add_argument('--num_eval_param_buckets', type=int, default=1)
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--debug_same_batch', type=int, default=0)
+    parser.add_argument('--conv_normalization_type', type=str, default='none')
+    parser.add_argument('--fc_normalization_type', type=str, default='none')
+    parser.add_argument('--pool_type', type=str, default='none')
 
     # Replay buffer
     # HER 0.8 from paper
@@ -106,10 +109,10 @@ def argsparser():
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
     parser.add_argument('--sphere_clipping', type=int, default=0)
-    parser.add_argument('--error_norm_coef', type=float, default=1.0)
-    parser.add_argument('--stay_in_place_coef', type=float, default=1.0)
-    parser.add_argument('--cosine_sim_coef', type=float, default=0.03)
-    parser.add_argument('--output_max', type=float, default=0.07)
+    parser.add_argument('--error_norm_coef', type=float, default=0.0)
+    parser.add_argument('--stay_in_place_coef', type=float, default=0.0)
+    parser.add_argument('--cosine_sim_coef', type=float, default=0.0)
+    parser.add_argument('--output_max', type=float, default=0.1)
     parser.add_argument('--damping_ratio', type=float, default=1)
     parser.add_argument('--kp', type=float, default=1000.0)
     parser.add_argument('--constant_goal', type=int, default=1)
@@ -150,6 +153,7 @@ def get_variant(args):
     variant['image_training'] = bool(args.image_training)
     variant['num_processes'] = int(args.num_processes)
     variant['log_tabular_only'] = bool(args.log_tabular_only)
+    variant['legacy_cnn'] = bool(args.legacy_cnn)
 
     variant['algorithm_kwargs'] = dict(
         num_epochs=args.num_epochs,
@@ -176,7 +180,6 @@ def get_variant(args):
         sphere_clipping=bool(args.sphere_clipping),
         kp=args.kp,
         damping_ratio=args.damping_ratio,
-        computer=args.computer,
         cosine_sim_coef=args.cosine_sim_coef,
         error_norm_coef=args.error_norm_coef,
         reward_offset=args.reward_offset,
@@ -205,8 +208,16 @@ def get_variant(args):
             n_channels=[32, 32, 32, 32],
             strides=[2, 2, 2, 2],
             paddings=[0, 0, 0, 0],
-            hidden_sizes=[256, 256, 256, 256],
-            init_w=1e-4
+            hidden_sizes_all=[256, 264],
+            hidden_sizes_aux=[8],
+            hidden_sizes_main=[256, 256],
+            init_w=1e-4,
+            conv_normalization_type=args.conv_normalization_type,
+            fc_normalization_type=args.fc_normalization_type,
+            pool_type=args.pool_type,
+            pool_sizes=[],
+            pool_paddings=[],
+            pool_strides=[],
         )
         variant['path_collector_kwargs']['additional_keys'] = [
             'robot_observation']

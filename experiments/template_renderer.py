@@ -5,7 +5,7 @@ class TemplateRenderer():
     def __init__(self):
         # Set the relative template dir as base
         base_dir = os.path.dirname(__file__)
-        template_dir = os.path.join(base_dir, "mujoco_templates")
+        template_dir = os.path.join(base_dir, "robosuite_mujoco_templates")
         self.template_dirs = [template_dir]
 
         robotics_dir = os.path.abspath("../..")
