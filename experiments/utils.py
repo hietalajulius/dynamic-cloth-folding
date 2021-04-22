@@ -9,7 +9,7 @@ import cv2
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import time
-
+import mujoco_py
 
 def plot_trajectory(ee_initial, current_ee_positions, desired_starts, desired_ends):
     fig = plt.figure()
@@ -106,24 +106,22 @@ def argsparser():
     parser.add_argument('--ctrl_eval', type=int, default=0)
 
     # Env
+    parser.add_argument('--control_penalty_coef', type=int, default=0)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
-    parser.add_argument('--sphere_clipping', type=int, default=0)
-    parser.add_argument('--error_norm_coef', type=float, default=0.0)
-    parser.add_argument('--stay_in_place_coef', type=float, default=0.0)
-    parser.add_argument('--cosine_sim_coef', type=float, default=0.0)
+    parser.add_argument('--sphere_clipping', type=int, default=1)
     parser.add_argument('--output_max', type=float, default=0.1)
     parser.add_argument('--damping_ratio', type=float, default=1)
     parser.add_argument('--kp', type=float, default=1000.0)
     parser.add_argument('--constant_goal', type=int, default=1)
-    parser.add_argument('--task', type=str, default="sideways_franka_easy")
+    parser.add_argument('--task', type=str, default="diagonal_franka")
     parser.add_argument('--velocity_in_obs', type=int, default=1)
     parser.add_argument('--image_training', default=0, type=int)
     parser.add_argument('--image_size', type=int, default=100)
     parser.add_argument('--randomize_params', type=int, default=0)
     parser.add_argument('--randomize_geoms', type=int, default=0)
     parser.add_argument('--uniform_jnt_tend', type=int, default=1)
-    parser.add_argument('--sparse_dense', type=int, default=1)
+    parser.add_argument('--sparse_dense', type=int, default=0)
     parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.01))
     parser.add_argument('--reward_offset', type=float, default=1.0)
 
@@ -175,16 +173,15 @@ def get_variant(args):
     )
 
     variant['env_kwargs'] = dict(
-        stay_in_place_coef=args.stay_in_place_coef,
         ctrl_filter=args.filter,
         sphere_clipping=bool(args.sphere_clipping),
         kp=args.kp,
         damping_ratio=args.damping_ratio,
-        cosine_sim_coef=args.cosine_sim_coef,
-        error_norm_coef=args.error_norm_coef,
+        control_penalty_coef=args.control_penalty_coef,
         reward_offset=args.reward_offset,
         constant_goal=bool(args.constant_goal),
         output_max=args.output_max,
+        max_episode_steps=int(args.max_path_length),
         sparse_dense=bool(args.sparse_dense),
         constraints=task_definitions.constraints[args.task],
         pixels=bool(args.image_training),
@@ -231,3 +228,21 @@ def get_variant(args):
             'model_params', 'robot_observation']
 
     return variant
+
+
+def remove_distance_welds(sim):
+    """Removes the mocap welds that we use for actuation.
+    """
+    for i in range(sim.model.eq_data.shape[0]):
+        if sim.model.eq_type[i] == mujoco_py.const.EQ_DISTANCE:
+            sim.model.eq_active[i] = False
+    sim.forward()
+
+
+def enable_distance_welds(sim):
+    """Removes the mocap welds that we use for actuation.
+    """
+    for i in range(sim.model.eq_data.shape[0]):
+        if sim.model.eq_type[i] == mujoco_py.const.EQ_DISTANCE:
+            sim.model.eq_active[i] = True
+    sim.forward()

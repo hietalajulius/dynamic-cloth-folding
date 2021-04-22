@@ -47,23 +47,13 @@ def randomize_env(env):
         macros.USING_INSTANCE_RANDOMIZATION = True
 '''
 def experiment(variant):
-    env = ClothEnv(**variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'])
+    env = ClothEnv(**variant['env_kwargs'], has_viewer=True, eval_env=True, save_folder=variant['save_folder'])
     env = NormalizedBoxEnv(env)
     '''
     if variant['domain_randomization']:
         env = randomize_env(env)
     '''
     eval_env = env
-
-    # TODO: Make sure inertials are in order everywhere
-
-    with open(f"{variant['save_folder']}/compiled_mujoco_model_no_inertias.xml", "w") as f:
-        eval_env.sim.save(f, format='xml', keep_inertials=False)
-
-    with open(f"{variant['save_folder']}/compiled_mujoco_model_with_intertias.xml", "w") as f:
-        eval_env.sim.save(f, format='xml', keep_inertials=True)
-
-    print("Saved compiled xml mujoco models")
 
     #TODO these into utils
     obs_dim = eval_env.observation_space.spaces['observation'].low.size
@@ -265,13 +255,15 @@ if __name__ == "__main__":
 
     try:
         profiling_path = f"{variant['save_folder']}/profiling"
-        images_path = f"{variant['save_folder']}/images"
+        eval_images_path = f"{variant['save_folder']}/eval_images"
+        eval_corner_images_path = f"{variant['save_folder']}/eval_corner_images"
         cnn_images_path = f"{variant['save_folder']}/cnn_images"
         eval_trajs_path = f"{variant['save_folder']}/eval_trajs"
         policies_path = f"{variant['save_folder']}/policies"
         os.makedirs(variant['save_folder'])
         os.makedirs(profiling_path)
-        os.makedirs(images_path)
+        os.makedirs(eval_images_path)
+        os.makedirs(eval_corner_images_path)
         os.makedirs(cnn_images_path)
         os.makedirs(eval_trajs_path)
         os.makedirs(policies_path)
