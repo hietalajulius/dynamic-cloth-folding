@@ -99,7 +99,7 @@ class ClothEnv(object):
 
         self.seed()
 
-        self.initial_qpos = [0.209, -0.106, -0.0352, -2.23, 0.0175, 2.15, -1.77]
+        self.initial_qpos = [0.227, 0.194, -0.0253, -1.84, -0.0124, 2.09, -1.76]
         
         self.ctrl_goals = []
         self.pos_goals = []
@@ -163,7 +163,7 @@ class ClothEnv(object):
 
     def initial_reset(self):
         template_renderer = TemplateRenderer()
-        template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", timestep=0.01)
+        template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", timestep=0.01, geom_size=0.01)
         self.mjpy_model = mujoco_py.load_model_from_path(f"{self.save_folder}/mujoco_template.xml")
         self.sim = mujoco_py.MjSim(self.mjpy_model)
         utils.remove_distance_welds(self.sim)
@@ -173,8 +173,6 @@ class ClothEnv(object):
         self.joint_vel_addr = [self.sim.model.get_joint_qvel_addr(joint) for joint in self.joints]
         self.ee_site_adr = mujoco_py.functions.mj_name2id(self.sim.model, 6, "grip_site")
         
-        self.set_joint_tendon_params(self.current_joint_stiffness, self.current_joint_damping,
-                                        self.current_tendon_stiffness, self.current_tendon_damping)
         #Sets robot to initial qpos and resets osc values
         self.reset_robot_initial()
         self.reset_osc()
@@ -213,6 +211,7 @@ class ClothEnv(object):
             self.desired_pos_ctrl = desired
             self.step_env()
             dist = np.linalg.norm(self.sim.data.site_xpos[self.ee_site_adr] - desired)
+        print(self.sim.data.site_xpos[self.ee_site_adr])
         print("Found valid initial config")
 
     def reset_robot_initial(self):
@@ -267,7 +266,7 @@ class ClothEnv(object):
                 self.current_tendon_damping = self.np_random.uniform(
                     self.min_damping, self.max_damping)
 
-        self.set_joint_tendon_params(self.current_joint_stiffness, self.current_joint_damping,
+            self.set_joint_tendon_params(self.current_joint_stiffness, self.current_joint_damping,
                                         self.current_tendon_stiffness, self.current_tendon_damping)
 
         if self.randomize_geoms:
@@ -375,9 +374,9 @@ class ClothEnv(object):
         if evaluation:
             for i in range(int(self.goal.shape[0]/3)):
                 self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=self.goal[i*self.single_goal_dim: (i+1) *
-                    self.single_goal_dim], label="d"+str(i))
+                    self.single_goal_dim] + self.relative_origin, label="d"+str(i))
                 self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=obs['achieved_goal'][i*self.single_goal_dim: (i+1) *
-                    self.single_goal_dim], label="a"+str(i))
+                    self.single_goal_dim] + self.relative_origin, label="a"+str(i))
 
             self.viewer.add_marker(size=np.array([.0005, .0005, .0005]), pos=self.desired_pos_ctrl, label="d")
             self.viewer.add_marker(size=np.array([.0005, .0005, .0005]), pos=previous_desired_pos_step, label="c")
@@ -524,6 +523,14 @@ class ClothEnv(object):
     def get_ee_position(self):
         return self.sim.data.get_site_xpos(self.ee_site_name).copy()
 
+    def get_joint_positions(self):
+        positions = [self.sim.data.get_joint_qpos(joint).copy() for joint in self.joints]
+        return np.array(positions)
+    
+    def get_joint_velocities(self):
+        velocities = [self.sim.data.get_joint_qvel(joint).copy() for joint in self.joints]
+        return np.array(velocities)
+
     def get_ee_velocity(self):
         return self.sim.data.get_site_xvelp(self.ee_site_name).copy()
 
@@ -544,16 +551,16 @@ class ClothEnv(object):
         for i, constraint in enumerate(self.constraints):
             origin = constraint['origin']
             achieved_goal[i*self.single_goal_dim:(i+1)*self.single_goal_dim] = self.sim.data.get_site_xpos(
-                origin).copy()
+                origin).copy() - self.relative_origin
 
         #Position observations relative to initial position
         cloth_position = np.array(list(self.get_cloth_position().values())) - self.relative_origin
-        robot_position = self.get_ee_position() - self.relative_origin 
+        robot_position = self.get_joint_positions() 
 
         if self.velocity_in_obs:
             cloth_velocity = np.array(list(self.get_cloth_velocity(
             ).values()))
-            robot_velocity = self.get_ee_velocity()
+            robot_velocity = self.get_joint_velocities()
             observation = np.concatenate([cloth_position.flatten(), cloth_velocity.flatten()])
 
             robot_observation = np.concatenate(
@@ -563,7 +570,7 @@ class ClothEnv(object):
             robot_observation = robot_position
 
         robot_observation = np.concatenate(
-            [robot_observation, self.desired_pos_ctrl])
+            [robot_observation, self.desired_pos_ctrl - self.relative_origin])
 
         if self.randomize_geoms and self.randomize_params:
             model_params = np.array([self.current_joint_stiffness, self.current_joint_damping,
@@ -617,7 +624,7 @@ class ClothEnv(object):
                     offset[idx] = offset_dir*noise
 
             goal[i*self.single_goal_dim: (i+1) *
-                 self.single_goal_dim] = target_pos + offset
+                 self.single_goal_dim] = target_pos + offset - self.relative_origin
 
         return goal.copy()
 

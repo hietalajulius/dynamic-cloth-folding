@@ -106,7 +106,7 @@ def argsparser():
     parser.add_argument('--ctrl_eval', type=int, default=0)
 
     # Env
-    parser.add_argument('--control_penalty_coef', type=int, default=0)
+    parser.add_argument('--control_penalty_coef', type=float, default=0)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
     parser.add_argument('--sphere_clipping', type=int, default=1)
