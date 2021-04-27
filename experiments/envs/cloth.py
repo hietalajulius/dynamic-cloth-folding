@@ -213,6 +213,8 @@ class ClothEnv(object):
             dist = np.linalg.norm(self.sim.data.site_xpos[self.ee_site_adr].copy() - desired)
         print(self.sim.data.site_xpos[self.ee_site_adr].copy())
         print("Found valid initial config")
+        print(self.sim.data.get_body_xpos("B4_4"))
+        print(self.sim.data.get_body_xpos("lookatbody"))
 
     def reset_robot_initial(self):
         for j, joint in enumerate(self.joints):
