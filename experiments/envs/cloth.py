@@ -194,24 +194,24 @@ class ClothEnv(object):
         self.mjpy_model = mujoco_py.load_model_from_path(f"{self.save_folder}/compiled_mujoco_model_no_inertias.xml")
         self.sim = mujoco_py.MjSim(self.mjpy_model)
         self.sim.set_state(self.initial_state)
-        self.relative_origin = self.sim.data.site_xpos[self.ee_site_adr]
+        self.relative_origin = self.sim.data.site_xpos[self.ee_site_adr].copy()
         
 
     def reset_robot_to_pos(self):
         desired = self.sim.data.get_site_xpos("S8_8").copy() + np.array([0,0,0.005])
         desired_above = desired[:2]
 
-        dist_above = np.linalg.norm(self.sim.data.site_xpos[self.ee_site_adr][:2] - desired_above)
+        dist_above = np.linalg.norm(self.sim.data.site_xpos[self.ee_site_adr].copy()[:2] - desired_above)
         while dist_above > 0.01:
             self.desired_pos_ctrl[:2] = desired_above
             self.step_env()
-            dist_above = np.linalg.norm(self.sim.data.site_xpos[self.ee_site_adr][:2] - desired_above)
-        dist = np.linalg.norm(self.sim.data.site_xpos[self.ee_site_adr] - desired)
+            dist_above = np.linalg.norm(self.sim.data.site_xpos[self.ee_site_adr].copy()[:2] - desired_above)
+        dist = np.linalg.norm(self.sim.data.site_xpos[self.ee_site_adr].copy() - desired)
         while dist > 0.005:
             self.desired_pos_ctrl = desired
             self.step_env()
-            dist = np.linalg.norm(self.sim.data.site_xpos[self.ee_site_adr] - desired)
-        print(self.sim.data.site_xpos[self.ee_site_adr])
+            dist = np.linalg.norm(self.sim.data.site_xpos[self.ee_site_adr].copy() - desired)
+        print(self.sim.data.site_xpos[self.ee_site_adr].copy())
         print("Found valid initial config")
 
     def reset_robot_initial(self):
@@ -482,8 +482,8 @@ class ClothEnv(object):
         self.O_T_EE[15] = 1.0
 
         for j in range(7):
-            self.joint_pos_osc[j] = self.sim.data.qpos[self.joint_pos_addr[j]]
-            self.joint_vel_osc[j] = self.sim.data.qvel[self.joint_vel_addr[j]]
+            self.joint_pos_osc[j] = self.sim.data.qpos[self.joint_pos_addr[j]].copy()
+            self.joint_vel_osc[j] = self.sim.data.qvel[self.joint_vel_addr[j]].copy()
 
         jac_pos_osc = np.ndarray(shape=(L*3,), dtype=np.float64)
         jac_rot_osc = np.ndarray(shape=(L*3,), dtype=np.float64)
