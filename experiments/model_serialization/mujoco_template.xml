@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <mujoco>
-    <compiler strippath="true" meshdir="{{ robotics_dir }}/cloth-manipulation/experiments/mujoco_templates/meshes" inertiafromgeom= "true" angle="radian" inertiagrouprange="0 0"/>
-    <option timestep="{{ timestep }}" impratio="20" cone="elliptic" density="1.2" viscosity="0.00002"/>
+    <compiler strippath="true" meshdir="/home/clothmanip/robotics/cloth-manipulation/experiments/mujoco_templates/meshes" inertiafromgeom= "true" angle="radian" inertiagrouprange="0 0"/>
+    <option timestep="0.01" impratio="20" cone="elliptic" density="1.2" viscosity="0.00002"/>
     <size nconmax="5000" njmax="5000"/>
     <visual>
         <!--<headlight ambient="0.4 0.4 0.4" diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2" />-->
@@ -38,7 +38,7 @@
 
         <body name="tabletop" pos="0 0 0">
             <geom name="la_tabla_col" type="box" pos="0 0 0" size="0.3 0.6 0.2" group="0" />
-            <geom name="la_tabla_vis" type="box" rgba="1 1 1 1" pos="0 0 0" size="0.3 0.6 {{ geom_size/2 + 0.2 }}" group="1" />
+            <geom name="la_tabla_vis" type="box" rgba="1 1 1 1" pos="0 0 0" size="0.3 0.6 0.20500000000000002" group="1" />
         </body>
 
         <body name="measuring_stick" pos="0 0 0">
@@ -47,12 +47,14 @@
 
             <body euler="0 0 0" pos="0.02 -0.1 0.2">
                 <composite type="grid" count="9 9 1" spacing="0.024" offset="0 0 0"  >
-                    <joint kind="main" damping="0.001" stiffness="0.001" />
-                    <tendon width="0.001" kind="shear" />
+                    <joint kind="main" damping="1" stiffness="100" />
+
+                    <tendon width="0.002" limited="true" range="0 1" kind="shear" damping="0" stiffness="1000" />
+                    <tendon width="0.003" limited="true" range="0 1" kind="main" damping="0" stiffness="1000" />
                     <!--<pin coord="0 0"/> -->
                    
-                    <!--<skin rgba="1 0.8 0.4 1" texcoord="true" inflate="0.001" subgrid="3"/> -->
-                    <geom group="0" type="sphere" size="{{ geom_size }}" rgba=".8 .2 .1 1" friction='1.5 1.5 1.5' solref='0.01 1' solimp='0.99 0.99 0.01' condim='4' />
+                    <skin rgba="1 0.8 0.4 1" texcoord="true" inflate="0.001" subgrid="3"/>
+                    <geom group="0" type="sphere" size="0.01" rgba=".8 .2 .1 1" friction='1.5 1.5 1.5' solref='0.01 1' solimp='0.99 0.99 0.01' condim='4' />
                 </composite>
             </body>
 
@@ -148,8 +150,8 @@
             </body>
         </body>
 
-        
-        <!--<body mocap="true" name="robot0:mocap" pos="0.00078214 -0.0042735   0.20663855">
+        <!--
+        <body mocap="true" name="robot0:mocap" pos="0.00078214 -0.0042735   0.20663855">
             <geom group="1" name="mocap" conaffinity="0" contype="0" pos="0  0  0" rgba="0 0 1 1" size="0.005 0.005 0.005" type="box"></geom>
         </body> -->
     </worldbody>
@@ -166,8 +168,7 @@
     </actuator>
 
     <equality>
-            <distance distance="0" solref="0.1 0.1" geom1="G8_8" geom2="grip_geom" />
-            <!--<distance distance="0" solref="0.1 0.1" geom1="G8_8" geom2="mocap" /> -->
+            <distance distance="0" solref="-10000 -0.1" geom1="G8_8" geom2="grip_geom" />
             <!--<distance distance="0" solref="-10000 -0.1" geom1="G8_8" geom2="mocap" /> -->
 
     </equality>

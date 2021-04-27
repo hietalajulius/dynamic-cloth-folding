@@ -1,7 +1,7 @@
 import rlkit.torch.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import KeyPathCollector, EvalKeyPathCollector, VectorizedKeyPathCollector, PresetEvalKeyPathCollector
-from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, GaussianPolicy, GaussianCNNPolicy, LegacyTanhCNNGaussianPolicy
+from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, GaussianPolicy, GaussianCNNPolicy, LegacyTanhCNNGaussianPolicy, TanhScriptPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.her.cloth.her import ClothSacHERTrainer
 from rlkit.torch.networks import ConcatMlp
@@ -115,7 +115,7 @@ def experiment(variant):
                 **variant['policy_kwargs'],
             )
         else:
-            policy = TanhCNNGaussianPolicy(
+            policy = TanhScriptPolicy(
                 output_size=action_dim,
                 added_fc_input_size=added_fc_input_size,
                 aux_output_size=8,
@@ -251,7 +251,7 @@ if __name__ == "__main__":
     setup_logger(logger_path, variant=variant,
                  log_tabular_only=variant['log_tabular_only'])
 
-    variant['save_folder'] = f"./trainings/{logger._prefixes[0]}"
+    variant['save_folder'] = f"./trainings/{logger._prefixes[0]}".strip()
 
     try:
         profiling_path = f"{variant['save_folder']}/profiling"

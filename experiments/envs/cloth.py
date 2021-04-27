@@ -163,7 +163,7 @@ class ClothEnv(object):
 
     def initial_reset(self):
         template_renderer = TemplateRenderer()
-        template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", timestep=0.01, geom_size=0.01)
+        template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", timestep=0.01, geom_size=0.008)
         self.mjpy_model = mujoco_py.load_model_from_path(f"{self.save_folder}/mujoco_template.xml")
         self.sim = mujoco_py.MjSim(self.mjpy_model)
         utils.remove_distance_welds(self.sim)
@@ -422,7 +422,7 @@ class ClothEnv(object):
             for corner in corners_in_image:
                 cv2.circle(data, (int(corner[0]), int(corner[1])), 3, (0, 0, 255), -1)
 
-            cv2.imwrite(f'{self.save_folder}/cnn_images/{str(len(self.ee_positions))}.png', data*255)
+            cv2.imwrite(f'{self.save_folder}/cnn_images/{str(len(self.ee_positions)).zfill(3)}.png', data*255)
         
 
         flattened_corners = np.array(corners_in_image).flatten()/self.image_size
@@ -705,14 +705,14 @@ class ClothEnv(object):
                 cv2.circle(data, (aux_u, aux_v), 8, (0, 255, 0), -1)
 
 
-        cv2.imwrite(f'{self.save_folder}/eval_corner_images/{str(path_length)}.png', data)
+        cv2.imwrite(f'{self.save_folder}/eval_corner_images/{str(path_length).zfill(3)}.png', data)
 
         eval_camera_id = self.sim.model.camera_name2id(self.eval_camera) 
         self.viewer.render(h,w, eval_camera_id)
         data = np.float32(self.viewer.read_pixels(w, h, depth=False)).copy()
         data = np.float32(data[::-1, :, :]).copy()
         data = np.float32(data)
-        cv2.imwrite(f'{self.save_folder}/eval_images/{str(path_length)}.png', data)
+        cv2.imwrite(f'{self.save_folder}/eval_images/{str(path_length).zfill(3)}.png', data)
 
 
 
