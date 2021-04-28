@@ -51,19 +51,19 @@
                     <tendon width="0.001" kind="shear" />
                     <!--<pin coord="0 0"/> -->
                    
-                    <skin rgba="1 0.8 0.4 1" texcoord="true" inflate="0.001" subgrid="3"/>
-                    <geom group="0" type="sphere" size="{{ geom_size }}" rgba=".8 .2 .1 1" friction='1.5 1.5 1.5' solref='0.01 1' solimp='0.99 0.99 0.01' condim='4' />
+                    <skin rgba="0 0 0 0.2" texcoord="true" inflate="0.001" subgrid="3"/>
+                    <geom group="0" type="sphere" size="{{ geom_size }}" rgba="0 0 1 0.8" friction='1.5 1.5 1.5' solref='0.01 1' solimp='0.99 0.99 0.01' condim='4' />
                 </composite>
             </body>
 
         <body name="lookatbody" pos="0.0 -0.1 0.21" >
-            <geom name="lookatgeom" type="box"pos="0 0 0" size="0.001 0.001 0.001" group="1" />
+            <geom name="lookatgeom" type="box" pos="0 0 0" size="0.001 0.001 0.001" group="1" />
         </body>
 
 
 
         <light directional="true" diffuse=".4 .4 .4" specular="0.1 0.1 0.1" pos="0 0 5.0" dir="0 0 -1" castshadow="false"/>
-        <light directional="true" diffuse=".6 .6 .6" specular="0.2 0.2 0.2" pos="0 0 4" dir="0 0 -1"/>
+        <light directional="true" diffuse=".6 .6 .6" specular="0.2 0.2 0.2" pos="0 0 4" dir="0 0 -1" castshadow="false"/>
         <!-- front view -->
         <camera mode="fixed" name="frontview" pos="0.35 -0.1 0.25" quat="0.56 0.43 0.43 0.56"/>
 
