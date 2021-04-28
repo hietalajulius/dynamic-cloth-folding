@@ -38,34 +38,36 @@
 
         <body name="tabletop" pos="0 0 0">
             <geom name="la_tabla_col" type="box" pos="0 0 0" size="0.3 0.6 0.2" group="0" />
-            <geom name="la_tabla_vis" type="box" rgba="1 1 1 1" pos="0 0 0" size="0.3 0.6 0.20500000000000002" group="1" />
+            <geom name="la_tabla_vis" type="box" rgba="1 1 1 1" pos="0 0 0" size="0.3 0.6 0.20400000000000001" group="1" />
         </body>
 
-        <body name="measuring_stick" pos="0 0 0">
+        <!--<body name="measuring_stick" pos="0 0 0">
             <geom name="measuring_stick_vis" type="box" rgba="0 0 0 1" pos="0 0.02 0.2" size="0.1 0.015 0.015" group="1" />
-        </body>
+        </body> -->
 
             <body euler="0 0 0" pos="0.02 -0.1 0.2">
                 <composite type="grid" count="9 9 1" spacing="0.024" offset="0 0 0"  >
-                    <joint kind="main" damping="1" stiffness="100" />
-
-                    <tendon width="0.002" limited="true" range="0 1" kind="shear" damping="0" stiffness="1000" />
-                    <tendon width="0.003" limited="true" range="0 1" kind="main" damping="0" stiffness="1000" />
+                    <joint kind="main" damping="0.001" stiffness="0.001" />
+                    <tendon width="0.001" kind="shear" />
                     <!--<pin coord="0 0"/> -->
                    
-                    <skin rgba="1 0.8 0.4 1" texcoord="true" inflate="0.001" subgrid="3"/>
-                    <geom group="0" type="sphere" size="0.01" rgba=".8 .2 .1 1" friction='1.5 1.5 1.5' solref='0.01 1' solimp='0.99 0.99 0.01' condim='4' />
+                    <skin rgba="0 0 0 0.2" texcoord="true" inflate="0.001" subgrid="3"/>
+                    <geom group="0" type="sphere" size="0.008" rgba="0 0 1 0.8" friction='1.5 1.5 1.5' solref='0.01 1' solimp='0.99 0.99 0.01' condim='4' />
                 </composite>
             </body>
+
+        <body name="lookatbody" pos="0.0 -0.1 0.21" >
+            <geom name="lookatgeom" type="box" pos="0 0 0" size="0.001 0.001 0.001" group="1" />
+        </body>
 
 
 
         <light directional="true" diffuse=".4 .4 .4" specular="0.1 0.1 0.1" pos="0 0 5.0" dir="0 0 -1" castshadow="false"/>
-        <light directional="true" diffuse=".6 .6 .6" specular="0.2 0.2 0.2" pos="0 0 4" dir="0 0 -1"/>
+        <light directional="true" diffuse=".6 .6 .6" specular="0.2 0.2 0.2" pos="0 0 4" dir="0 0 -1" castshadow="false"/>
         <!-- front view -->
         <camera mode="fixed" name="frontview" pos="0.35 -0.1 0.25" quat="0.56 0.43 0.43 0.56"/>
 
-        <camera mode="targetbodycom" target="tabletop" name="train_camera" pos="-0.03 -0.28 0.55"/>
+        <camera mode="targetbodycom" target="lookatbody" name="train_camera" pos="-0.3 -0.1 0.5"/>
         <camera mode="targetbodycom" target="tabletop" name="eval_camera" pos="-0.45 -1 1"/>
         <!--cloth view -->
         <camera mode="fixed" name="clothview" pos="0.3 -0.15 0.42" quat="0.653 0.271 0.271 0.653"/>
@@ -150,8 +152,8 @@
             </body>
         </body>
 
-        <!--
-        <body mocap="true" name="robot0:mocap" pos="0.00078214 -0.0042735   0.20663855">
+        
+        <!--<body mocap="true" name="robot0:mocap" pos="0.00078214 -0.0042735   0.20663855">
             <geom group="1" name="mocap" conaffinity="0" contype="0" pos="0  0  0" rgba="0 0 1 1" size="0.005 0.005 0.005" type="box"></geom>
         </body> -->
     </worldbody>
@@ -168,7 +170,8 @@
     </actuator>
 
     <equality>
-            <distance distance="0" solref="-10000 -0.1" geom1="G8_8" geom2="grip_geom" />
+            <distance distance="0" solref="0.1 0.1" geom1="G8_8" geom2="grip_geom" />
+            <!--<distance distance="0" solref="0.1 0.1" geom1="G8_8" geom2="mocap" /> -->
             <!--<distance distance="0" solref="-10000 -0.1" geom1="G8_8" geom2="mocap" /> -->
 
     </equality>
