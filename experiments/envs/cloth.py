@@ -18,7 +18,14 @@ import math
 #np.set_printoptions(suppress=True)
 
 def compute_cosine_similarity(vec1, vec2):
-    return 1 - spatial.distance.cosine(vec1, vec2)
+    if np.all(vec1==0) or np.all(vec2==0):
+        return 0
+    else:
+        cosine_sim = 1 - spatial.distance.cosine(vec1, vec2)
+        if np.isnan(cosine_sim):
+            return 0
+        else:
+            return cosine_sim
 
 
 
@@ -99,30 +106,36 @@ class ClothEnv(object):
 
         self.seed()
 
-        self.initial_qpos = [0.227, 0.194, -0.0253, -1.84, -0.0124, 2.09, -1.76]
+        self.initial_qpos = np.array([0.213519, 0.363125, -0.00208328, -1.97796, -0.0196334, 2.37089, -1.50478])
+        self.initial_des_pos = np.array([0.603271, 0.127786, 0.183236])
         
-        self.ctrl_goals = []
-        self.pos_goals = []
-        self.ee_positions = []
-        self.cloth_site_names = ["S0_0", "S4_0", "S8_0", "S0_4","S0_8", "S4_8", "S8_8", "S8_4"]
+        self.ctrl_goals_log = []
+        self.pos_goals_log = []
+        self.ee_positions_I_log = []
+        self.ee_positions_W_log = []
+        self.ee_deltas_log = []
+
+        self.cloth_site_names = []
+        #TODO: Figure out how many to use
+        for i in [0, 4, 8]:
+            for j in [0, 4, 8]:
+                self.cloth_site_names.append(f"S{i}_{j}")
         self.ee_site_name = 'grip_site'
         self.joints = ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"]
-        self.initial_reset()
-        if self.has_viewer:
-            self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, device_id=-1)
-            self.viewer.vopt.geomgroup[0] = 0
-            self.viewer.vopt.geomgroup[1] = 1
-        else:
-            self.viewer = None
+        self.setup_initial_state_and_sim()
+        self.setup_viewer()
         
-        self.goal = self.sample_goal()
-
         self.task_reward_function = reward_calculation.get_task_reward_function(
             self.constraints, self.single_goal_dim, self.sparse_dense, self.reward_offset)
 
         self.action_space = gym.spaces.Box(-1,
                                            1, shape=(3,), dtype='float32')
+
+        self.relative_origin = self.get_ee_position_W()
+        self.goal = self.sample_goal_I()
+        
         obs = self.get_obs()
+        self.reset()
 
         if self.pixels:
             self.observation_space = gym.spaces.Dict(dict(
@@ -152,6 +165,15 @@ class ClothEnv(object):
                 model_params=gym.spaces.Box(-np.inf, np.inf,
                                             shape=obs['model_params'].shape, dtype='float32')
             ))
+
+    def setup_viewer(self):
+        if self.has_viewer:
+            self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, device_id=-1)
+            self.viewer.vopt.geomgroup[0] = 0
+            self.viewer.vopt.geomgroup[1] = 1
+        else:
+            self.viewer = None
+
     def dump_xml_models(self):
         with open(f"{self.save_folder}/compiled_mujoco_model_no_inertias.xml", "w") as f:
             self.sim.save(f, format='xml', keep_inertials=False)
@@ -161,7 +183,7 @@ class ClothEnv(object):
 
         print("Saved compiled xml mujoco models")
 
-    def initial_reset(self):
+    def setup_initial_state_and_sim(self):
         template_renderer = TemplateRenderer()
         template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", timestep=0.01, geom_size=0.008)
         self.mjpy_model = mujoco_py.load_model_from_path(f"{self.save_folder}/mujoco_template.xml")
@@ -174,30 +196,33 @@ class ClothEnv(object):
         self.ee_site_adr = mujoco_py.functions.mj_name2id(self.sim.model, 6, "grip_site")
         
         #Sets robot to initial qpos and resets osc values
-        self.reset_robot_initial()
-        self.reset_osc()
-        #Sets robot to initial ee pos and resets osc values
-        self.reset_robot_to_pos()
-        self.reset_osc()
+        self.set_robot_initial_joints()
+        self.reset_osc_values()
+        self.update_osc_values()
+
+        #TODO: Sets robot to initial ee pos and resets osc values
+        #self.set_robot_to_ee_pos()
+        #self.reset_osc()
 
         for _ in range(30):
             mujoco_py.functions.mj_step1(self.sim.model, self.sim.data)
             self.sim.data.qfrc_applied[self.joint_vel_addr] = self.sim.data.qfrc_bias[self.joint_vel_addr]
             mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
 
-        utils.enable_distance_welds(self.sim)
-
+        #utils.enable_distance_welds(self.sim)
         self.initial_state = copy.deepcopy(self.sim.get_state())
+        self.initial_qfrc_applied = self.sim.data.qfrc_applied[self.joint_vel_addr].copy()
+        self.initial_qfrc_bias = self.sim.data.qfrc_bias[self.joint_vel_addr].copy()
         if self.eval_env: #Slightly ghetto
             self.dump_xml_models()
 
         self.mjpy_model = mujoco_py.load_model_from_path(f"{self.save_folder}/compiled_mujoco_model_no_inertias.xml")
         self.sim = mujoco_py.MjSim(self.mjpy_model)
-        self.sim.set_state(self.initial_state)
-        self.relative_origin = self.sim.data.site_xpos[self.ee_site_adr].copy()
+
         
 
-    def reset_robot_to_pos(self):
+    def set_robot_to_ee_pos(self):
+        #TODO: clean up
         desired = self.sim.data.get_site_xpos("S8_8").copy() + np.array([0,0,0.005])
         desired_above = desired[:2]
 
@@ -212,71 +237,15 @@ class ClothEnv(object):
             self.step_env()
             dist = np.linalg.norm(self.sim.data.site_xpos[self.ee_site_adr].copy() - desired)
         print(self.sim.data.site_xpos[self.ee_site_adr].copy())
-        print("Found valid initial config")
-        print(self.sim.data.get_body_xpos("B4_4"))
-        print(self.sim.data.get_body_xpos("lookatbody"))
 
-    def reset_robot_initial(self):
+    def set_robot_initial_joints(self):
         for j, joint in enumerate(self.joints):
             self.sim.data.set_joint_qpos(joint, self.initial_qpos[j])
 
         for _ in range(10):
             self.sim.forward()
 
-    def reset_osc(self):
-        if len(self.ee_positions) > 0:
-            traj = np.concatenate([np.array(self.pos_goals), np.array(self.ctrl_goals), np.array(self.ee_positions)], axis=1)
-            np.savetxt(f"{self.save_folder}/eval_trajs/{self.eval_saves}.csv",
-                   traj, delimiter=",", fmt='%f')
-            self.eval_saves += 1
-        self.initial_O_T_EE = None
-        self.initial_joint_osc = None
-        self.initial_ee_p = None
-        self.desired_pos_step = None
-        self.desired_pos_ctrl = None
-        self.current_delta_vector = None
-        self.previous_delta_vector = None
-        self.raw_action = None
-        self.ctrl_goals = []
-        self.pos_goals = []
-        self.ee_positions = []
-        self.update_osc_vals()
-
-    def reset(self):
-        self.sim.set_state(self.initial_state)
-        self.sim.forward()
-        self.reset_osc()
-        self.goal = self.sample_goal()
-        if not self.viewer is None:
-            del self.viewer._markers[:]
-        self.episode_success_steps = 0
-
-
-        if self.randomize_params:
-            self.current_joint_stiffness = self.np_random.uniform(
-                self.min_stiffness, self.max_stiffness)
-            self.current_joint_damping = self.np_random.uniform(
-                self.min_damping, self.max_damping)
-
-            if self.uniform_jnt_tend:
-                self.current_tendon_stiffness = self.current_joint_stiffness
-                self.current_tendon_damping = self.current_joint_damping
-            else:
-                # Own damping/stiffness for tendons
-                self.current_tendon_stiffness = self.np_random.uniform(
-                    self.min_stiffness, self.max_stiffness)
-                self.current_tendon_damping = self.np_random.uniform(
-                    self.min_damping, self.max_damping)
-
-            self.set_joint_tendon_params(self.current_joint_stiffness, self.current_joint_damping,
-                                        self.current_tendon_stiffness, self.current_tendon_damping)
-
-        if self.randomize_geoms:
-            self.current_geom_size = self.np_random.uniform(
-                self.min_geom_size, self.max_geom_size)
-            self.set_geom_params()
-
-        return self.get_obs()
+    
 
     def run_controller(self):
         tau = osc_binding.step_controller(self.initial_O_T_EE,
@@ -288,7 +257,7 @@ class ClothEnv(object):
                                                 self.jac_osc,
                                                 np.zeros(7),
                                                 self.tau_J_d_osc,
-                                                self.desired_pos_ctrl,
+                                                self.desired_pos_ctrl_W,
                                                 np.zeros(3),
                                                 self.delta_tau_max,
                                                 self.kp,
@@ -300,108 +269,124 @@ class ClothEnv(object):
 
     def step_env(self):
         mujoco_py.functions.mj_step1(self.sim.model, self.sim.data)
-        self.update_osc_vals()
+        self.update_osc_values()
         tau = self.run_controller()
         self.sim.data.qfrc_applied[self.joint_vel_addr] = self.sim.data.qfrc_bias[self.joint_vel_addr] + tau
         mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
 
     def step(self, action, evaluation=False):
-        self.pre_action(action,evaluation)
-        self.raw_action = action.copy()
-        action = self.clip_action(action)
+        '''
+        action = np.zeros(3)
+        print("corn", self.sim.data.get_geom_xpos("G8_8"))
+        print("grip", self.sim.data.get_geom_xpos("grip_geom"))
+        print("lookat", self.sim.data.get_body_xpos("B4_4"))
+        lookattocam = np.array([0.51062629, -0.72,  0.99]) -  self.sim.data.get_body_xpos("B4_4")
+        print("from lookat to cam unit", lookattocam/np.linalg.norm(lookattocam))
+        print("from origin to cam unit", self.sim.data.get_body_xpos("B4_4") + 0.55*lookattocam/np.linalg.norm(lookattocam))
+        '''
 
-        #This is the first delta
-        if self.previous_delta_vector is None and not np.allclose(action, np.zeros(3), atol=1e-05):
+        raw_action = action.copy()
+        action = raw_action*self.max_advance
+
+        #Find first valid initial delta
+        if self.initial_delta_vector is None and np.linalg.norm(action) > 0:
+            self.initial_delta_vector = action
             self.previous_delta_vector = action
-        if not np.allclose(self.current_delta_vector, np.zeros(3), atol=1e-05):
-            self.previous_delta_vector = self.current_delta_vector.copy()
 
+        #Check for first valid initial delta
+        cosine_similarity = 0
+        if not self.initial_delta_vector is None:
+            cosine_similarity = compute_cosine_similarity(action, self.previous_delta_vector)
+            if self.sphere_clipping:
+                action = self.sphere_clip(action)
+            else:
+                action = self.spike_clip(action)
+        else:
+            action = np.zeros(3)
+        
 
-        previous_desired_pos_step = self.desired_pos_step.copy()
-        desired_pos_step_absolute = previous_desired_pos_step + action
-        min_absolute = self.initial_ee_p + self.limits_min
-        max_absolute = self.initial_ee_p + self.limits_max
-        self.desired_pos_step = np.clip(desired_pos_step_absolute, min_absolute, max_absolute)
-        self.current_delta_vector = self.desired_pos_step - previous_desired_pos_step
+        previous_desired_pos_step_W = self.desired_pos_step_W.copy()
+        desired_pos_step_W = previous_desired_pos_step_W + action
+        
+        self.desired_pos_step_W = np.clip(desired_pos_step_W, self.min_absolute_W, self.max_absolute_W)
         for i in range(self.substeps):
             for j in range(self.between_steps):
-                self.desired_pos_ctrl = self.filter*self.desired_pos_step + (1-self.filter)*self.desired_pos_ctrl
+                self.desired_pos_ctrl_W = self.filter*self.desired_pos_step_W + (1-self.filter)*self.desired_pos_ctrl_W
             self.step_env()
 
+        #TODO: make sure no gap between
+        self.desired_pos_ctrl_W = self.desired_pos_step_W
+
         obs = self.get_obs()
-        reward, done, info = self.post_action(obs, previous_desired_pos_step, evaluation=evaluation)
+        if evaluation:
+            self.log_eval_and_visualization(obs, previous_desired_pos_step_W)
+
+        reward, done, info = self.post_action(action, obs, raw_action, cosine_similarity, evaluation=evaluation)
         return obs, reward, done, info
 
-    def clip_action(self, action):
-        action = action.copy()*self.max_advance
-        if self.sphere_clipping:
-            first_step = self.previous_delta_vector is None
-            if first_step or compute_cosine_similarity(self.previous_delta_vector, action) > 0:
-                radius = self.max_advance/2
-                if not first_step:
-                    sphere_center = radius*(self.previous_delta_vector/np.linalg.norm(self.previous_delta_vector))
-                else:
-                    sphere_center = radius*(action/np.linalg.norm(action))
-                sphere = Sphere(sphere_center, radius)
-                line = Line([0, 0, 0], action)
-                points = sphere.intersect_line(line)
-                norms = np.linalg.norm(points, axis=1)
-                argmax = np.argmax(norms)
-                argmin = np.argmin(norms)
-                norm_action = np.linalg.norm(action)
-                if norm_action > norms[argmax]:
-                    action = points[argmax]
-                if not np.allclose(points[argmin], np.zeros(3),atol=1e-05):
-                    print("Not close", points[argmin])
-            else:
-                action = np.zeros(3)
 
-        return action
+    def spike_clip(self, action):
+        if compute_cosine_similarity(action, self.previous_delta_vector) > 0:
+            return action
+            self.previous_delta_vector = action
+        else:
+            return np.zeros(3)
+
+
+
+    def sphere_clip(self, action):
+        if compute_cosine_similarity(action, self.previous_delta_vector) > 0:
+            radius = self.max_advance/2
+            sphere_center = radius*(self.previous_delta_vector/np.linalg.norm(self.previous_delta_vector))
+            sphere = Sphere(sphere_center, radius)
+            line = Line([0, 0, 0], action)
+            points = sphere.intersect_line(line)
+            norms = np.linalg.norm(points, axis=1)
+            argmax = np.argmax(norms)
+            action = points[argmax]
+            self.previous_delta_vector = action
+            return action
+        else:
+            return np.zeros(3)
+
 
     def compute_task_reward(self, achieved_goal, desired_goal, info):
         return self.task_reward_function(achieved_goal, desired_goal, info)
 
-    def pre_action(self, action, evaluation):
-        if evaluation:
-            self.ee_positions.append(self.get_ee_position())
-            self.ctrl_goals.append(self.desired_pos_ctrl)
-            self.pos_goals.append(self.desired_pos_step)
+    def log_eval_and_visualization(self, obs, previous_desired_pos_step):
+        self.ee_positions_I_log.append(self.get_ee_position_I())
+        self.ee_positions_W_log.append(self.get_ee_position_W())
+        self.ee_deltas_log.append(self.desired_pos_step_W-self.get_ee_position_W())
+        self.ctrl_goals_log.append(self.desired_pos_ctrl_W)
+        self.pos_goals_log.append(self.desired_pos_step_W)
 
-            del self.viewer._markers[:]
+        del self.viewer._markers[:]
+        '''
+        for i in range(int(self.goal.shape[0]/3)):
+            self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=self.goal[i*self.single_goal_dim: (i+1) *
+                self.single_goal_dim] + self.relative_origin, label="d"+str(i))
+            self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=obs['achieved_goal'][i*self.single_goal_dim: (i+1) *
+                self.single_goal_dim] + self.relative_origin, label="a"+str(i))
 
+        self.viewer.add_marker(size=np.array([.0005, .0005, .0005]), pos=self.desired_pos_ctrl_W, label="d")
+        self.viewer.add_marker(size=np.array([.0005, .0005, .0005]), pos=previous_desired_pos_step, label="c")
+        '''
 
 
         
-    def post_action(self, obs, previous_desired_pos_step, evaluation=False):
-        if evaluation:
-            for i in range(int(self.goal.shape[0]/3)):
-                self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=self.goal[i*self.single_goal_dim: (i+1) *
-                    self.single_goal_dim] + self.relative_origin, label="d"+str(i))
-                self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=obs['achieved_goal'][i*self.single_goal_dim: (i+1) *
-                    self.single_goal_dim] + self.relative_origin, label="a"+str(i))
-
-            self.viewer.add_marker(size=np.array([.0005, .0005, .0005]), pos=self.desired_pos_ctrl, label="d")
-            self.viewer.add_marker(size=np.array([.0005, .0005, .0005]), pos=previous_desired_pos_step, label="c")
-
+    def post_action(self, action, obs, raw_action, cosine_similarity, evaluation):
         ctrl_penalty_only = False
-        is_success = (self.compute_task_reward(np.reshape(obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict(ctrl_penalty_onlys=np.array([ctrl_penalty_only])))[0] - self.reward_offset) > -1
+        task_reward = self.compute_task_reward(np.reshape(obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict(ctrl_penalty_onlys=np.array([ctrl_penalty_only])))[0] - self.reward_offset
+        is_success = task_reward > -1
         self.episode_success_steps += int(is_success)
         if self.episode_success_steps >= self.max_success_steps:
             ctrl_penalty_only = True
-        
-        task_reward = self.compute_task_reward(np.reshape(obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict(ctrl_penalty_onlys=np.array([ctrl_penalty_only])))[0]
+            task_reward = self.reward_offset
 
-        
-
-        if not self.previous_delta_vector is None and not np.allclose(self.raw_action, np.zeros(3), atol=1e-05):
-            cosine_similarity = compute_cosine_similarity(self.previous_delta_vector, self.raw_action)
-        else:
-            cosine_similarity = 0
-
+        #TODO: figure out control pens
         penalty_multiplier = -(self.max_return/(2*self.max_episode_steps))
         cosine_similarity_penalty = penalty_multiplier*(1-cosine_similarity)
-        delta_size_penalty = penalty_multiplier*(np.linalg.norm(self.raw_action*self.max_advance)/np.linalg.norm(np.ones(3)*self.max_advance))
-
+        delta_size_penalty = penalty_multiplier*(np.linalg.norm(raw_action*self.max_advance)/np.linalg.norm(np.ones(3)*self.max_advance))
         control_penalty = cosine_similarity_penalty + delta_size_penalty
         scaled_control_penalty = control_penalty*self.control_penalty_coef
 
@@ -409,12 +394,9 @@ class ClothEnv(object):
 
         if is_success and self.episode_success_steps == 1:
             print("Real sim success",
-                    np.round(reward, decimals=1),
-                    np.round(task_reward, decimals=1),
-                    np.round(control_penalty, decimals=1),
-                    "Joint values:",
-                    np.round(self.current_joint_damping, decimals=4),
-                    np.round(self.current_joint_stiffness, decimals=4))
+                np.round(reward, decimals=1),
+                np.round(task_reward, decimals=1),
+                np.round(control_penalty, decimals=1))
 
         camera_matrix, camera_transformation = self.get_camera_matrices(self.train_camera, self.image_size, self.image_size)
         corners_in_image = self.get_corner_image_positions(self.image_size, self.image_size, camera_matrix, camera_transformation)
@@ -424,15 +406,15 @@ class ClothEnv(object):
             for corner in corners_in_image:
                 cv2.circle(data, (int(corner[0]), int(corner[1])), 3, (0, 0, 255), -1)
 
-            cv2.imwrite(f'{self.save_folder}/cnn_images/{str(len(self.ee_positions)).zfill(3)}.png', data*255)
+            cv2.imwrite(f'{self.save_folder}/cnn_images/{str(len(self.ee_positions_I_log)).zfill(3)}.png', data*255)
         
 
         flattened_corners = np.array(corners_in_image).flatten()/self.image_size
-        error_norm = np.linalg.norm(self.desired_pos_step - self.get_ee_position())    
+        error_norm = np.linalg.norm(self.desired_pos_step_W - self.get_ee_position_W())    
 
         info = {
                 "task_reward": task_reward,
-                "delta_size": np.linalg.norm(self.raw_action*self.max_advance),
+                "delta_size": np.linalg.norm(raw_action*self.max_advance),
                 "cosine_similarity" : cosine_similarity,
                 "cosine_similarity_penalty": cosine_similarity_penalty,
                 "delta_size_penalty": delta_size_penalty,
@@ -451,7 +433,7 @@ class ClothEnv(object):
         
 
 
-    def update_osc_vals(self):
+    def update_osc_values(self):
         self.joint_pos_osc = np.ndarray(shape=(7,), dtype=np.float64)
         self.joint_vel_osc = np.ndarray(shape=(7,), dtype=np.float64)
         self.O_T_EE = np.ndarray(shape=(16,), dtype=np.float64)
@@ -512,18 +494,21 @@ class ClothEnv(object):
         if self.initial_joint_osc is None:
             self.initial_joint_osc = self.joint_pos_osc.copy()
 
-        if self.desired_pos_ctrl is None:
-            self.desired_pos_ctrl = p.copy()
-        if self.desired_pos_step is None:
-            self.desired_pos_step = p.copy()
-        if self.initial_ee_p is None:
-            self.initial_ee_p = p.copy()
-        if self.current_delta_vector is None:
-            self.current_delta_vector = np.zeros(3)
+        if self.desired_pos_ctrl_W is None:
+            self.desired_pos_ctrl_W = p.copy()
+        if self.desired_pos_step_W is None:
+            self.desired_pos_step_W = p.copy()
+        if self.initial_ee_p_W is None:
+            self.initial_ee_p_W = p.copy()
+
+        
 
 
-    def get_ee_position(self):
+    def get_ee_position_W(self):
         return self.sim.data.get_site_xpos(self.ee_site_name).copy()
+    
+    def get_ee_position_I(self):
+        return self.sim.data.get_site_xpos(self.ee_site_name).copy() - self.relative_origin
 
     def get_joint_positions(self):
         positions = [self.sim.data.get_joint_qpos(joint).copy() for joint in self.joints]
@@ -536,7 +521,13 @@ class ClothEnv(object):
     def get_ee_velocity(self):
         return self.sim.data.get_site_xvelp(self.ee_site_name).copy()
 
-    def get_cloth_position(self):
+    def get_cloth_position_I(self):
+        positions = dict()
+        for site in self.cloth_site_names:
+            positions[site] = self.sim.data.get_site_xpos(site).copy() - self.relative_origin
+        return positions
+
+    def get_cloth_position_W(self):
         positions = dict()
         for site in self.cloth_site_names:
             positions[site] = self.sim.data.get_site_xpos(site).copy()
@@ -549,14 +540,13 @@ class ClothEnv(object):
         return velocities
 
     def get_obs(self):
-        achieved_goal = np.zeros(self.single_goal_dim*len(self.constraints))
+        achieved_goal_I = np.zeros(self.single_goal_dim*len(self.constraints))
         for i, constraint in enumerate(self.constraints):
             origin = constraint['origin']
-            achieved_goal[i*self.single_goal_dim:(i+1)*self.single_goal_dim] = self.sim.data.get_site_xpos(
+            achieved_goal_I[i*self.single_goal_dim:(i+1)*self.single_goal_dim] = self.sim.data.get_site_xpos(
                 origin).copy() - self.relative_origin
 
-        #Position observations relative to initial position
-        cloth_position = np.array(list(self.get_cloth_position().values())) - self.relative_origin
+        cloth_position = np.array(list(self.get_cloth_position_I().values()))
         robot_position = self.get_joint_positions() 
 
         if self.velocity_in_obs:
@@ -571,8 +561,9 @@ class ClothEnv(object):
             observation = np.concatenate([cloth_position.flatten()])
             robot_observation = robot_position
 
+        desired_pos_ctrl_I = self.desired_pos_ctrl_W - self.relative_origin
         robot_observation = np.concatenate(
-            [robot_observation, self.desired_pos_ctrl - self.relative_origin])
+            [robot_observation, desired_pos_ctrl_I])
 
         if self.randomize_geoms and self.randomize_params:
             model_params = np.array([self.current_joint_stiffness, self.current_joint_damping,
@@ -585,7 +576,7 @@ class ClothEnv(object):
 
         full_observation = {
             'observation': observation.copy(),
-            'achieved_goal': achieved_goal.copy(),
+            'achieved_goal': achieved_goal_I.copy(),
             'desired_goal': self.goal.copy(),
             'model_params': model_params.copy(),
             'robot_observation': robot_observation.flatten().copy()
@@ -605,21 +596,16 @@ class ClothEnv(object):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
     
-    def sample_goal(self):
+    def sample_goal_I(self):
         goal = np.zeros(self.single_goal_dim*len(self.constraints))
-
         if not self.constant_goal:
             noise = self.np_random.uniform(self.goal_noise_range[0],
                                            self.goal_noise_range[1])
         else:
             noise = 0
-
         for i, constraint in enumerate(self.constraints):
             target = constraint['target']
             target_pos = self.sim.data.get_site_xpos(target).copy()
-
-            
-
             offset = np.zeros(self.single_goal_dim)
             if 'noise_directions' in constraint.keys():
                 for idx, offset_dir in enumerate(constraint['noise_directions']):
@@ -643,17 +629,85 @@ class ClothEnv(object):
 
         self.sim.forward()
 
+    def reset_osc_values(self):
+        self.initial_O_T_EE = None
+        self.initial_joint_osc = None
+        self.initial_ee_p_W = None
+        self.desired_pos_step_W = None
+        self.desired_pos_ctrl_W = None
+        self.previous_delta_vector = None
+        self.initial_delta_vector = None
+        self.raw_action = None
+        self.ctrl_goals_log = []
+        self.pos_goals_log = []
+        self.ee_positions_I_log = []
+        self.ee_positions_W_log = []
+        self.ee_deltas_log = []
+    
+
+    def reset(self):
+        if self.eval_env and len(self.ee_positions_I_log) > 0:
+            traj = np.concatenate([np.array(self.pos_goals_log), np.array(self.ctrl_goals_log), np.array(self.ee_positions_I_log), np.array(self.ee_positions_W_log), np.array(self.ee_deltas_log)], axis=1)
+            np.savetxt(f"{self.save_folder}/eval_trajs/{self.eval_saves}.csv",
+                   traj, delimiter=",", fmt='%f')
+            self.eval_saves += 1
+
+        self.sim.reset()
+        utils.remove_distance_welds(self.sim)
+        self.sim.set_state(self.initial_state)
+        self.sim.data.qfrc_applied[self.joint_vel_addr] = self.initial_qfrc_applied
+        self.sim.data.qfrc_bias[self.joint_vel_addr] = self.initial_qfrc_bias
+        self.sim.forward()
+        self.reset_osc_values()
+        self.update_osc_values()
+        utils.enable_distance_welds(self.sim)
+        
+        self.relative_origin = self.get_ee_position_W()
+        self.goal = self.sample_goal_I()
+        self.min_absolute_W = self.initial_ee_p_W + self.limits_min
+        self.max_absolute_W = self.initial_ee_p_W + self.limits_max
+
+        if not self.viewer is None:
+            del self.viewer._markers[:]
+
+        self.episode_success_steps = 0
+
+
+        if self.randomize_params:
+            self.current_joint_stiffness = self.np_random.uniform(
+                self.min_stiffness, self.max_stiffness)
+            self.current_joint_damping = self.np_random.uniform(
+                self.min_damping, self.max_damping)
+
+            if self.uniform_jnt_tend:
+                self.current_tendon_stiffness = self.current_joint_stiffness
+                self.current_tendon_damping = self.current_joint_damping
+            else:
+                # Own damping/stiffness for tendons
+                self.current_tendon_stiffness = self.np_random.uniform(
+                    self.min_stiffness, self.max_stiffness)
+                self.current_tendon_damping = self.np_random.uniform(
+                    self.min_damping, self.max_damping)
+
+            self.set_joint_tendon_params(self.current_joint_stiffness, self.current_joint_damping,
+                                        self.current_tendon_stiffness, self.current_tendon_damping)
+
+        if self.randomize_geoms:
+            self.current_geom_size = self.np_random.uniform(
+                self.min_geom_size, self.max_geom_size)
+            self.set_geom_params()
+
+        return self.get_obs()
+
     def get_corner_image_positions(self, w, h, camera_matrix, camera_transformation):
         corners = []
-        cloth_positions = self.get_cloth_position()
+        cloth_positions = self.get_cloth_position_W()
         for site in self.cloth_site_names:
             if not "4" in site:
                 corner_in_image = np.ones(4)
                 corner_in_image[:3] = cloth_positions[site]
                 corner = (camera_matrix @ camera_transformation) @ corner_in_image
                 u_c, v_c, _ = corner/corner[2]
-
-                #cv2.circle(data, (w-int(u_c), int(v_c)), 10, (0, 0, 255), -1)
                 corner = [w-u_c, v_c]
                 corners.append(corner)
         return corners
@@ -682,7 +736,7 @@ class ClothEnv(object):
         train_camera_id = self.sim.model.camera_name2id(self.train_camera) 
 
         ee_in_image = np.ones(4)
-        ee_pos = self.get_ee_position()
+        ee_pos = self.get_ee_position_W()
         ee_in_image[:3] = ee_pos
 
         self.viewer.render(h,w, train_camera_id)
