@@ -361,7 +361,7 @@ class ClothEnv(object):
         self.pos_goals_log.append(self.desired_pos_step_W)
 
         del self.viewer._markers[:]
-        '''
+        
         for i in range(int(self.goal.shape[0]/3)):
             self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=self.goal[i*self.single_goal_dim: (i+1) *
                 self.single_goal_dim] + self.relative_origin, label="d"+str(i))
@@ -370,7 +370,7 @@ class ClothEnv(object):
 
         self.viewer.add_marker(size=np.array([.0005, .0005, .0005]), pos=self.desired_pos_ctrl_W, label="d")
         self.viewer.add_marker(size=np.array([.0005, .0005, .0005]), pos=previous_desired_pos_step, label="c")
-        '''
+    
 
 
         
