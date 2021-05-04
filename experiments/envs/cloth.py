@@ -47,23 +47,24 @@ class ClothEnv(object):
         reward_offset,
         kp,
         damping_ratio,
-        sphere_clipping,
-        spike_clipping,
+        clip_type,
+        timestep,
+        control_frequency,
         ctrl_filter,
-        save_folder,
         max_episode_steps,
         control_penalty_coef,
         num_eval_rollouts,
-        eval_env=False,
+        save_folder,
+        initial_xml_dump=False,
         has_viewer=False
     ):  
+        assert clip_type == "sphere" or clip_type == "spike" or clip_type == "none"
+        self.save_folder = save_folder
+        self.initial_xml_dump = initial_xml_dump
         self.num_eval_rollouts = num_eval_rollouts
         self.control_penalty_coef = control_penalty_coef
-        self.eval_env = eval_env
         self.filter = ctrl_filter
-        self.save_folder = save_folder
-        self.sphere_clipping = sphere_clipping
-        self.spike_clipping = spike_clipping
+        self.clip_type = clip_type
         self.kp = kp
         self.damping_ratio = damping_ratio
         self.max_advance = output_max
@@ -83,14 +84,24 @@ class ClothEnv(object):
 
         self.max_success_steps = 20
         #TODO: figure out this case when no reward offset used
+
         self.max_return = self.max_success_steps * self.reward_offset + (self.max_episode_steps - self.max_success_steps)*(self.reward_offset - 1)
-    
+
+        
         self.single_goal_dim = 3
-        self.eval_saves_done = 0
-        self.eval_rollouts_done = 0
-        self.substeps = 10
-        self.between_steps = 10
-        self.delta_tau_max = 10
+        self.timestep = timestep
+        self.control_frequency = control_frequency
+
+        steps_per_second = 1 / self.timestep
+        self.substeps = 1 / (self.timestep*self.control_frequency)
+        self.between_steps = 1000 / steps_per_second
+        self.delta_tau_max = 1000 / steps_per_second
+
+        print("timestep", self.timestep)
+        print("substeps", self.substeps)
+        print("between steps", self.between_steps)
+        print("delta tau max", self.delta_tau_max)
+        print("ctrl freq", self.control_frequency)
         self.train_camera = "train_camera"
         self.eval_camera = "eval_camera"
         self.min_damping = 0.0001  # TODO: pass ranges in from outside
@@ -111,14 +122,13 @@ class ClothEnv(object):
 
         self.seed()
 
-        self.initial_qpos = np.array([0.213519, 0.363125, -0.00208328, -1.97796, -0.0196334, 2.37089, -1.50478])
-        self.initial_des_pos = np.array([0.603271, 0.127786, 0.183236])
-        
-        self.ctrl_goals_log = []
-        self.pos_goals_log = []
-        self.ee_positions_I_log = []
-        self.ee_positions_W_log = []
-        self.ee_deltas_log = []
+        #sideways
+        self.initial_qpos = np.array([0.212422, 0.362907, -0.00733391, -1.9649, -0.0198034, 2.37451, -1.50499])
+        self.initial_des_pos = np.array([0.610123, 0.125163, 0.189346])
+
+        #diagonal
+        #self.initial_qpos = np.array([0.114367, 0.575019, 0.0550664, -1.60919, -0.079246, 2.23369, -1.56064])
+        #self.initial_des_pos = np.array([0.692898, 0.107481, 0.194496])
 
         self.cloth_site_names = []
         #TODO: Figure out how many to use
@@ -190,7 +200,7 @@ class ClothEnv(object):
 
     def setup_initial_state_and_sim(self):
         template_renderer = TemplateRenderer()
-        template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", timestep=0.01, geom_size=0.008)
+        template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", timestep=self.timestep, geom_size=0.008)
         self.mjpy_model = mujoco_py.load_model_from_path(f"{self.save_folder}/mujoco_template.xml")
         self.sim = mujoco_py.MjSim(self.mjpy_model)
         utils.remove_distance_welds(self.sim)
@@ -218,7 +228,7 @@ class ClothEnv(object):
         self.initial_state = copy.deepcopy(self.sim.get_state())
         self.initial_qfrc_applied = self.sim.data.qfrc_applied[self.joint_vel_addr].copy()
         self.initial_qfrc_bias = self.sim.data.qfrc_bias[self.joint_vel_addr].copy()
-        if self.eval_env: #Slightly ghetto
+        if self.initial_xml_dump: #Slightly ghetto
             self.dump_xml_models()
 
         self.mjpy_model = mujoco_py.load_model_from_path(f"{self.save_folder}/compiled_mujoco_model_no_inertias.xml")
@@ -302,9 +312,9 @@ class ClothEnv(object):
         cosine_similarity = 0
         if not self.initial_delta_vector is None:
             cosine_similarity = compute_cosine_similarity(action, self.previous_delta_vector)
-            if self.sphere_clipping:
+            if self.clip_type == "sphere":
                 action = self.sphere_clip(action)
-            elif self.spike_clipping:
+            elif self.clip_type == "spike":
                 action = self.spike_clip(action)
         else:
             action = np.zeros(3)
@@ -314,19 +324,19 @@ class ClothEnv(object):
         desired_pos_step_W = previous_desired_pos_step_W + action
         
         self.desired_pos_step_W = np.clip(desired_pos_step_W, self.min_absolute_W, self.max_absolute_W)
-        for i in range(self.substeps):
-            for j in range(self.between_steps):
+        for i in range(int(self.substeps)):
+            for j in range(int(self.between_steps)):
                 self.desired_pos_ctrl_W = self.filter*self.desired_pos_step_W + (1-self.filter)*self.desired_pos_ctrl_W
             self.step_env()
 
         #TODO: make sure no gap between
-        self.desired_pos_ctrl_W = self.desired_pos_step_W
+        #self.desired_pos_ctrl_W = self.desired_pos_step_W
 
         obs = self.get_obs()
         if evaluation:
-            self.log_eval_and_visualization(obs, previous_desired_pos_step_W)
+            self.prepare_eval_visualization(obs, previous_desired_pos_step_W)
 
-        reward, done, info = self.post_action(action, obs, raw_action, cosine_similarity, evaluation=evaluation)
+        reward, done, info = self.post_action(action, obs, raw_action, cosine_similarity)
         return obs, reward, done, info
 
 
@@ -358,13 +368,8 @@ class ClothEnv(object):
     def compute_task_reward(self, achieved_goal, desired_goal, info):
         return self.task_reward_function(achieved_goal, desired_goal, info)
 
-    def log_eval_and_visualization(self, obs, previous_desired_pos_step):
-        #TODO WTF IS THE 2nd arg, log controller delta
-        self.ee_positions_I_log.append(self.get_ee_position_I())
-        self.ee_positions_W_log.append(self.get_ee_position_W())
-        self.ee_deltas_log.append(self.desired_pos_step_W-self.get_ee_position_W())
-        self.ctrl_goals_log.append(self.desired_pos_ctrl_W)
-        self.pos_goals_log.append(self.desired_pos_step_W)
+    def prepare_eval_visualization(self, obs, previous_desired_pos_step):
+
 
         del self.viewer._markers[:]
         
@@ -380,7 +385,7 @@ class ClothEnv(object):
 
 
         
-    def post_action(self, action, obs, raw_action, cosine_similarity, evaluation):
+    def post_action(self, action, obs, raw_action, cosine_similarity):
         ctrl_penalty_only = False
         task_reward = self.compute_task_reward(np.reshape(obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict(ctrl_penalty_onlys=np.array([ctrl_penalty_only])))[0] - self.reward_offset
         is_success = task_reward > -1
@@ -403,14 +408,6 @@ class ClothEnv(object):
 
         camera_matrix, camera_transformation = self.get_camera_matrices(self.train_camera, self.image_size, self.image_size)
         corners_in_image = self.get_corner_image_positions(self.image_size, self.image_size, camera_matrix, camera_transformation)
-        
-        if evaluation and self.pixels:
-            data = obs['image'].copy().reshape((100, 100, 1))
-            for corner in corners_in_image:
-                cv2.circle(data, (int(corner[0]), int(corner[1])), 3, (0, 0, 255), -1)
-
-            cv2.imwrite(f'{self.save_folder}/images/{self.eval_saves_done}/eval/{str(len(self.ee_positions_I_log)).zfill(3)}.png', data*255)
-        
 
         flattened_corners = np.array(corners_in_image).flatten()/self.image_size
         error_norm = np.linalg.norm(self.desired_pos_step_W - self.get_ee_position_W())    
@@ -647,29 +644,9 @@ class ClothEnv(object):
         self.previous_delta_vector = None
         self.initial_delta_vector = None
         self.raw_action = None
-        self.ctrl_goals_log = []
-        self.pos_goals_log = []
-        self.ee_positions_I_log = []
-        self.ee_positions_W_log = []
-        self.ee_deltas_log = []
     
 
     def reset(self):
-        if self.eval_env:
-            if self.eval_rollouts_done % self.num_eval_rollouts == 0:
-                cnn_path = f"{self.save_folder}/images/{self.eval_saves_done}/cnn"
-                corners_path = f"{self.save_folder}/images/{self.eval_saves_done}/corners"
-                eval_path = f"{self.save_folder}/images/{self.eval_saves_done}/eval"
-                os.makedirs(cnn_path)
-                os.makedirs(corners_path)
-                os.makedirs(eval_path)
-            if self.eval_rollouts_done % self.num_eval_rollouts == 1:
-                traj = np.concatenate([np.array(self.pos_goals_log), np.array(self.ctrl_goals_log), np.array(self.ee_positions_I_log), np.array(self.ee_positions_W_log), np.array(self.ee_deltas_log)], axis=1)
-                np.savetxt(f"{self.save_folder}/eval_trajs/{self.eval_saves_done}.csv",
-                    traj, delimiter=",", fmt='%f')
-                self.eval_saves_done += 1
-            self.eval_rollouts_done += 1
-
         self.sim.reset()
         utils.remove_distance_welds(self.sim)
         self.sim.set_state(self.initial_state)
@@ -747,7 +724,7 @@ class ClothEnv(object):
 
 
 
-    def capture_image(self, aux_output, path_length):
+    def capture_image(self, aux_output):
         w, h = 1000, 1000
 
         camera_matrix, camera_transformation = self.get_camera_matrices(self.train_camera, h, w)
@@ -758,35 +735,35 @@ class ClothEnv(object):
         ee_in_image[:3] = ee_pos
 
         self.viewer.render(h,w, train_camera_id)
-        data = np.float32(self.viewer.read_pixels(w, h, depth=False)).copy()
-        data = np.float32(data[::-1, :, :]).copy()
-        data = np.float32(data)
+        train_data = np.float32(self.viewer.read_pixels(w, h, depth=False)).copy()
+        train_data = np.float32(train_data[::-1, :, :]).copy()
+        train_data = np.float32(train_data)
         ee = camera_matrix @ camera_transformation @ ee_in_image
         u_ee, v_ee, _ = ee/ee[2]
-        cv2.circle(data, (w-int(u_ee), int(v_ee)), 10, (0, 0, 0), -1)
+        cv2.circle(train_data, (w-int(u_ee), int(v_ee)), 10, (0, 0, 0), -1)
 
         corners = self.get_corner_image_positions(w, h, camera_matrix, camera_transformation)
 
         for corner in corners:
             u = int(corner[0])
             v = int(corner[1])
-            cv2.circle(data, (u, v), 8, (0, 0, 255), -1)
+            cv2.circle(train_data, (u, v), 8, (0, 0, 255), -1)
         
         if not aux_output is None:
             for aux_idx in range(int(aux_output.flatten().shape[0]/2)):
                 aux_u = int(aux_output.flatten()[aux_idx*2]*w)
                 aux_v = int(aux_output.flatten()[aux_idx*2+1]*h)
-                cv2.circle(data, (aux_u, aux_v), 8, (0, 255, 0), -1)
+                cv2.circle(train_data, (aux_u, aux_v), 8, (0, 255, 0), -1)
 
 
-        cv2.imwrite(f'{self.save_folder}/images/{self.eval_saves_done}/corners/{str(path_length).zfill(3)}.png', data)
 
         eval_camera_id = self.sim.model.camera_name2id(self.eval_camera) 
         self.viewer.render(h,w, eval_camera_id)
-        data = np.float32(self.viewer.read_pixels(w, h, depth=False)).copy()
-        data = np.float32(data[::-1, :, :]).copy()
-        data = np.float32(data)
-        cv2.imwrite(f'{self.save_folder}/images/{self.eval_saves_done}/eval/{str(path_length).zfill(3)}.png', data)
+        eval_data = np.float32(self.viewer.read_pixels(w, h, depth=False)).copy()
+        eval_data = np.float32(eval_data[::-1, :, :]).copy()
+        eval_data = np.float32(eval_data)
+
+        return train_data, eval_data
 
 
 

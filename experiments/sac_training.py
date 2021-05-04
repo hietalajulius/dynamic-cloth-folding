@@ -22,6 +22,7 @@ from envs.cloth import ClothEnvPickled as ClothEnv
 from rlkit.envs.wrappers import NormalizedBoxEnv
 import os
 from rlkit.core import logger
+import json
 
 set_level(50)
 
@@ -47,7 +48,7 @@ def randomize_env(env):
         macros.USING_INSTANCE_RANDOMIZATION = True
 '''
 def experiment(variant):
-    env = ClothEnv(**variant['env_kwargs'], has_viewer=True, eval_env=True, save_folder=variant['save_folder'])
+    env = ClothEnv(**variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'], initial_xml_dump=True)
     env = NormalizedBoxEnv(env)
     '''
     if variant['domain_randomization']:
@@ -132,12 +133,17 @@ def experiment(variant):
 
     eval_policy = MakeDeterministic(policy)
 
-    # TODO: Most kwargs below a bit redundant
+    steps_per_second = 1 / variant['env_kwargs']['timestep']
+    new_action_every_ctrl_step = steps_per_second / variant['env_kwargs']['control_frequency']
+
     eval_path_collector = EvalKeyPathCollector(
         eval_env,
         eval_policy,
         observation_key=path_collector_observation_key,
         desired_goal_key=desired_goal_key,
+        save_folder=variant['save_folder'],
+        env_timestep=variant['env_kwargs']['timestep'],
+        new_action_every_ctrl_step=new_action_every_ctrl_step,
         **variant['path_collector_kwargs']
     )
 
@@ -263,9 +269,10 @@ if __name__ == "__main__":
         os.makedirs(images_path)
         os.makedirs(eval_trajs_path)
         os.makedirs(policies_path)
-        file = open(f"{variant['save_folder']}/params.txt", "w")
-        file.write(str(variant))
-        file.close()
+
+        with open(f"{variant['save_folder']}/params.json", "w") as outfile:
+            json.dump(variant, outfile)
+
     except OSError:
         print ("Creation of the directory %s failed" % variant['save_folder'])
     else:

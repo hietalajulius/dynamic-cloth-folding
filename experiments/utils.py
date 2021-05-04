@@ -102,30 +102,31 @@ def argsparser():
     # Collection
     parser.add_argument('--max_path_length', default=50, type=int)
 
-    # Controller optimization
-    parser.add_argument('--ctrl_eval_file', type=int, default=0)
-    parser.add_argument('--ctrl_eval', type=int, default=0)
+    # sim2real
+    parser.add_argument('--eval_folder', type=str, required=False)
 
     # Env
     parser.add_argument('--control_penalty_coef', type=float, default=0)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
-    parser.add_argument('--sphere_clipping', type=int)
-    parser.add_argument('--spike_clipping', type=int)
+    parser.add_argument('--clip_type', type=str, default="none")
     parser.add_argument('--output_max', type=float, default=0.1)
     parser.add_argument('--damping_ratio', type=float, default=1)
     parser.add_argument('--kp', type=float, default=1000.0)
     parser.add_argument('--constant_goal', type=int, default=1)
     parser.add_argument('--task', type=str, default="diagonal_franka")
     parser.add_argument('--velocity_in_obs', type=int, default=1)
-    parser.add_argument('--image_training', default=0, type=int)
+    parser.add_argument('--image_training', default=0, type=int, required=True)
     parser.add_argument('--image_size', type=int, default=100)
     parser.add_argument('--randomize_params', type=int, default=0)
     parser.add_argument('--randomize_geoms', type=int, default=0)
     parser.add_argument('--uniform_jnt_tend', type=int, default=1)
     parser.add_argument('--sparse_dense', type=int, default=0)
     parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.01))
-    parser.add_argument('--reward_offset', type=float)
+    parser.add_argument('--reward_offset', type=float, required=True)
+    parser.add_argument('--timestep', type=float, default=0.01)
+    parser.add_argument('--control_frequency', type=int, default=10)
+
 
     args = parser.parse_args()
     return args
@@ -146,7 +147,8 @@ def get_variant(args):
         path_collector_kwargs=dict(),
         policy_kwargs=dict(),
         replay_buffer_kwargs=dict(),
-        algorithm_kwargs=dict()
+        algorithm_kwargs=dict(),
+        eval_folder=args.eval_folder
     )
     variant['random_seed'] = args.seed
     variant['version'] = args.title
@@ -174,10 +176,13 @@ def get_variant(args):
         fraction_goals_rollout_goals=1 - args.her_percent
     )
 
+    
+
     variant['env_kwargs'] = dict(
+        timestep=args.timestep,
+        control_frequency=args.control_frequency,
         ctrl_filter=args.filter,
-        sphere_clipping=bool(args.sphere_clipping),
-        spike_clipping=bool(args.spike_clipping),
+        clip_type=args.clip_type,
         kp=args.kp,
         damping_ratio=args.damping_ratio,
         control_penalty_coef=args.control_penalty_coef,
