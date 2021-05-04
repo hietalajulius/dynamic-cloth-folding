@@ -48,18 +48,22 @@ class ClothEnv(object):
         kp,
         damping_ratio,
         sphere_clipping,
+        spike_clipping,
         ctrl_filter,
         save_folder,
         max_episode_steps,
         control_penalty_coef,
+        num_eval_rollouts,
         eval_env=False,
         has_viewer=False
     ):  
+        self.num_eval_rollouts = num_eval_rollouts
         self.control_penalty_coef = control_penalty_coef
         self.eval_env = eval_env
         self.filter = ctrl_filter
         self.save_folder = save_folder
         self.sphere_clipping = sphere_clipping
+        self.spike_clipping = spike_clipping
         self.kp = kp
         self.damping_ratio = damping_ratio
         self.max_advance = output_max
@@ -77,12 +81,13 @@ class ClothEnv(object):
         self.has_viewer = has_viewer
         self.max_episode_steps = max_episode_steps
 
-        self.max_success_steps = 5
+        self.max_success_steps = 20
         #TODO: figure out this case when no reward offset used
         self.max_return = self.max_success_steps * self.reward_offset + (self.max_episode_steps - self.max_success_steps)*(self.reward_offset - 1)
     
         self.single_goal_dim = 3
-        self.eval_saves = 0
+        self.eval_saves_done = 0
+        self.eval_rollouts_done = 0
         self.substeps = 10
         self.between_steps = 10
         self.delta_tau_max = 10
@@ -135,7 +140,7 @@ class ClothEnv(object):
         self.goal = self.sample_goal_I()
         
         obs = self.get_obs()
-        self.reset()
+
 
         if self.pixels:
             self.observation_space = gym.spaces.Dict(dict(
@@ -299,7 +304,7 @@ class ClothEnv(object):
             cosine_similarity = compute_cosine_similarity(action, self.previous_delta_vector)
             if self.sphere_clipping:
                 action = self.sphere_clip(action)
-            else:
+            elif self.spike_clipping:
                 action = self.spike_clip(action)
         else:
             action = np.zeros(3)
@@ -354,6 +359,7 @@ class ClothEnv(object):
         return self.task_reward_function(achieved_goal, desired_goal, info)
 
     def log_eval_and_visualization(self, obs, previous_desired_pos_step):
+        #TODO WTF IS THE 2nd arg, log controller delta
         self.ee_positions_I_log.append(self.get_ee_position_I())
         self.ee_positions_W_log.append(self.get_ee_position_W())
         self.ee_deltas_log.append(self.desired_pos_step_W-self.get_ee_position_W())
@@ -378,10 +384,7 @@ class ClothEnv(object):
         ctrl_penalty_only = False
         task_reward = self.compute_task_reward(np.reshape(obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict(ctrl_penalty_onlys=np.array([ctrl_penalty_only])))[0] - self.reward_offset
         is_success = task_reward > -1
-        self.episode_success_steps += int(is_success)
-        if self.episode_success_steps >= self.max_success_steps:
-            ctrl_penalty_only = True
-            task_reward = self.reward_offset
+
 
         #TODO: figure out control pens
         penalty_multiplier = -(self.max_return/(2*self.max_episode_steps))
@@ -406,7 +409,7 @@ class ClothEnv(object):
             for corner in corners_in_image:
                 cv2.circle(data, (int(corner[0]), int(corner[1])), 3, (0, 0, 255), -1)
 
-            cv2.imwrite(f'{self.save_folder}/cnn_images/{str(len(self.ee_positions_I_log)).zfill(3)}.png', data*255)
+            cv2.imwrite(f'{self.save_folder}/images/{self.eval_saves_done}/eval/{str(len(self.ee_positions_I_log)).zfill(3)}.png', data*255)
         
 
         flattened_corners = np.array(corners_in_image).flatten()/self.image_size
@@ -427,7 +430,13 @@ class ClothEnv(object):
                 'ctrl_penalty_only': ctrl_penalty_only
                 }
 
-        done = False  # Let run for max steps
+        done = False
+        self.episode_success_steps += int(is_success)
+        if self.episode_success_steps >= self.max_success_steps:
+            done = True
+            #ctrl_penalty_only = True
+            #task_reward = -1 + self.reward_offset
+    
 
         return reward, done, info
         
@@ -646,11 +655,20 @@ class ClothEnv(object):
     
 
     def reset(self):
-        if self.eval_env and len(self.ee_positions_I_log) > 0:
-            traj = np.concatenate([np.array(self.pos_goals_log), np.array(self.ctrl_goals_log), np.array(self.ee_positions_I_log), np.array(self.ee_positions_W_log), np.array(self.ee_deltas_log)], axis=1)
-            np.savetxt(f"{self.save_folder}/eval_trajs/{self.eval_saves}.csv",
-                   traj, delimiter=",", fmt='%f')
-            self.eval_saves += 1
+        if self.eval_env:
+            if self.eval_rollouts_done % self.num_eval_rollouts == 0:
+                cnn_path = f"{self.save_folder}/images/{self.eval_saves_done}/cnn"
+                corners_path = f"{self.save_folder}/images/{self.eval_saves_done}/corners"
+                eval_path = f"{self.save_folder}/images/{self.eval_saves_done}/eval"
+                os.makedirs(cnn_path)
+                os.makedirs(corners_path)
+                os.makedirs(eval_path)
+            if self.eval_rollouts_done % self.num_eval_rollouts == 1:
+                traj = np.concatenate([np.array(self.pos_goals_log), np.array(self.ctrl_goals_log), np.array(self.ee_positions_I_log), np.array(self.ee_positions_W_log), np.array(self.ee_deltas_log)], axis=1)
+                np.savetxt(f"{self.save_folder}/eval_trajs/{self.eval_saves_done}.csv",
+                    traj, delimiter=",", fmt='%f')
+                self.eval_saves_done += 1
+            self.eval_rollouts_done += 1
 
         self.sim.reset()
         utils.remove_distance_welds(self.sim)
@@ -761,14 +779,14 @@ class ClothEnv(object):
                 cv2.circle(data, (aux_u, aux_v), 8, (0, 255, 0), -1)
 
 
-        cv2.imwrite(f'{self.save_folder}/eval_corner_images/{str(path_length).zfill(3)}.png', data)
+        cv2.imwrite(f'{self.save_folder}/images/{self.eval_saves_done}/corners/{str(path_length).zfill(3)}.png', data)
 
         eval_camera_id = self.sim.model.camera_name2id(self.eval_camera) 
         self.viewer.render(h,w, eval_camera_id)
         data = np.float32(self.viewer.read_pixels(w, h, depth=False)).copy()
         data = np.float32(data[::-1, :, :]).copy()
         data = np.float32(data)
-        cv2.imwrite(f'{self.save_folder}/eval_images/{str(path_length).zfill(3)}.png', data)
+        cv2.imwrite(f'{self.save_folder}/images/{self.eval_saves_done}/eval/{str(path_length).zfill(3)}.png', data)
 
 
 

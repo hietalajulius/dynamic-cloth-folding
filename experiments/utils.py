@@ -100,7 +100,7 @@ def argsparser():
     parser.add_argument('--buffer_size', default=1E6, type=int)
 
     # Collection
-    parser.add_argument('--max_path_length', default=25, type=int)
+    parser.add_argument('--max_path_length', default=50, type=int)
 
     # Controller optimization
     parser.add_argument('--ctrl_eval_file', type=int, default=0)
@@ -110,7 +110,8 @@ def argsparser():
     parser.add_argument('--control_penalty_coef', type=float, default=0)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
-    parser.add_argument('--sphere_clipping', type=int, default=1)
+    parser.add_argument('--sphere_clipping', type=int)
+    parser.add_argument('--spike_clipping', type=int)
     parser.add_argument('--output_max', type=float, default=0.1)
     parser.add_argument('--damping_ratio', type=float, default=1)
     parser.add_argument('--kp', type=float, default=1000.0)
@@ -124,7 +125,7 @@ def argsparser():
     parser.add_argument('--uniform_jnt_tend', type=int, default=1)
     parser.add_argument('--sparse_dense', type=int, default=0)
     parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.01))
-    parser.add_argument('--reward_offset', type=float, default=1.0)
+    parser.add_argument('--reward_offset', type=float)
 
     args = parser.parse_args()
     return args
@@ -176,6 +177,7 @@ def get_variant(args):
     variant['env_kwargs'] = dict(
         ctrl_filter=args.filter,
         sphere_clipping=bool(args.sphere_clipping),
+        spike_clipping=bool(args.spike_clipping),
         kp=args.kp,
         damping_ratio=args.damping_ratio,
         control_penalty_coef=args.control_penalty_coef,
@@ -192,7 +194,8 @@ def get_variant(args):
         uniform_jnt_tend=bool(args.uniform_jnt_tend),
         image_size=args.image_size,
         random_seed=args.seed,
-        velocity_in_obs=bool(args.velocity_in_obs)
+        velocity_in_obs=bool(args.velocity_in_obs),
+        num_eval_rollouts=args.num_eval_rollouts
     )
 
 

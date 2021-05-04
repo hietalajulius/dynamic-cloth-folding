@@ -255,16 +255,12 @@ if __name__ == "__main__":
 
     try:
         profiling_path = f"{variant['save_folder']}/profiling"
-        eval_images_path = f"{variant['save_folder']}/eval_images"
-        eval_corner_images_path = f"{variant['save_folder']}/eval_corner_images"
-        cnn_images_path = f"{variant['save_folder']}/cnn_images"
+        images_path = f"{variant['save_folder']}/images"
         eval_trajs_path = f"{variant['save_folder']}/eval_trajs"
         policies_path = f"{variant['save_folder']}/policies"
         os.makedirs(variant['save_folder'])
         os.makedirs(profiling_path)
-        os.makedirs(eval_images_path)
-        os.makedirs(eval_corner_images_path)
-        os.makedirs(cnn_images_path)
+        os.makedirs(images_path)
         os.makedirs(eval_trajs_path)
         os.makedirs(policies_path)
         file = open(f"{variant['save_folder']}/params.txt", "w")

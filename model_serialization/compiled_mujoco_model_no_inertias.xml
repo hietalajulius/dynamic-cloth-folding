@@ -115,7 +115,7 @@
     <worldbody>
         <geom name="ground" size="5 5 10" type="plane"/>
         <camera name="frontview" pos="0.35 -0.1 0.25" quat="0.56 0.43 0.43 0.56"/>
-        <camera name="train_camera" target="lookatbody" pos="-0.3 -0.1 0.5" mode="targetbodycom"/>
+        <camera name="train_camera" target="lookatbody" pos="0.505497 -0.336841 0.549749" fovy="30" mode="targetbodycom"/>
         <camera name="eval_camera" target="tabletop" pos="-0.45 -1 1" mode="targetbodycom"/>
         <camera name="clothview" pos="0.3 -0.15 0.42" quat="0.653 0.271 0.271 0.653"/>
         <camera name="clothview2" pos="0.08 -0.16 0.6" quat="0.7071 0 0 0.7071"/>
@@ -125,655 +125,572 @@
         <camera name="eye_in_hand" pos="0.05 0 0" quat="0 0.707108 0.707108 0" fovy="75"/>
         <light pos="0 0 5" dir="0 0 -1" directional="true" castshadow="false" diffuse="0.4 0.4 0.4" specular="0.1 0.1 0.1"/>
         <light pos="0 0 4" dir="0 0 -1" directional="true" castshadow="false" diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2"/>
-        <body name="tabletop" pos="0 0 0">
-            <inertial pos="0 0 0" mass="288" diaginertia="38.4 12.48 43.2"/>
-            <geom name="la_tabla_col" size="0.3 0.6 0.2" type="box"/>
-            <geom name="la_tabla_vis" size="0.3 0.6 0.204" type="box" group="1" rgba="1 1 1 1"/>
+        <body name="tabletop" pos="0.5 0 0">
+            <geom name="la_tabla_col" size="0.3 0.6 0.127" type="box"/>
+            <geom name="la_tabla_vis" size="0.3 0.6 0.127" type="box" group="1" rgba="1 1 1 1"/>
         </body>
-        <body pos="0.02 -0.1 0.2">
-            <inertial pos="0.02 -0.1 0.2" mass="0" diaginertia="0 0 0"/>
-            <body name="B0_0" pos="-0.108 -0.108 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+        <body pos="0.612664 0.136221 0.135552">
+            <body name="B0_0" pos="-0.208 -0.208 0">
                 <joint name="J0_0_0" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_0_0" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_0_0" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G0_0" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S0_0" pos="0 0 0" group="3"/>
             </body>
-            <body name="B0_1" pos="-0.108 -0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B0_1" pos="-0.208 -0.184 0">
                 <joint name="J0_0_1" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_0_1" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_0_1" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G0_1" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S0_1" pos="0 0 0" group="3"/>
             </body>
-            <body name="B0_2" pos="-0.108 -0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B0_2" pos="-0.208 -0.16 0">
                 <joint name="J0_0_2" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_0_2" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_0_2" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G0_2" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S0_2" pos="0 0 0" group="3"/>
             </body>
-            <body name="B0_3" pos="-0.108 -0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B0_3" pos="-0.208 -0.136 0">
                 <joint name="J0_0_3" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_0_3" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_0_3" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G0_3" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S0_3" pos="0 0 0" group="3"/>
             </body>
-            <body name="B0_4" pos="-0.108 -0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B0_4" pos="-0.208 -0.112 0">
                 <joint name="J0_0_4" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_0_4" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_0_4" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G0_4" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S0_4" pos="0 0 0" group="3"/>
             </body>
-            <body name="B0_5" pos="-0.108 0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B0_5" pos="-0.208 -0.088 0">
                 <joint name="J0_0_5" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_0_5" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_0_5" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G0_5" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S0_5" pos="0 0 0" group="3"/>
             </body>
-            <body name="B0_6" pos="-0.108 0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B0_6" pos="-0.208 -0.064 0">
                 <joint name="J0_0_6" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_0_6" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_0_6" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G0_6" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S0_6" pos="0 0 0" group="3"/>
             </body>
-            <body name="B0_7" pos="-0.108 0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B0_7" pos="-0.208 -0.04 0">
                 <joint name="J0_0_7" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_0_7" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_0_7" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G0_7" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S0_7" pos="0 0 0" group="3"/>
             </body>
-            <body name="B0_8" pos="-0.108 0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B0_8" pos="-0.208 -0.016 0">
                 <joint name="J0_0_8" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_0_8" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_0_8" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G0_8" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S0_8" pos="0 0 0" group="3"/>
             </body>
-            <body name="B1_0" pos="-0.084 -0.108 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B1_0" pos="-0.184 -0.208 0">
                 <joint name="J0_1_0" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_1_0" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_1_0" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G1_0" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S1_0" pos="0 0 0" group="3"/>
             </body>
-            <body name="B1_1" pos="-0.084 -0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B1_1" pos="-0.184 -0.184 0">
                 <joint name="J0_1_1" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_1_1" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_1_1" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G1_1" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S1_1" pos="0 0 0" group="3"/>
             </body>
-            <body name="B1_2" pos="-0.084 -0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B1_2" pos="-0.184 -0.16 0">
                 <joint name="J0_1_2" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_1_2" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_1_2" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G1_2" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S1_2" pos="0 0 0" group="3"/>
             </body>
-            <body name="B1_3" pos="-0.084 -0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B1_3" pos="-0.184 -0.136 0">
                 <joint name="J0_1_3" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_1_3" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_1_3" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G1_3" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S1_3" pos="0 0 0" group="3"/>
             </body>
-            <body name="B1_4" pos="-0.084 -0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B1_4" pos="-0.184 -0.112 0">
                 <joint name="J0_1_4" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_1_4" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_1_4" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G1_4" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S1_4" pos="0 0 0" group="3"/>
             </body>
-            <body name="B1_5" pos="-0.084 0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B1_5" pos="-0.184 -0.088 0">
                 <joint name="J0_1_5" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_1_5" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_1_5" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G1_5" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S1_5" pos="0 0 0" group="3"/>
             </body>
-            <body name="B1_6" pos="-0.084 0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B1_6" pos="-0.184 -0.064 0">
                 <joint name="J0_1_6" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_1_6" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_1_6" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G1_6" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S1_6" pos="0 0 0" group="3"/>
             </body>
-            <body name="B1_7" pos="-0.084 0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B1_7" pos="-0.184 -0.04 0">
                 <joint name="J0_1_7" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_1_7" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_1_7" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G1_7" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S1_7" pos="0 0 0" group="3"/>
             </body>
-            <body name="B1_8" pos="-0.084 0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B1_8" pos="-0.184 -0.016 0">
                 <joint name="J0_1_8" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_1_8" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_1_8" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G1_8" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S1_8" pos="0 0 0" group="3"/>
             </body>
-            <body name="B2_0" pos="-0.06 -0.108 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B2_0" pos="-0.16 -0.208 0">
                 <joint name="J0_2_0" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_2_0" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_2_0" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G2_0" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S2_0" pos="0 0 0" group="3"/>
             </body>
-            <body name="B2_1" pos="-0.06 -0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B2_1" pos="-0.16 -0.184 0">
                 <joint name="J0_2_1" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_2_1" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_2_1" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G2_1" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S2_1" pos="0 0 0" group="3"/>
             </body>
-            <body name="B2_2" pos="-0.06 -0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B2_2" pos="-0.16 -0.16 0">
                 <joint name="J0_2_2" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_2_2" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_2_2" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G2_2" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S2_2" pos="0 0 0" group="3"/>
             </body>
-            <body name="B2_3" pos="-0.06 -0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B2_3" pos="-0.16 -0.136 0">
                 <joint name="J0_2_3" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_2_3" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_2_3" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G2_3" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S2_3" pos="0 0 0" group="3"/>
             </body>
-            <body name="B2_4" pos="-0.06 -0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B2_4" pos="-0.16 -0.112 0">
                 <joint name="J0_2_4" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_2_4" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_2_4" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G2_4" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S2_4" pos="0 0 0" group="3"/>
             </body>
-            <body name="B2_5" pos="-0.06 0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B2_5" pos="-0.16 -0.088 0">
                 <joint name="J0_2_5" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_2_5" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_2_5" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G2_5" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S2_5" pos="0 0 0" group="3"/>
             </body>
-            <body name="B2_6" pos="-0.06 0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B2_6" pos="-0.16 -0.064 0">
                 <joint name="J0_2_6" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_2_6" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_2_6" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G2_6" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S2_6" pos="0 0 0" group="3"/>
             </body>
-            <body name="B2_7" pos="-0.06 0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B2_7" pos="-0.16 -0.04 0">
                 <joint name="J0_2_7" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_2_7" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_2_7" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G2_7" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S2_7" pos="0 0 0" group="3"/>
             </body>
-            <body name="B2_8" pos="-0.06 0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B2_8" pos="-0.16 -0.016 0">
                 <joint name="J0_2_8" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_2_8" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_2_8" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G2_8" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S2_8" pos="0 0 0" group="3"/>
             </body>
-            <body name="B3_0" pos="-0.036 -0.108 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B3_0" pos="-0.136 -0.208 0">
                 <joint name="J0_3_0" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_3_0" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_3_0" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G3_0" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S3_0" pos="0 0 0" group="3"/>
             </body>
-            <body name="B3_1" pos="-0.036 -0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B3_1" pos="-0.136 -0.184 0">
                 <joint name="J0_3_1" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_3_1" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_3_1" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G3_1" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S3_1" pos="0 0 0" group="3"/>
             </body>
-            <body name="B3_2" pos="-0.036 -0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B3_2" pos="-0.136 -0.16 0">
                 <joint name="J0_3_2" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_3_2" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_3_2" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G3_2" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S3_2" pos="0 0 0" group="3"/>
             </body>
-            <body name="B3_3" pos="-0.036 -0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B3_3" pos="-0.136 -0.136 0">
                 <joint name="J0_3_3" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_3_3" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_3_3" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G3_3" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S3_3" pos="0 0 0" group="3"/>
             </body>
-            <body name="B3_4" pos="-0.036 -0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B3_4" pos="-0.136 -0.112 0">
                 <joint name="J0_3_4" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_3_4" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_3_4" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G3_4" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S3_4" pos="0 0 0" group="3"/>
             </body>
-            <body name="B3_5" pos="-0.036 0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B3_5" pos="-0.136 -0.088 0">
                 <joint name="J0_3_5" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_3_5" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_3_5" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G3_5" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S3_5" pos="0 0 0" group="3"/>
             </body>
-            <body name="B3_6" pos="-0.036 0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B3_6" pos="-0.136 -0.064 0">
                 <joint name="J0_3_6" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_3_6" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_3_6" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G3_6" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S3_6" pos="0 0 0" group="3"/>
             </body>
-            <body name="B3_7" pos="-0.036 0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B3_7" pos="-0.136 -0.04 0">
                 <joint name="J0_3_7" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_3_7" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_3_7" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G3_7" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S3_7" pos="0 0 0" group="3"/>
             </body>
-            <body name="B3_8" pos="-0.036 0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B3_8" pos="-0.136 -0.016 0">
                 <joint name="J0_3_8" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_3_8" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_3_8" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G3_8" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S3_8" pos="0 0 0" group="3"/>
             </body>
-            <body name="B4_0" pos="-0.012 -0.108 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B4_0" pos="-0.112 -0.208 0">
                 <joint name="J0_4_0" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_4_0" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_4_0" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G4_0" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S4_0" pos="0 0 0" group="3"/>
             </body>
-            <body name="B4_1" pos="-0.012 -0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B4_1" pos="-0.112 -0.184 0">
                 <joint name="J0_4_1" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_4_1" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_4_1" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G4_1" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S4_1" pos="0 0 0" group="3"/>
             </body>
-            <body name="B4_2" pos="-0.012 -0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B4_2" pos="-0.112 -0.16 0">
                 <joint name="J0_4_2" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_4_2" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_4_2" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G4_2" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S4_2" pos="0 0 0" group="3"/>
             </body>
-            <body name="B4_3" pos="-0.012 -0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B4_3" pos="-0.112 -0.136 0">
                 <joint name="J0_4_3" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_4_3" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_4_3" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G4_3" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S4_3" pos="0 0 0" group="3"/>
             </body>
-            <body name="B4_4" pos="-0.012 -0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B4_4" pos="-0.112 -0.112 0">
                 <joint name="J0_4_4" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_4_4" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_4_4" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G4_4" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S4_4" pos="0 0 0" group="3"/>
             </body>
-            <body name="B4_5" pos="-0.012 0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B4_5" pos="-0.112 -0.088 0">
                 <joint name="J0_4_5" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_4_5" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_4_5" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G4_5" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S4_5" pos="0 0 0" group="3"/>
             </body>
-            <body name="B4_6" pos="-0.012 0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B4_6" pos="-0.112 -0.064 0">
                 <joint name="J0_4_6" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_4_6" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_4_6" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G4_6" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S4_6" pos="0 0 0" group="3"/>
             </body>
-            <body name="B4_7" pos="-0.012 0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B4_7" pos="-0.112 -0.04 0">
                 <joint name="J0_4_7" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_4_7" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_4_7" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G4_7" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S4_7" pos="0 0 0" group="3"/>
             </body>
-            <body name="B4_8" pos="-0.012 0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B4_8" pos="-0.112 -0.016 0">
                 <joint name="J0_4_8" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_4_8" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_4_8" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G4_8" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S4_8" pos="0 0 0" group="3"/>
             </body>
-            <body name="B5_0" pos="0.012 -0.108 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B5_0" pos="-0.088 -0.208 0">
                 <joint name="J0_5_0" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_5_0" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_5_0" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G5_0" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S5_0" pos="0 0 0" group="3"/>
             </body>
-            <body name="B5_1" pos="0.012 -0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B5_1" pos="-0.088 -0.184 0">
                 <joint name="J0_5_1" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_5_1" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_5_1" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G5_1" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S5_1" pos="0 0 0" group="3"/>
             </body>
-            <body name="B5_2" pos="0.012 -0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B5_2" pos="-0.088 -0.16 0">
                 <joint name="J0_5_2" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_5_2" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_5_2" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G5_2" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S5_2" pos="0 0 0" group="3"/>
             </body>
-            <body name="B5_3" pos="0.012 -0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B5_3" pos="-0.088 -0.136 0">
                 <joint name="J0_5_3" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_5_3" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_5_3" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G5_3" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S5_3" pos="0 0 0" group="3"/>
             </body>
-            <body name="B5_4" pos="0.012 -0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B5_4" pos="-0.088 -0.112 0">
                 <joint name="J0_5_4" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_5_4" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_5_4" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G5_4" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S5_4" pos="0 0 0" group="3"/>
             </body>
-            <body name="B5_5" pos="0.012 0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B5_5" pos="-0.088 -0.088 0">
                 <joint name="J0_5_5" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_5_5" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_5_5" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G5_5" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S5_5" pos="0 0 0" group="3"/>
             </body>
-            <body name="B5_6" pos="0.012 0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B5_6" pos="-0.088 -0.064 0">
                 <joint name="J0_5_6" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_5_6" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_5_6" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G5_6" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S5_6" pos="0 0 0" group="3"/>
             </body>
-            <body name="B5_7" pos="0.012 0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B5_7" pos="-0.088 -0.04 0">
                 <joint name="J0_5_7" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_5_7" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_5_7" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G5_7" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S5_7" pos="0 0 0" group="3"/>
             </body>
-            <body name="B5_8" pos="0.012 0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B5_8" pos="-0.088 -0.016 0">
                 <joint name="J0_5_8" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_5_8" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_5_8" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G5_8" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S5_8" pos="0 0 0" group="3"/>
             </body>
-            <body name="B6_0" pos="0.036 -0.108 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B6_0" pos="-0.064 -0.208 0">
                 <joint name="J0_6_0" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_6_0" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_6_0" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G6_0" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S6_0" pos="0 0 0" group="3"/>
             </body>
-            <body name="B6_1" pos="0.036 -0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B6_1" pos="-0.064 -0.184 0">
                 <joint name="J0_6_1" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_6_1" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_6_1" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G6_1" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S6_1" pos="0 0 0" group="3"/>
             </body>
-            <body name="B6_2" pos="0.036 -0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B6_2" pos="-0.064 -0.16 0">
                 <joint name="J0_6_2" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_6_2" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_6_2" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G6_2" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S6_2" pos="0 0 0" group="3"/>
             </body>
-            <body name="B6_3" pos="0.036 -0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B6_3" pos="-0.064 -0.136 0">
                 <joint name="J0_6_3" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_6_3" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_6_3" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G6_3" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S6_3" pos="0 0 0" group="3"/>
             </body>
-            <body name="B6_4" pos="0.036 -0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B6_4" pos="-0.064 -0.112 0">
                 <joint name="J0_6_4" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_6_4" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_6_4" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G6_4" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S6_4" pos="0 0 0" group="3"/>
             </body>
-            <body name="B6_5" pos="0.036 0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B6_5" pos="-0.064 -0.088 0">
                 <joint name="J0_6_5" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_6_5" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_6_5" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G6_5" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S6_5" pos="0 0 0" group="3"/>
             </body>
-            <body name="B6_6" pos="0.036 0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B6_6" pos="-0.064 -0.064 0">
                 <joint name="J0_6_6" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_6_6" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_6_6" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G6_6" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S6_6" pos="0 0 0" group="3"/>
             </body>
-            <body name="B6_7" pos="0.036 0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B6_7" pos="-0.064 -0.04 0">
                 <joint name="J0_6_7" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_6_7" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_6_7" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G6_7" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S6_7" pos="0 0 0" group="3"/>
             </body>
-            <body name="B6_8" pos="0.036 0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B6_8" pos="-0.064 -0.016 0">
                 <joint name="J0_6_8" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_6_8" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_6_8" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G6_8" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S6_8" pos="0 0 0" group="3"/>
             </body>
-            <body name="B7_0" pos="0.06 -0.108 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B7_0" pos="-0.04 -0.208 0">
                 <joint name="J0_7_0" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_7_0" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_7_0" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G7_0" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S7_0" pos="0 0 0" group="3"/>
             </body>
-            <body name="B7_1" pos="0.06 -0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B7_1" pos="-0.04 -0.184 0">
                 <joint name="J0_7_1" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_7_1" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_7_1" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G7_1" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S7_1" pos="0 0 0" group="3"/>
             </body>
-            <body name="B7_2" pos="0.06 -0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B7_2" pos="-0.04 -0.16 0">
                 <joint name="J0_7_2" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_7_2" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_7_2" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G7_2" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S7_2" pos="0 0 0" group="3"/>
             </body>
-            <body name="B7_3" pos="0.06 -0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B7_3" pos="-0.04 -0.136 0">
                 <joint name="J0_7_3" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_7_3" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_7_3" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G7_3" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S7_3" pos="0 0 0" group="3"/>
             </body>
-            <body name="B7_4" pos="0.06 -0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B7_4" pos="-0.04 -0.112 0">
                 <joint name="J0_7_4" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_7_4" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_7_4" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G7_4" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S7_4" pos="0 0 0" group="3"/>
             </body>
-            <body name="B7_5" pos="0.06 0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B7_5" pos="-0.04 -0.088 0">
                 <joint name="J0_7_5" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_7_5" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_7_5" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G7_5" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S7_5" pos="0 0 0" group="3"/>
             </body>
-            <body name="B7_6" pos="0.06 0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B7_6" pos="-0.04 -0.064 0">
                 <joint name="J0_7_6" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_7_6" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_7_6" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G7_6" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S7_6" pos="0 0 0" group="3"/>
             </body>
-            <body name="B7_7" pos="0.06 0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B7_7" pos="-0.04 -0.04 0">
                 <joint name="J0_7_7" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_7_7" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_7_7" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G7_7" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S7_7" pos="0 0 0" group="3"/>
             </body>
-            <body name="B7_8" pos="0.06 0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B7_8" pos="-0.04 -0.016 0">
                 <joint name="J0_7_8" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_7_8" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_7_8" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G7_8" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S7_8" pos="0 0 0" group="3"/>
             </body>
-            <body name="B8_0" pos="0.084 -0.108 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B8_0" pos="-0.016 -0.208 0">
                 <joint name="J0_8_0" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_8_0" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_8_0" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G8_0" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S8_0" pos="0 0 0" group="3"/>
             </body>
-            <body name="B8_1" pos="0.084 -0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B8_1" pos="-0.016 -0.184 0">
                 <joint name="J0_8_1" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_8_1" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_8_1" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G8_1" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S8_1" pos="0 0 0" group="3"/>
             </body>
-            <body name="B8_2" pos="0.084 -0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B8_2" pos="-0.016 -0.16 0">
                 <joint name="J0_8_2" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_8_2" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_8_2" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G8_2" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S8_2" pos="0 0 0" group="3"/>
             </body>
-            <body name="B8_3" pos="0.084 -0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B8_3" pos="-0.016 -0.136 0">
                 <joint name="J0_8_3" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_8_3" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_8_3" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G8_3" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S8_3" pos="0 0 0" group="3"/>
             </body>
-            <body name="B8_4" pos="0.084 -0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B8_4" pos="-0.016 -0.112 0">
                 <joint name="J0_8_4" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_8_4" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_8_4" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G8_4" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S8_4" pos="0 0 0" group="3"/>
             </body>
-            <body name="B8_5" pos="0.084 0.012 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B8_5" pos="-0.016 -0.088 0">
                 <joint name="J0_8_5" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_8_5" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_8_5" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G8_5" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S8_5" pos="0 0 0" group="3"/>
             </body>
-            <body name="B8_6" pos="0.084 0.036 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B8_6" pos="-0.016 -0.064 0">
                 <joint name="J0_8_6" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_8_6" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_8_6" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G8_6" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S8_6" pos="0 0 0" group="3"/>
             </body>
-            <body name="B8_7" pos="0.084 0.06 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B8_7" pos="-0.016 -0.04 0">
                 <joint name="J0_8_7" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_8_7" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_8_7" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <geom name="G8_7" size="0.008" condim="4" friction="1.5 1.5 1.5" solref="0.01 1" solimp="0.99 0.99 0.01 0.5 2" rgba="0 0 1 0.8"/>
                 <site name="S8_7" pos="0 0 0" group="3"/>
             </body>
-            <body name="B8_8" pos="0.084 0.084 0">
-                <inertial pos="0 0 0" mass="0.00214466" diaginertia="5.49033e-08 5.49033e-08 5.49033e-08"/>
+            <body name="B8_8" pos="-0.016 -0.016 0">
                 <joint name="J0_8_8" pos="0 0 0" axis="1 0 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J1_8_8" pos="0 0 0" axis="0 1 0" type="slide" group="3" stiffness="0.001" damping="0.001"/>
                 <joint name="J2_8_8" pos="0 0 0" axis="0 0 1" type="slide" group="3" stiffness="0.001" damping="0.001"/>
@@ -781,81 +698,65 @@
                 <site name="S8_8" pos="0 0 0" group="3"/>
             </body>
         </body>
-        <body name="lookatbody" pos="0 -0.1 0.21">
-            <inertial pos="0 -0.1 0.21" mass="0" diaginertia="0 0 0"/>
+        <body name="lookatbody" pos="0.510626 0.0341926 0.134887">
             <geom name="lookatgeom" size="0.001 0.001 0.001" type="box" group="1"/>
         </body>
-        <body name="base" pos="-0.5 -0.1 0">
-            <inertial pos="-0.5 -0.1 0" mass="0" diaginertia="0 0 0"/>
+        <body name="base" pos="0 0 0">
             <camera name="robotview" pos="1 0 0.4" quat="0.653 0.271 0.271 0.653"/>
             <body name="link0" pos="0 0 0">
-                <inertial pos="-0.0291898 -0.000879465 0.0566032" quat="0.00411744 0.564916 0.0132875 0.825031" mass="3.01399" diaginertia="0.0126801 0.0117603 0.00856656"/>
                 <geom name="link0_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link0_vis"/>
                 <geom name="link0_collision" type="mesh" rgba="0 0.5 0 1" mesh="link0"/>
                 <body name="link1" pos="0 0 0.333">
-                    <inertial pos="2.23331e-06 -0.0324794 -0.0675759" quat="0.981685 0.190514 3.25128e-05 -0.000197731" mass="2.48106" diaginertia="0.016331 0.0161114 0.00391197"/>
                     <joint name="joint1" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"/>
                     <geom name="link1_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link1_vis"/>
                     <geom name="link1_collision" type="mesh" rgba="0 0.5 0 1" mesh="link1"/>
                     <body name="link2" pos="0 0 0" quat="0.707107 -0.707107 0 0">
-                        <inertial pos="-1.31766e-05 -0.0703216 0.0311782" quat="0.57484 0.818266 -6.05764e-05 -6.61626e-05" mass="2.7996" diaginertia="0.016787 0.0157415 0.00553027"/>
                         <joint name="joint2" pos="0 0 0" axis="0 0 1" limited="true" range="-1.7628 1.7628"/>
                         <geom name="link2_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link2_vis"/>
                         <geom name="link2_collision" type="mesh" rgba="0 0.5 0 1" mesh="link2"/>
                         <body name="link3" pos="0 -0.316 0" quat="0.707107 0.707107 0 0">
-                            <inertial pos="0.0443483 0.0249283 -0.03813" quat="0.0615263 0.349824 0.234291 0.904956" mass="2.14603" diaginertia="0.00915257 0.00896477 0.00384742"/>
                             <joint name="joint3" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"/>
                             <geom name="link3_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link3_vis"/>
                             <geom name="link3_collision" type="mesh" rgba="0 0.5 0 1" mesh="link3"/>
                             <body name="link4" pos="0.0825 0 0" quat="0.707107 0.707107 0 0">
-                                <inertial pos="-0.0385503 0.0395256 0.0247162" quat="0.813566 0.465041 0.309792 0.160858" mass="2.18807" diaginertia="0.00946899 0.00928491 0.00396694"/>
                                 <joint name="joint4" pos="0 0 0" axis="0 0 1" limited="true" range="-3.0718 -0.0698"/>
                                 <geom name="link4_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link4_vis"/>
                                 <geom name="link4_collision" type="mesh" rgba="0 0.5 0 1" mesh="link4"/>
                                 <body name="link5" pos="-0.0825 0.384 0" quat="0.707107 -0.707107 0 0">
-                                    <inertial pos="-6.36776e-05 0.0384124 -0.10997" quat="0.990767 -0.135571 0.000963106 0.000694406" mass="3.19545" diaginertia="0.0278873 0.0268823 0.00569569"/>
                                     <joint name="joint5" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"/>
                                     <geom name="link5_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link5_vis"/>
                                     <geom name="link5_collision" type="mesh" rgba="0 0.5 0 1" mesh="link5"/>
                                     <body name="link6" pos="0 0 0" quat="0.707107 0.707107 0 0">
-                                        <inertial pos="0.0510023 0.00693267 0.00616899" quat="-0.0460841 0.754362 0.044494 0.653325" mass="1.35761" diaginertia="0.00412168 0.0033698 0.00213304"/>
                                         <joint name="joint6" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0175 3.7525"/>
                                         <geom name="link6_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link6_vis"/>
                                         <geom name="link6_collision" type="mesh" rgba="0 0.5 0 1" mesh="link6"/>
                                         <body name="link7" pos="0.088 0 0" quat="0.707107 0.707107 0 0">
-                                            <inertial pos="0.0103614 0.0103596 0.0791078" quat="0.63547 0.278021 -0.670462 0.263369" mass="0.417345" diaginertia="0.000637671 0.000528056 0.000279577"/>
                                             <joint name="joint7" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"/>
                                             <geom name="link7_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link7_vis"/>
                                             <geom name="link7_collision" type="mesh" rgba="0 0.5 0 1" mesh="link7"/>
                                             <body name="right_hand" pos="0 0 0.1065" quat="0.923785 0 0 -0.382911">
-                                                <inertial pos="0 0 0.1065" quat="0.923785 0 0 -0.382911" mass="0" diaginertia="0 0 0"/>
                                                 <site name="ee" pos="0 0 0" size="0.01" group="1" rgba="0 0 1 1"/>
                                                 <site name="ee_x" pos="0 0 0" quat="0.707105 0.707108 0 0" size="0.005 0.1" group="1" type="cylinder" rgba="1 0 0 0"/>
                                                 <site name="ee_z" pos="0 0 0" quat="0.707105 0 0 0.707108" size="0.005 0.1" group="1" type="cylinder" rgba="0 0 1 0"/>
                                                 <site name="ee_y" pos="0 0 0" quat="0.707105 0 0.707108 0" size="0.005 0.1" group="1" type="cylinder" rgba="0 1 0 0"/>
                                                 <camera name="eye_in_handu" pos="0.05 0 0" quat="0 0.707108 0.707108 0" fovy="75"/>
                                                 <body name="right_gripper" pos="0 0 0" quat="0.707107 0 0 -0.707107">
-                                                    <inertial pos="0.00061547 -2.76618e-06 0.0239295" quat="0.493462 0.506567 0.506224 0.493582" mass="0.670782" diaginertia="0.00227632 0.00206087 0.000456542"/>
                                                     <geom name="hand_visual" quat="0.707107 0 0 0.707107" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="hand_vis"/>
                                                     <geom name="hand_collision" quat="0.707107 0 0 0.707107" type="mesh" rgba="0 0 0.5 1" mesh="hand"/>
-                                                    <geom name="grip_geom" size="0.0025" pos="0 0 0.16" group="1" rgba="1 0 0 0.5"/>
+                                                    <geom name="grip_geom" size="0.0025" pos="0 0 0.155" group="1" rgba="1 0 0 0.5"/>
                                                     <site name="ft_frame" pos="0 0 0" size="0.01" group="1" rgba="1 0 0 1"/>
-                                                    <site name="grip_site" pos="0 0 0.16" size="0.0025" group="1" rgba="1 0 0 0.5"/>
+                                                    <site name="grip_site" pos="0 0 0.10377" size="0.0025" group="1" rgba="1 0 0 0.5"/>
                                                     <body name="leftfinger" pos="0 0 0.0524" quat="0.707107 0 0 0.707107">
-                                                        <inertial pos="-4.53112e-10 0.0104351 0.0401194" quat="0.705221 0.0516044 -0.0516044 0.705221" mass="0.0329151" diaginertia="2.41102e-05 2.38177e-05 1.99488e-06"/>
                                                         <geom name="finger1_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="0.499 0.499 0.499 1" mesh="finger_plastic"/>
                                                         <geom name="finger1_collision" type="mesh" contype="0" condim="4" rgba="0 0 0.5 1" mesh="finger_plastic"/>
                                                         <body name="finger_joint1_tip" pos="0 0.0085 0.056">
-                                                            <inertial pos="0 -0.005 -0.015" quat="0 0 0 1" mass="0.002048" diaginertia="5.46133e-08 8.73813e-08 5.46133e-08"/>
                                                             <geom name="finger1_pad_collision" size="0.008 0.004 0.008" pos="0 -0.005 -0.015" quat="0 0 0 1" type="box" friction="2 0.05 0.0001" solref="0.01 0.5" rgba="0 0 0.5 1"/>
                                                         </body>
                                                     </body>
                                                     <body name="rightfinger" pos="0 0 0.0524" quat="0.707107 0 0 0.707107">
-                                                        <inertial pos="4.53112e-10 -0.0104351 0.0401194" quat="-0.705221 0.0516044 0.0516044 0.705221" mass="0.0329151" diaginertia="2.41102e-05 2.38177e-05 1.99488e-06"/>
                                                         <geom name="finger2_visual" quat="0 0 0 1" type="mesh" contype="0" conaffinity="0" group="1" rgba="0.499 0.499 0.499 1" mesh="finger_plastic"/>
                                                         <geom name="finger2_collision" quat="0 0 0 1" type="mesh" contype="0" condim="4" rgba="0 0 0.5 1" mesh="finger_plastic"/>
                                                         <body name="finger_joint2_tip" pos="0 -0.0085 0.056">
-                                                            <inertial pos="0 0.005 -0.015" quat="0 0 0 1" mass="0.002048" diaginertia="5.46133e-08 8.73813e-08 5.46133e-08"/>
                                                             <geom name="finger2_pad_collision" size="0.008 0.004 0.008" pos="0 0.005 -0.015" quat="0 0 0 1" type="box" friction="2 0.05 0.0001" solref="0.01 0.5" rgba="0 0 0.5 1"/>
                                                         </body>
                                                     </body>
@@ -1926,6 +1827,6 @@
         <general name="torq_j7" joint="joint7"/>
     </actuator>
     <keyframe>
-        <key time="0.7800000000000005" qpos="1.4711807987135943e-11 1.0642827507350427e-11 0.01177287636274792 5.1307013679390065e-11 2.964552706622122e-11 0.01177287636274792 1.8196024298458691e-10 9.221875993452144e-11 0.01177287636274792 6.019904734542295e-10 2.7915513353533676e-10 0.01177287636274792 1.7669317977879887e-09 8.30906488620387e-10 0.01177287636274792 4.878625083616399e-09 2.47255945912373e-09 0.01177287636274792 1.8935901655098716e-08 6.762195700005072e-09 0.01177287636274792 9.799534411355562e-08 1.2659088758976076e-08 0.01177287636274792 3.28648815924313e-07 3.983024567263142e-09 0.01177287636274792 4.520454875086433e-11 3.879585254361924e-11 0.01177287636274792 1.533577344715477e-10 1.0404949913394403e-10 0.01177287636274792 5.392772830586165e-10 3.175154007471998e-10 0.01177287636274792 1.7732539238861406e-09 9.396413273108484e-10 0.01177287636274792 5.113059801746952e-09 2.717368378548497e-09 0.01177287636274792 1.3011797982165441e-08 7.889744561896341e-09 0.01177287636274792 4.5864280551081504e-08 2.1400616936464047e-08 0.01177287636274792 2.5326251778013503e-07 3.974899650140264e-08 0.011772876362747922 9.6823558227342e-07 2.4854538374868496e-10 0.011772876362747925 1.5845417174362668e-10 1.446108086994275e-10 0.01177287636274792 5.301313037624155e-10 3.816638829751072e-10 0.01177287636274792 1.8473417064287994e-09 1.1466741597156977e-09 0.01177287636274792 6.0432409982769636e-09 3.3254045479794152e-09 0.01177287636274792 1.7240268557420915e-08 9.338142597492198e-09 0.01177287636274792 4.060404123637266e-08 2.6278200725234384e-08 0.01177287636274792 1.2376229814464222e-07 7.044525811234909e-08 0.011772876362747924 7.187375151944804e-07 1.3584188888503915e-07 0.011772876362748071 3.2420088496783996e-06 6.863683863467227e-10 0.011772876362750049 5.458119952846395e-10 5.201151678099391e-10 0.01177287636274792 1.7964886942707253e-09 1.3445037394981894e-09 0.01177287636274792 6.175956716694179e-09 3.962866911778288e-09 0.01177287636274792 2.00111311008606e-08 1.123414649351925e-08 0.01177287636274792 5.663683246876562e-08 3.051172321552804e-08 0.01177287636274792 1.2512323469270625e-07 8.2282213790122e-08 0.011772876362747918 3.1506421572874263e-07 2.1308794580914773e-07 0.011772876362748689 1.8189982763304629e-06 4.18069839903228e-07 0.011772876362821557 9.93726849779033e-06 2.2830057303576673e-09 0.01177287636378441 1.8293487423088866e-09 1.8196142224911173e-09 0.01177287636274792 5.901538064325911e-09 4.520326974118261e-09 0.01177287636274792 1.9897436011410863e-08 1.284397252099877e-08 0.01177287636274792 6.334275188497209e-08 3.515040699840726e-08 0.01177287636274792 1.7743342503477404e-07 9.157798037994493e-08 0.01177287636274792 3.7350808328730595e-07 2.34266535046493e-07 0.011772876362747882 7.583248803142267e-07 5.709447684878812e-07 0.011772876362870612 3.842139717058472e-06 1.0996486315042668e-06 0.011772876371512477 2.62437825825688e-05 2.682949973977723e-09 0.011772876479896405 5.885930904098256e-09 7.0508020983047615e-09 0.01177287636274792 1.8636100391032523e-08 1.6184726557087277e-08 0.01177287636274792 6.149967445422404e-08 4.175661760992294e-08 0.011772876362747917 1.9073001223738083e-07 1.0292423128523748e-07 0.01177287636274792 5.248470673986967e-07 2.4028470950244635e-07 0.011772876362746697 1.0667703140762304e-06 5.505668368556505e-07 0.011772876362705612 1.7951200460591083e-06 1.1913164727999724e-06 0.011772876361481905 6.178946095225609e-06 2.032080320781724e-06 0.011772879861478572 5.373402308168127e-05 -1.9025513176537418e-07 0.011772873905154918 1.6815615622399945e-08 3.870529688503401e-08 0.01177287636274792 5.2929067278709185e-08 8.7561237821095e-08 0.011772876362747917 1.7374553114206497e-07 2.1351695726773345e-07 0.01177287636274809 5.281852312153994e-07 4.660833450756465e-07 0.011772876362771337 1.4242733314311014e-06 8.758038768603858e-07 0.011772876362400299 2.8232570281333244e-06 1.4182551529054244e-06 0.011772876339028729 4.23512083240228e-06 1.8842039079205082e-06 0.011772875988831888 6.477132420305196e-06 1.5598110616575615e-06 0.0117728144386069 5.664440780579114e-05 -1.7488990674935682e-06 0.011783341472289826 3.2337979495427e-08 2.3549398608788624e-07 0.01177287636274792 1.009069599980029e-07 5.996305259757621e-07 0.011772876362747936 3.4390361747079986e-07 1.6821694713669671e-06 0.011772876362761628 1.0686179035384625e-06 4.255004792847355e-06 0.011772876365179713 2.9181600312371695e-06 9.24202586837181e-06 0.011772876429675819 5.745081306180375e-06 1.642629861055518e-05 0.011772874462024728 8.096085902444338e-06 2.1861248019958544e-05 0.011772930797304697 1.790630129995956e-06 1.7271110345323524e-05 0.011772197013506512 -5.5254448435988114e-05 1.3481321721277028e-05 0.011913737636216552 1.02756531838517e-08 8.389222391909091e-07 0.01177287636274792 5.796862418275038e-10 2.448580709635928e-06 0.011772876362748146 1.6289945028330845e-09 8.163421618181143e-06 0.011772876362941257 4.419547907328135e-09 2.5194637347970783e-05 0.011772876397304214 -2.1092994265195233e-08 6.901807762285843e-05 0.01177287744264975 -1.4999012469047927e-06 0.00016066378528545658 0.011772869877771647 -7.144138381559151e-06 0.00029500700361984657 0.011772918013544442 -1.963368933170675e-05 0.0003659405094858481 0.011847712559259297 -0.0003095624121064558 0.0002867276227257214 0.010159033901060273 0.19284796449699662 0.13793423914213224 -0.061669488987142376 -2.082189901704573 0.016918552720244312 2.3521744956636046 -1.8216230194544503" qvel="1.9685824740127778e-10 1.4147494909347354e-10 1.0423816822861651e-10 6.453708354692205e-10 3.6980583801398243e-10 1.0423816822861651e-10 2.1597990219298993e-09 1.0819805145592192e-09 1.0423816822861651e-10 6.7351332149596506e-09 3.0682999506381812e-09 1.0423816822861651e-10 1.8570460275126103e-08 8.468535541483264e-09 1.0423816822861651e-10 4.709902084386214e-08 2.3070985538408797e-08 1.0423816822861651e-10 1.645294467229597e-07 5.760534068252226e-08 1.0423816822861651e-10 8.049875149924291e-07 1.002206315183046e-07 1.0423816822861651e-10 2.6338025383209456e-06 3.7263752744701926e-08 1.0423816822861651e-10 5.649874947416649e-10 4.816624701137139e-10 1.0423816822861651e-10 1.7816373973194576e-09 1.1983109598224168e-09 1.0423816822861651e-10 5.8466901565286825e-09 3.3993572192698507e-09 1.0423816822861651e-10 1.7898587391950948e-08 9.300813598797721e-09 1.0423816822861651e-10 4.7984449525453344e-08 2.4503697068637586e-08 1.0423816822861651e-10 1.1119287718634209e-07 6.334550123695485e-08 1.0423816822861651e-10 3.3903318322259024e-07 1.5054491173210047e-07 1.0423816822861651e-10 1.699258822165361e-06 2.4537772454680534e-07 1.0423816822861827e-10 6.209419755208515e-06 2.1990482745741046e-09 1.0423816822861761e-10 1.8529614781088537e-09 1.6774115660622473e-09 1.0423816822861651e-10 5.693786148058623e-09 4.061189721454031e-09 1.0423816822861651e-10 1.8279327221330413e-08 1.1200101143907528e-08 1.0423816822861651e-10 5.4811854327241095e-08 2.9585627101724307e-08 1.0423816822861651e-10 1.4332887602860854e-07 7.418465780038412e-08 1.0423816822861651e-10 3.0505512179448153e-07 1.7971661191944173e-07 1.0423816822861651e-10 7.651600552486891e-07 3.9937489575999235e-07 1.0423820043281625e-10 3.7337771872619865e-06 6.269288474177448e-07 1.0423604275703794e-10 1.556952472248732e-05 5.489160111483882e-09 1.042043539071091e-10 5.946888389840673e-09 5.598164827381165e-09 1.0423816822861651e-10 1.7726570774582982e-08 1.3098435733349637e-08 1.0423816822861651e-10 5.5273754894670865e-08 3.486393547438872e-08 1.0423816822861651e-10 1.6082983426939695e-07 8.816547625543142e-08 1.0423816822861651e-10 4.0828264586358176e-07 2.0752862037729648e-07 1.0423816822861651e-10 8.075253138384636e-07 4.5670603364427997e-07 1.0423816822866754e-10 1.5852366784040704e-06 8.851456195569007e-07 1.0422271025301491e-10 6.465274179104614e-06 1.1785217945053908e-06 1.0259194213388955e-10 2.9927115595984668e-05 1.52877586930847e-08 8.009495192121666e-11 1.8439599218126243e-08 1.800553608334537e-08 1.0423816822861651e-10 5.291962089048793e-08 3.9868812491939045e-08 1.0423816822861651e-10 1.5864891971993883e-07 1.0028289453017096e-07 1.0423816822861651e-10 4.410563986730895e-07 2.3803349944666677e-07 1.0423816822861651e-10 1.0703837957140015e-06 5.1323106968745e-07 1.0423813602451181e-10 1.977486224994769e-06 9.714958227657631e-07 1.0423908604595815e-10 2.9646897462999827e-06 1.3817036299708041e-06 1.0453241723502589e-10 6.348183521210866e-06 6.762889904735229e-07 -1.498579413544149e-10 2.2125225049420237e-05 2.3591673165835937e-08 -3.712157869411116e-09 5.447522499858331e-08 6.373649022153489e-08 1.0423816822861651e-10 1.497464231031344e-07 1.278303210000614e-07 1.0423816822861651e-10 4.276756103382662e-07 2.8474841433939104e-07 1.0423816822864164e-10 1.1133788543124128e-06 5.879746614149888e-07 1.0423808771827947e-10 2.50468689159021e-06 1.0615780338371688e-06 1.042552364101975e-10 4.24747221499518e-06 1.4609678504675267e-06 1.0500649402415508e-10 4.817858519075864e-06 3.6948484297294713e-07 1.153861381876069e-10 -4.3629843073838765e-06 -5.211109912245701e-06 -2.7494129628183744e-08 -0.00011166339441117723 4.776629288643992e-08 -2.7822802028280497e-07 1.4242035382124472e-07 3.284949771179539e-07 1.0423816822861651e-10 3.757984882668077e-07 6.345611353614199e-07 1.042381682286132e-10 1.0257689900660967e-06 1.2984608348621052e-06 1.042356724097389e-10 2.4614552312128217e-06 2.3034311085175287e-06 1.0367667336728937e-10 4.876881022432698e-06 3.235858451672171e-06 1.0690425036553514e-10 6.957327498355819e-06 2.63515341913522e-06 9.847395780218125e-10 4.173839439012054e-06 -2.756794385194357e-06 1.1077484020365825e-08 -2.8837591547651163e-05 -1.85541843081751e-05 -1.6679010806271484e-07 -0.0004156372637422969 3.629980164587383e-06 -0.0004048217292239179 2.5336713860360425e-07 1.9289198225442894e-06 1.0423816822861651e-10 6.27459473114618e-07 4.104269605468745e-06 1.0423845806568354e-10 1.6760294735256502e-06 9.384405716735258e-06 1.0402127350856268e-10 3.7002349871528413e-06 1.8495154334595246e-05 4.401204356923805e-11 5.826823957177927e-06 2.8821168355351806e-05 -2.407066849727156e-09 4.295181612495188e-06 3.045761693838044e-05 5.9234988617189297e-08 -1.5119300224860543e-05 9.28171834010996e-06 2.3642369472698753e-06 -4.5516415622256205e-05 1.4700541263276327e-06 2.2515760666359233e-05 -0.0007994971672849286 3.257051276603847e-05 -0.0017424510001130778 9.459279537718097e-08 6.642476786534755e-06 1.0423816822861661e-10 4.930278370203694e-09 1.577095048795866e-05 1.0423699277846499e-10 1.2489250982827336e-08 4.109651043027023e-05 1.0106462973654753e-10 2.7813433593873386e-08 9.085759452234208e-05 -7.727387265158928e-10 -5.1850207158388995e-08 0.00014586091186664853 -3.9015465716726234e-08 4.797891696578338e-07 8.936565101843608e-05 1.7770731514435342e-07 4.564361678952619e-06 -0.0003171012322257902 1.2276518466275889e-05 4.415102541126431e-05 -0.0012153890842079437 -0.00035734165508017707 0.001065552038586936 0.00014675292922942086 0.029498539825115157 -0.06866216317514663 -0.18977123681926916 0.048471096402457656 -0.1702536250776059 0.0085831568044443 0.11720185796417723 0.017611803752190798"/>
+        <key time="0.3000000000000001" qpos="0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.0 0.0 -0.0006658164969367388 0.213519 0.363125 -0.00208328 -1.97796 -0.0196334 2.37089 -1.50478" qvel="0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 3.0430948552443413e-06 0.0 0.0 0.0 0.0 0.0 0.0 0.0"/>
     </keyframe>
 </mujoco>
