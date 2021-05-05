@@ -11,44 +11,16 @@ from mpl_toolkits.mplot3d import Axes3D
 import time
 import mujoco_py
 
-def plot_trajectory(ee_initial, current_ee_positions, desired_starts, desired_ends):
-    fig = plt.figure()
-    ax1 = Axes3D(fig)
-    ax1.set_xlim3d(-0.02, 0.18)
-    ax1.set_ylim3d(-0.1, 0.1)
-    ax1.set_zlim3d(-0.02, 0.18)
-    ax1.set_box_aspect((1, 1, 1))
-
-    ax1.plot(current_ee_positions[:, 0], current_ee_positions[:,
-                                                              1], current_ee_positions[:, 2], linewidth=3, label="achieved", color="blue")
-    for i, (ds, de) in enumerate(zip(desired_starts, desired_ends)):
-        ax1.plot([ds[0], de[0]], [ds[1], de[1]], [ds[2], de[2]],
-                 linewidth=2, label="desired " + str(i), color="orange")
-
-    ax1.text(0, 0,
-             0, "start", size=10, zorder=1, color='k')
-
-    plt.legend()
-
-    plt.show()
+from scipy import spatial
 
 
-def render_env(env):
-    cameras_to_render = ["birdview", "frontview"]
-
-    for camera in cameras_to_render:
-        camera_id = env.sim.model.camera_name2id(camera)
-        env.sim._render_context_offscreen.render(
-            1000, 1000, camera_id)
-        image_obs = env.sim._render_context_offscreen.read_pixels(
-            1000, 1000, depth=False)
-        image_obs = image_obs[::-1, :, :]
-        image = image_obs.reshape((1000, 1000, 3)).copy()
-        cv2.imshow(camera, image)
-
-    cv2.waitKey(10)
-    time.sleep(0.1)
-
+def deltas_from_positions(positions):
+    #Should be logged in traj instead...
+    deltas = []
+    for i in range(positions.shape[0] -1):
+        delta = positions[i+1] -positions[i]
+        deltas.append(delta)
+    return np.array(deltas)
 
 def get_obs_processor(observation_key, additional_keys, desired_goal_key):
     def obs_processor(o):
@@ -59,13 +31,20 @@ def get_obs_processor(observation_key, additional_keys, desired_goal_key):
         return np.hstack((obs, o[desired_goal_key]))
     return obs_processor
 
+def calculate_cosine_distances(deltas):
+    distances = []
+    print("delats sha", deltas.shape)
+    for i in range(deltas.shape[0] -1):
+        vec1 = deltas[i+1]
+        vec2 = deltas[i]
+        distance = spatial.distance.cosine(vec1, vec2)
+        print("dist", distance)
+        distances.append(distance)
+    return np.array(distances)
 
-def get_tracking_score(ee_positions, goals):
-    norm = np.linalg.norm(ee_positions-goals, axis=1)
-    return np.sum(norm)
 
 
-def ATE(ee_positions, goals):
+def calculate_ate(ee_positions, goals):
     squared_norms = np.linalg.norm(ee_positions-goals, axis=1)**2
     return np.sqrt(squared_norms.mean())
 
@@ -176,10 +155,47 @@ def get_variant(args):
         fraction_goals_rollout_goals=1 - args.her_percent
     )
 
+    model_kwargs = dict(
+            joint_solimp_low = 0.986633333333333,
+            joint_solimp_high = 0.9911,
+            joint_solimp_width = 0.03,
+            joint_solref_timeconst  = 0.03,
+            joint_solref_dampratio = 1.01555555555556,
+
+            tendon_shear_solimp_low = 0.98,
+            tendon_shear_solimp_high = 0.99,
+            tendon_shear_solimp_width = 0.03,
+            tendon_shear_solref_timeconst  = 0.05,
+            tendon_shear_solref_dampratio = 1.01555555555556,
+
+            tendon_main_solimp_low = 0.993266666666667,
+            tendon_main_solimp_high = 0.9966,
+            tendon_main_solimp_width = 0.004222222222222,
+            tendon_main_solref_timeconst  = 0.01,
+            tendon_main_solref_dampratio = 0.98,
+
+            geom_solimp_low = 0.984422222222222,
+            geom_solimp_high = 0.9922,
+            geom_solimp_width = 0.007444444444444,
+            geom_solref_timeconst  = 0.005,
+            geom_solref_dampratio = 1.01555555555556,
+
+            grasp_solimp_low = 0.99,
+            grasp_solimp_high = 0.99,
+            grasp_solimp_width = 0.01,
+            grasp_solref_timeconst  = 0.01,
+            grasp_solref_dampratio = 1,
+
+            geom_size = 0.011,
+            friction = 0.05,
+            cone_type = "pyramidal",
+            timestep=args.timestep
+        )
+
     
 
     variant['env_kwargs'] = dict(
-        timestep=args.timestep,
+        mujoco_model_kwargs=model_kwargs,
         control_frequency=args.control_frequency,
         ctrl_filter=args.filter,
         clip_type=args.clip_type,

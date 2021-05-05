@@ -48,17 +48,20 @@ class ClothEnv(object):
         kp,
         damping_ratio,
         clip_type,
-        timestep,
         control_frequency,
         ctrl_filter,
         max_episode_steps,
         control_penalty_coef,
         num_eval_rollouts,
         save_folder,
+        mujoco_model_kwargs,
         initial_xml_dump=False,
         has_viewer=False
     ):  
         assert clip_type == "sphere" or clip_type == "spike" or clip_type == "none"
+
+        self.mujoco_model_kwargs = mujoco_model_kwargs
+
         self.save_folder = save_folder
         self.initial_xml_dump = initial_xml_dump
         self.num_eval_rollouts = num_eval_rollouts
@@ -89,7 +92,7 @@ class ClothEnv(object):
 
         
         self.single_goal_dim = 3
-        self.timestep = timestep
+        self.timestep = mujoco_model_kwargs["timestep"]
         self.control_frequency = control_frequency
 
         steps_per_second = 1 / self.timestep
@@ -200,7 +203,8 @@ class ClothEnv(object):
 
     def setup_initial_state_and_sim(self):
         template_renderer = TemplateRenderer()
-        template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", timestep=self.timestep, geom_size=0.008)
+        print("creating template with", self.mujoco_model_kwargs)
+        template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", **self.mujoco_model_kwargs)
         self.mjpy_model = mujoco_py.load_model_from_path(f"{self.save_folder}/mujoco_template.xml")
         self.sim = mujoco_py.MjSim(self.mjpy_model)
         utils.remove_distance_welds(self.sim)
@@ -327,6 +331,7 @@ class ClothEnv(object):
         for i in range(int(self.substeps)):
             for j in range(int(self.between_steps)):
                 self.desired_pos_ctrl_W = self.filter*self.desired_pos_step_W + (1-self.filter)*self.desired_pos_ctrl_W
+                #position_d_ = filter_params * position_d_target_ + (1.0 - filter_params) * position_d_;
             self.step_env()
 
         #TODO: make sure no gap between
@@ -372,6 +377,8 @@ class ClothEnv(object):
 
 
         del self.viewer._markers[:]
+
+        '''
         
         for i in range(int(self.goal.shape[0]/3)):
             self.viewer.add_marker(size=np.array([.001, .001, .001]), pos=self.goal[i*self.single_goal_dim: (i+1) *
@@ -381,6 +388,8 @@ class ClothEnv(object):
 
         self.viewer.add_marker(size=np.array([.0005, .0005, .0005]), pos=self.desired_pos_ctrl_W, label="d")
         self.viewer.add_marker(size=np.array([.0005, .0005, .0005]), pos=previous_desired_pos_step, label="c")
+
+        '''
     
 
 

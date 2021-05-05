@@ -133,7 +133,7 @@ def experiment(variant):
 
     eval_policy = MakeDeterministic(policy)
 
-    steps_per_second = 1 / variant['env_kwargs']['timestep']
+    steps_per_second = 1 / eval_env.timestep
     new_action_every_ctrl_step = steps_per_second / variant['env_kwargs']['control_frequency']
 
     eval_path_collector = EvalKeyPathCollector(
@@ -142,7 +142,7 @@ def experiment(variant):
         observation_key=path_collector_observation_key,
         desired_goal_key=desired_goal_key,
         save_folder=variant['save_folder'],
-        env_timestep=variant['env_kwargs']['timestep'],
+        env_timestep=eval_env.timestep,
         new_action_every_ctrl_step=new_action_every_ctrl_step,
         **variant['path_collector_kwargs']
     )

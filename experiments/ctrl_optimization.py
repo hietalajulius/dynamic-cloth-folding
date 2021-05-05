@@ -8,7 +8,7 @@ from robosuite.utils.input_utils import *
 from robosuite.wrappers import DomainRandomizationWrapper
 
 from gym.envs.robotics import task_definitions
-from utils import get_variant, argsparser, get_robosuite_env, ATE, get_tracking_score, plot_trajectory, render_env
+from utils import get_variant, argsparser, get_robosuite_env, calculate_ate, plot_trajectory, render_env
 import cv2
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, GaussianPolicy, GaussianCNNPolicy
 import torch
@@ -88,10 +88,8 @@ def eval_settings(variant, agent, render=False, plot=False, max_steps=20, obs_pr
     actual_deltas = np.array(actual_deltas)
     actual_velocities = np.array(actual_velocities)
 
-    tracking_score = get_tracking_score(
-        current_ee_positions[:-1], desired_ends)
 
-    ate = ATE(current_ee_positions[:-1], desired_ends)
+    ate = calculate_ate(current_ee_positions[:-1], desired_ends)
 
     if plot:
         plot_trajectory(start, current_ee_positions, desired_starts, desired_ends)

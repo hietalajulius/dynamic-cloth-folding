@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <mujoco>
     <compiler strippath="true" meshdir="{{ robotics_dir }}/cloth-manipulation/experiments/mujoco_templates/meshes" inertiafromgeom= "true" angle="radian" inertiagrouprange="0 0"/>
-    <option timestep="{{ timestep }}" impratio="20" cone="elliptic" density="1.2" viscosity="0.00002"/>
+    <option timestep="{{ timestep }}" impratio="20" cone="{{ cone_type }}" />
     <size nconmax="5000" njmax="5000"/>
     <visual>
         <!--<headlight ambient="0.4 0.4 0.4" diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2" />-->
@@ -47,12 +47,12 @@
 
             <body euler="0 0 0" pos="0.61266394 0.13622071 0.13555208">
                 <composite type="grid" count="9 9 1" spacing="0.024" offset="-0.1 -0.1 0"  >
-                    <joint kind="main" damping="0.001" stiffness="0.001" />
-                    <tendon width="0.001" kind="shear" />
-                    <!--<pin coord="0 0"/> -->
+                    <joint kind="main" solimpfix="{{joint_solimp_low}} {{joint_solimp_high}} {{joint_solimp_width}}" solreffix="{{joint_solref_timeconst}} {{joint_solref_dampratio}}" />
+                    <tendon solimpfix="{{tendon_shear_solimp_low}} {{tendon_shear_solimp_high}} {{tendon_shear_solimp_width}}" solreffix="{{tendon_shear_solref_timeconst}} {{tendon_shear_solref_dampratio}}" width="0.001" kind="shear" />
+                    <tendon solimpfix="{{tendon_main_solimp_low}} {{tendon_main_solimp_high}} {{tendon_main_solimp_width}}" solreffix="{{tendon_main_solref_timeconst}} {{tendon_main_solref_dampratio}}" kind="main" />
                    
                     <skin rgba="0 0 0 0.2" texcoord="true" inflate="0.001" subgrid="3"/>
-                    <geom group="0" type="sphere" size="{{ geom_size }}" rgba="0 0 1 0.8" friction='1.5 1.5 1.5' solref='0.01 1' solimp='0.99 0.99 0.01' condim='4' />
+                    <geom group="0" type="sphere" size="{{ geom_size }}" rgba="0 0 1 0.8" friction='{{ friction }} {{ friction }} {{ friction }}' solimp="{{geom_solimp_low}} {{geom_solimp_high}} {{geom_solimp_width}}" solref="{{geom_solref_timeconst}} {{geom_solref_dampratio}}" condim='4' />
                 </composite>
             </body>
 
@@ -170,7 +170,7 @@
     </actuator>
 
     <equality>
-            <distance distance="0" solref="0.1 0.1" geom1="G8_8" geom2="grip_geom" />
+            <distance distance="0" solimp="{{grasp_solimp_low}} {{grasp_solimp_high}} {{grasp_solimp_width}}" solref="{{grasp_solref_timeconst}} {{grasp_solref_dampratio}}" geom1="G8_8" geom2="grip_geom" />
             <!--<distance distance="0" solref="0.1 0.1" geom1="G8_8" geom2="mocap" /> -->
             <!--<distance distance="0" solref="-10000 -0.1" geom1="G8_8" geom2="mocap" /> -->
 
