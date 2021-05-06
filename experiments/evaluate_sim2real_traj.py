@@ -41,21 +41,22 @@ def main(real_folder, sim_folder):
     ax.set_ylim(mid_y - max_range, mid_y + max_range)
     ax.set_zlim(mid_z - max_range, mid_z + max_range)
 
-    ax.scatter(sim_ee_pos[:, 0], sim_ee_pos[:, 1], sim_ee_pos[:,
+    ax.plot(sim_ee_pos[:, 0], sim_ee_pos[:, 1], sim_ee_pos[:,
                                                             2], linewidth=1, label="sim")
                                                     
-    ax.scatter(sim_ee_desired_pos[:, 0], sim_ee_desired_pos[:, 1], sim_ee_desired_pos[:,
+    ax.plot(sim_ee_desired_pos[:, 0], sim_ee_desired_pos[:, 1], sim_ee_desired_pos[:,
                                                             2], linewidth=1, label="sim des pos")
-
-    ax.scatter(real_ee_pos[:, 0], real_ee_pos[:, 1], real_ee_pos[:,
+    
+    ax.plot(real_ee_pos[:, 0], real_ee_pos[:, 1], real_ee_pos[:,
                                                             2], linewidth=1, label="real")
-    ax.scatter(real_ee_desired_pos[:, 0], real_ee_desired_pos[:, 1], real_ee_desired_pos[:,
+    ax.plot(real_ee_desired_pos[:, 0], real_ee_desired_pos[:, 1], real_ee_desired_pos[:,
                                                             2], linewidth=1, label="real des pos")
+    
 
-    text_data = real_ee_ctrl_deltas
-    text_positions = real_ee_desired_pos
-    #metric = calculate_cosine_distances(text_data)
-    metric = np.linalg.norm(text_data, axis=1)
+    text_data = sim_ee_ctrl_deltas
+    text_positions = sim_ee_desired_pos
+    metric = calculate_cosine_distances(text_data)
+    #metric = np.linalg.norm(text_data, axis=1)
     for i, pos in enumerate(text_positions[1:-1]):
         ax.text(pos[0], pos[1], pos[2], str(np.round(metric[i], decimals=4)))
 
