@@ -158,6 +158,21 @@ def experiment(variant):
     else:
         preset_eval_path_collector = None
 
+    demo_path_collector = None
+    if variant['use_demos']:
+        demo_path_collector = KeyPathCollector(
+            eval_env,
+            policy,
+            use_demos=True,
+            demo_path=variant['demo_path'],
+            save_folder=variant['save_folder'],
+            observation_key=path_collector_observation_key,
+            desired_goal_key=desired_goal_key,
+            **variant['path_collector_kwargs']
+        )
+
+    print("DMOE PATHS COLE", demo_path_collector)
+
     if variant['num_processes'] > 1:
         print("Vectorized path collection")
 
@@ -226,6 +241,8 @@ def experiment(variant):
         exploration_data_collector=expl_path_collector,
         evaluation_data_collector=eval_path_collector,
         preset_evaluation_data_collector=preset_eval_path_collector,
+        demo_data_collector=demo_path_collector,
+        num_demos=variant['num_demos'],
         replay_buffer=replay_buffer,
         save_folder=variant['save_folder'],
         title=variant['version'],

@@ -77,6 +77,10 @@ def argsparser():
     # HER 0.8 from paper
     parser.add_argument('--her_percent', default=0.8, type=float)
     parser.add_argument('--buffer_size', default=1E6, type=int)
+    parser.add_argument('--use_demos', required=True, type=int)
+    parser.add_argument('--demo_path', type=str)
+    parser.add_argument('--num_demos', type=int, default=0)
+
 
     # Collection
     parser.add_argument('--max_path_length', default=50, type=int)
@@ -127,7 +131,10 @@ def get_variant(args):
         policy_kwargs=dict(),
         replay_buffer_kwargs=dict(),
         algorithm_kwargs=dict(),
-        eval_folder=args.eval_folder
+        eval_folder=args.eval_folder,
+        use_demos=bool(args.use_demos),
+        demo_path= args.demo_path,
+        num_demos=args.num_demos
     )
     variant['random_seed'] = args.seed
     variant['version'] = args.title
@@ -218,6 +225,7 @@ def get_variant(args):
         velocity_in_obs=bool(args.velocity_in_obs),
         num_eval_rollouts=args.num_eval_rollouts
     )
+
 
 
     if args.image_training:

@@ -100,11 +100,6 @@ class ClothEnv(object):
         self.between_steps = 1000 / steps_per_second
         self.delta_tau_max = 1000 / steps_per_second
 
-        print("timestep", self.timestep)
-        print("substeps", self.substeps)
-        print("between steps", self.between_steps)
-        print("delta tau max", self.delta_tau_max)
-        print("ctrl freq", self.control_frequency)
         self.train_camera = "train_camera"
         self.eval_camera = "eval_camera"
         self.min_damping = 0.0001  # TODO: pass ranges in from outside
@@ -203,7 +198,6 @@ class ClothEnv(object):
 
     def setup_initial_state_and_sim(self):
         template_renderer = TemplateRenderer()
-        print("creating template with", self.mujoco_model_kwargs)
         template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", **self.mujoco_model_kwargs)
         self.mjpy_model = mujoco_py.load_model_from_path(f"{self.save_folder}/mujoco_template.xml")
         self.sim = mujoco_py.MjSim(self.mjpy_model)
@@ -294,16 +288,6 @@ class ClothEnv(object):
         mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
 
     def step(self, action, evaluation=False):
-        '''
-        action = np.zeros(3)
-        print("corn", self.sim.data.get_geom_xpos("G8_8"))
-        print("grip", self.sim.data.get_geom_xpos("grip_geom"))
-        print("lookat", self.sim.data.get_body_xpos("B4_4"))
-        lookattocam = np.array([0.51062629, -0.72,  0.99]) -  self.sim.data.get_body_xpos("B4_4")
-        print("from lookat to cam unit", lookattocam/np.linalg.norm(lookattocam))
-        print("from origin to cam unit", self.sim.data.get_body_xpos("B4_4") + 0.55*lookattocam/np.linalg.norm(lookattocam))
-        '''
-
         raw_action = action.copy()
         action = raw_action*self.max_advance
 
@@ -333,9 +317,6 @@ class ClothEnv(object):
                 self.desired_pos_ctrl_W = self.filter*self.desired_pos_step_W + (1-self.filter)*self.desired_pos_ctrl_W
                 #position_d_ = filter_params * position_d_target_ + (1.0 - filter_params) * position_d_;
             self.step_env()
-
-        #TODO: make sure no gap between
-        #self.desired_pos_ctrl_W = self.desired_pos_step_W
 
         obs = self.get_obs()
         if evaluation:
