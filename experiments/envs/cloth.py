@@ -390,7 +390,7 @@ class ClothEnv(object):
 
         reward = task_reward + scaled_control_penalty
 
-        if is_success and self.episode_success_steps == 1:
+        if is_success and self.episode_success_steps == 0:
             print("Real sim success",
                 np.round(reward, decimals=1),
                 np.round(task_reward, decimals=1),
