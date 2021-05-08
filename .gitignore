@@ -3,6 +3,7 @@ experiments/.ipynb_checkpoints
 experiments/__pycache__
 experiments/trainings
 experiments/tblogs
+experiments/domain_rand
 experiments/.DS_Store
 policies
 .DS_Store
