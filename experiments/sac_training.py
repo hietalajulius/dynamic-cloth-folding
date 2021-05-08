@@ -14,7 +14,7 @@ import torch
 import cProfile
 from rlkit.envs.wrappers import SubprocVecEnv
 from gym.logger import set_level
-from utils import get_variant, argsparser
+from utils import get_variant, argsparser, get_randomized_env
 import copy
 from gym.envs.robotics import reward_calculation
 import numpy as np
@@ -24,37 +24,18 @@ import os
 from rlkit.core import logger
 import json
 
+
 set_level(50)
 
-DEFAULT_CAMERA_ARGS = {
-    'camera_names': None,  # all cameras are randomized
-    'randomize_position': True,
-    'randomize_rotation': True,
-    'randomize_fovy': True,
-    'position_perturbation_size': 0.01,
-    'rotation_perturbation_size': 0.087,
-    'fovy_perturbation_size': 5.,
-}
 
-
-'''
-def randomize_env(env):
-    camera_randomization_args = DEFAULT_CAMERA_ARGS
-    camera_randomization_args['camera_names'] = ['clothview2']
-    return DomainRandomizationWrapper(
-        env, randomize_on_reset=True,
-        randomize_every_n_steps=0, custom_randomize_color=True, randomize_color=False,  camera_randomization_args=camera_randomization_args)
-    if variant['domain_randomization']:
-        macros.USING_INSTANCE_RANDOMIZATION = True
-'''
 def experiment(variant):
     env = ClothEnv(**variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'], initial_xml_dump=True)
     env = NormalizedBoxEnv(env)
-    '''
+    
     if variant['domain_randomization']:
-        env = randomize_env(env)
-    '''
-    eval_env = env
+        eval_env = get_randomized_env(env)
+    else:
+        eval_env = env
 
     #TODO these into utils
     obs_dim = eval_env.observation_space.spaces['observation'].low.size
@@ -171,18 +152,17 @@ def experiment(variant):
             **variant['path_collector_kwargs']
         )
 
-    print("DMOE PATHS COLE", demo_path_collector)
-
     if variant['num_processes'] > 1:
         print("Vectorized path collection")
 
         def make_env():
             env = ClothEnv(**variant['env_kwargs'], save_folder=variant['save_folder'], has_viewer=variant['image_training'])
             env = NormalizedBoxEnv(env)
-            '''
+            
             if variant['domain_randomization']:
-                env = randomize_env(env)
-            '''
+                env = get_randomized_env(env)
+                
+            
             return env
 
         env_fns = [make_env for _ in range(variant['num_processes'])]

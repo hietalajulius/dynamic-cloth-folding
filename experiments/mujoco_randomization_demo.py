@@ -9,89 +9,79 @@ from robosuite.wrappers import DomainRandomizationWrapper
 
 from gym.envs.robotics import task_definitions
 from utils import get_variant, argsparser
+from rlkit.envs.wrappers import NormalizedBoxEnv
+from envs.cloth import ClothEnvPickled as ClothEnv
+import argparse
+import json
+import cv2
+import os
 
 
-from mujoco_py.modder import TextureModder, MaterialModder
-
-
-DEFAULT_LIGHTING_ARGS = {
-    'light_names': None,  # all lights are randomized
-    'randomize_position': True,
-    'randomize_direction': True,
-    'randomize_specular': True,
-    'randomize_ambient': True,
-    'randomize_diffuse': True,
-    'randomize_active': True,
-    'position_perturbation_size': 0.5,
-    'direction_perturbation_size': 0.95,
-    'specular_perturbation_size': 0.5,
-    'ambient_perturbation_size': 0.5,
-    'diffuse_perturbation_size': 0.5,
-}
-
-DEFAULT_CAMERA_ARGS = {
-    'camera_names': None,  # all cameras are randomized
-    'randomize_position': True,
-    'randomize_rotation': True,
-    'randomize_fovy': True,
-    'position_perturbation_size': 0.01,
-    'rotation_perturbation_size': 0.087,
-    'fovy_perturbation_size': 5.,
-}
-
-
-def get_robosuite_env(variant):
-    options = {}
-    options["env_name"] = variant["env_name"]
-    options["robots"] = "Panda"
-    controller_name = variant["ctrl_name"]
-    options["controller_configs"] = load_controller_config(
-        default_controller=controller_name)
-    options["controller_configs"]["interpolation"] = "linear"
-    env = suite.make(
-        **options,
-        **variant['env_kwargs'],
-        has_renderer=True,
-        has_offscreen_renderer=False,
-        ignore_done=True,
-        use_camera_obs=False,
-    )
-    return env
 
 
 # We'll use instance randomization so that entire geom groups are randomized together
-macros.USING_INSTANCE_RANDOMIZATION = True
+#macros.USING_INSTANCE_RANDOMIZATION = True
+
+def main(variant, folder, output_folder):
+    try:
+        os.makedirs(output_folder)
+        cnn_path = f"{output_folder}/sim_eval_images/cnn"
+        corners_path = f"{output_folder}/sim_eval_images/corners"
+        eval_path = f"{output_folder}/sim_eval_images/eval"
+        os.makedirs(cnn_path)
+        os.makedirs(corners_path)
+        os.makedirs(eval_path)
+    except:
+        print("folders exist already")
+
+    # We'll use instance randomization so that entire geom groups are randomized together
+    macros.USING_INSTANCE_RANDOMIZATION = True
+    variant['env_kwargs']['output_max'] = 1
+    env = ClothEnv(**variant['env_kwargs'], has_viewer=True, save_folder=output_folder, initial_xml_dump=True)
+    env = NormalizedBoxEnv(env)
+    
+
+
+
+    #skin_mat = env.sim.model.skin_matid[0]
+    
+
+    env_timestep = env.timestep
+    steps_per_second = 1 / env.timestep
+    new_action_every_ctrl_step = steps_per_second / variant['env_kwargs']['control_frequency']
+
+
+    o = env.reset()  
+
+    #trajectory_log = []
+    #trajectory_log.append(np.concatenate([env.desired_pos_step_W, env.desired_pos_ctrl_W, env.get_ee_position_I(), env.get_ee_position_W(), np.zeros(9)]))
+
+    deltas =  np.genfromtxt(f"{folder}/executable_deltas.csv", delimiter=',')
+
+    for path_length, delta in enumerate(deltas):
+        print("del exec", path_length)
+        train_image, eval_image = env.capture_image(None)
+        cv2.imwrite(f'{output_folder}/sim_eval_images/corners/{str(path_length).zfill(3)}.png', train_image)
+        cv2.imwrite(f'{output_folder}/sim_eval_images/eval/{str(path_length).zfill(3)}.png', eval_image)
+
+        if "image" in o.keys():
+            data = o['image'].copy().reshape((100, 100, 1))
+            #data_blur = cv2.blur(data*255,(3,3))
+            cv2.imwrite(f'{output_folder}/sim_eval_images/cnn/{str(path_length).zfill(3)}.png', data*255)
+        
+        o, r, d, env_info = env.step(delta[:3])
+
+
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser("Parser")
+    parser.add_argument('input_folder', type=str)
+    parser.add_argument('output_folder', type=str)
 
-    args = argsparser()
-    variant = get_variant(args)
+    args = parser.parse_args()
 
-    env = get_robosuite_env(variant)
 
-    camera_randomization_args = DEFAULT_CAMERA_ARGS
-    camera_randomization_args['camera_names'] = ['clothview']
-    env = DomainRandomizationWrapper(
-        env, randomize_on_reset=True,
-        randomize_every_n_steps=0, randomize_color=False, randomize_lighting=True, lighting_randomization_args=DEFAULT_LIGHTING_ARGS,  camera_randomization_args=camera_randomization_args)
+    with open(f"{args.input_folder}/params.json")as json_file:
+        variant = json.load(json_file)
 
-    modder = TextureModder(env.sim)
-
-    # Get action limits
-    low, high = env.action_spec
-
-    # do visualization
-    while True:
-        skin_mat = env.sim.model.skin_matid[0]
-        for name in ['la_tabla_vis']:
-            modder.whiten_materials()
-            modder.set_checker(name, (255, 0, 0), (0, 0, 0))
-            modder.rand_all(name)
-        modder.set_checker('skin', (255, 0, 0), (0, 0, 0))
-        modder.rand_all('skin')
-
-        env.reset()
-        for i in range(100):
-            action = np.ones(3)*0.1
-            obs, reward, done, _ = env.step(action)
-            env.render()
+    main(variant, args.input_folder, args.output_folder)

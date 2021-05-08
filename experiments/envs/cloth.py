@@ -77,7 +77,7 @@ class ClothEnv(object):
         self.goal_noise_range = goal_noise_range
         self.velocity_in_obs = velocity_in_obs
         self.pixels = pixels
-        self.image_size = image_size
+        self.image_size = (100, 100)
         self.randomize_geoms = randomize_geoms
         self.randomize_params = randomize_params
         self.uniform_jnt_tend = uniform_jnt_tend
@@ -287,7 +287,7 @@ class ClothEnv(object):
         self.sim.data.qfrc_applied[self.joint_vel_addr] = self.sim.data.qfrc_bias[self.joint_vel_addr] + tau
         mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
 
-    def step(self, action, evaluation=False):
+    def step(self, action):
         raw_action = action.copy()
         action = raw_action*self.max_advance
 
@@ -319,8 +319,9 @@ class ClothEnv(object):
             self.step_env()
 
         obs = self.get_obs()
-        if evaluation:
-            self.prepare_eval_visualization(obs, previous_desired_pos_step_W)
+        
+        #TODO: this is only for clear markers
+        #self.prepare_eval_visualization(obs, previous_desired_pos_step_W)
 
         reward, done, info = self.post_action(action, obs, raw_action, cosine_similarity)
         return obs, reward, done, info
@@ -396,10 +397,15 @@ class ClothEnv(object):
                 np.round(task_reward, decimals=1),
                 np.round(control_penalty, decimals=1))
 
-        camera_matrix, camera_transformation = self.get_camera_matrices(self.train_camera, self.image_size, self.image_size)
-        corners_in_image = self.get_corner_image_positions(self.image_size, self.image_size, camera_matrix, camera_transformation)
+        camera_matrix, camera_transformation = self.get_camera_matrices(self.train_camera, self.image_size[0], self.image_size[1])
+        corners_in_image = self.get_corner_image_positions(self.image_size[0], self.image_size[0], camera_matrix, camera_transformation)
 
-        flattened_corners = np.array(corners_in_image).flatten()/self.image_size
+        flattened_corners = []
+        for corner in corners_in_image:
+            flattened_corners.append(corner[0]/self.image_size[0])
+            flattened_corners.append(corner[1]/self.image_size[1])
+
+        flattened_corners = np.array(flattened_corners)
         error_norm = np.linalg.norm(self.desired_pos_step_W - self.get_ee_position_W())    
 
         info = {
@@ -581,10 +587,11 @@ class ClothEnv(object):
         if self.pixels:
             camera_id = self.sim.model.camera_name2id(
                 self.train_camera) 
-            self.viewer.render(self.image_size, self.image_size, camera_id)
-            image_obs = self.viewer.read_pixels(self.image_size, self.image_size, depth=False)
+            self.viewer.render(self.image_size[0], self.image_size[1], camera_id)
+            image_obs = self.viewer.read_pixels(self.image_size[0], self.image_size[1], depth=False)
             image_obs = image_obs[::-1, :, :]
             image_obs = cv2.cvtColor(image_obs, cv2.COLOR_BGR2GRAY)
+            #image_obs = image_obs[:, 374:474]
             full_observation['image'] = (image_obs / 255).flatten()
         return full_observation
 
@@ -697,7 +704,7 @@ class ClothEnv(object):
                 corners.append(corner)
         return corners
 
-    def get_camera_matrices(self, camera_name, h, w):
+    def get_camera_matrices(self, camera_name, w, h):
         camera_id = self.sim.model.camera_name2id(camera_name)        
         fovy = self.sim.model.cam_fovy[camera_id]
         f = 0.5 * h / math.tan(fovy * math.pi / 360)
@@ -715,24 +722,28 @@ class ClothEnv(object):
 
 
     def capture_image(self, aux_output):
-        w, h = 1000, 1000
+        w_eval, h_eval = 1000, 1000
+        w_train, h_train = self.image_size
+        w_train *= 10
+        h_train *= 10
 
-        camera_matrix, camera_transformation = self.get_camera_matrices(self.train_camera, h, w)
+        train_camera_matrix, train_camera_transformation = self.get_camera_matrices(self.train_camera, w_train, h_train)
+
         train_camera_id = self.sim.model.camera_name2id(self.train_camera) 
 
         ee_in_image = np.ones(4)
         ee_pos = self.get_ee_position_W()
         ee_in_image[:3] = ee_pos
 
-        self.viewer.render(h,w, train_camera_id)
-        train_data = np.float32(self.viewer.read_pixels(w, h, depth=False)).copy()
+        self.viewer.render(w_train, h_train, train_camera_id)
+        train_data = np.float32(self.viewer.read_pixels(w_train, h_train, depth=False)).copy()
         train_data = np.float32(train_data[::-1, :, :]).copy()
         train_data = np.float32(train_data)
-        ee = camera_matrix @ camera_transformation @ ee_in_image
+        ee = train_camera_matrix @ train_camera_transformation @ ee_in_image
         u_ee, v_ee, _ = ee/ee[2]
-        cv2.circle(train_data, (w-int(u_ee), int(v_ee)), 10, (0, 0, 0), -1)
+        cv2.circle(train_data, (w_train-int(u_ee), int(v_ee)), 10, (0, 0, 0), -1)
 
-        corners = self.get_corner_image_positions(w, h, camera_matrix, camera_transformation)
+        corners = self.get_corner_image_positions(w_train, h_train, train_camera_matrix, train_camera_transformation)
 
         for corner in corners:
             u = int(corner[0])
@@ -741,15 +752,15 @@ class ClothEnv(object):
         
         if not aux_output is None:
             for aux_idx in range(int(aux_output.flatten().shape[0]/2)):
-                aux_u = int(aux_output.flatten()[aux_idx*2]*w)
-                aux_v = int(aux_output.flatten()[aux_idx*2+1]*h)
+                aux_u = int(aux_output.flatten()[aux_idx*2]*w_train)
+                aux_v = int(aux_output.flatten()[aux_idx*2+1]*h_train)
                 cv2.circle(train_data, (aux_u, aux_v), 8, (0, 255, 0), -1)
 
 
 
         eval_camera_id = self.sim.model.camera_name2id(self.eval_camera) 
-        self.viewer.render(h,w, eval_camera_id)
-        eval_data = np.float32(self.viewer.read_pixels(w, h, depth=False)).copy()
+        self.viewer.render(h_eval,w_eval, eval_camera_id)
+        eval_data = np.float32(self.viewer.read_pixels(w_eval, h_eval, depth=False)).copy()
         eval_data = np.float32(eval_data[::-1, :, :]).copy()
         eval_data = np.float32(eval_data)
 

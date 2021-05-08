@@ -10,8 +10,61 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import time
 import mujoco_py
+from robosuite.wrappers import DomainRandomizationWrapper
 
 from scipy import spatial
+
+
+COLOR_ARGS = {
+    'geom_names': None,  # all geoms are randomized
+    'randomize_local': False,  # sample nearby colors
+    'randomize_material': True,  # randomize material reflectance / shininess / specular
+    'local_rgb_interpolation': 0.02,
+    'local_material_interpolation': 0.05,
+    # all texture variation types
+    'texture_variations': ['rgb', 'checker', 'noise', 'gradient'],
+    'randomize_skybox': False,  # by default, randomize skybox too
+}
+
+
+LIGHTING_ARGS = {
+    'light_names': None,  # all lights are randomized
+    'randomize_position': True,
+    'randomize_direction': True,
+    'randomize_specular': True,
+    'randomize_ambient': True,
+    'randomize_diffuse': True,
+    'randomize_active': True,
+    'position_perturbation_size': 0.05,
+    'direction_perturbation_size': 0.05,
+    'specular_perturbation_size': 0.01,
+    'ambient_perturbation_size': 0.01,
+    'diffuse_perturbation_size': 0.01,
+}
+
+CAMERA_ARGS = {
+    'camera_names': None,  # all cameras are randomized
+    'randomize_position': True,
+    'randomize_rotation': True,
+    'randomize_fovy': True,
+    'position_perturbation_size': 0.05,
+    'rotation_perturbation_size': 0.05,
+    'fovy_perturbation_size': 1,
+}
+
+def get_randomized_env(env):
+    return DomainRandomizationWrapper(
+                env,
+                randomize_on_reset=True,
+                randomize_camera=True,
+                randomize_every_n_steps=0,
+                randomize_color=True,
+                camera_randomization_args=CAMERA_ARGS,
+                color_randomization_args=COLOR_ARGS,
+                randomize_lighting=True,
+                randomize_blur=True,
+                custom_randomize_color=True,
+                lighting_randomization_args=LIGHTING_ARGS)
 
 
 def deltas_from_positions(positions):
@@ -84,6 +137,7 @@ def argsparser():
 
     # Collection
     parser.add_argument('--max_path_length', default=50, type=int)
+    parser.add_argument('--domain_randomization', required=True, type=int)
 
     # sim2real
     parser.add_argument('--eval_folder', type=str, required=False)
@@ -118,6 +172,7 @@ def get_variant(args):
     variant = dict(
         algorithm="SAC",
         layer_size=256,
+        domain_randomization=bool(args.domain_randomization),
         trainer_kwargs=dict(
             discount=args.discount,
             soft_target_tau=5e-3,
