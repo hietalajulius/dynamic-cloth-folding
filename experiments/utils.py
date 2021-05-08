@@ -133,6 +133,7 @@ def argsparser():
     parser.add_argument('--use_demos', required=True, type=int)
     parser.add_argument('--demo_path', type=str)
     parser.add_argument('--num_demos', type=int, default=0)
+    parser.add_argument('--num_demoers', type=int, default=0)
 
 
     # Collection
@@ -143,7 +144,8 @@ def argsparser():
     parser.add_argument('--eval_folder', type=str, required=False)
 
     # Env
-    parser.add_argument('--control_penalty_coef', type=float, default=0)
+    parser.add_argument('--ate_penalty_coef', type=float, default=0)
+    parser.add_argument('--action_norm_penalty_coef', type=float, default=0)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
     parser.add_argument('--clip_type', type=str, default="none")
@@ -189,7 +191,8 @@ def get_variant(args):
         eval_folder=args.eval_folder,
         use_demos=bool(args.use_demos),
         demo_path= args.demo_path,
-        num_demos=args.num_demos
+        num_demos=args.num_demos,
+        num_demoers=args.num_demoers
     )
     variant['random_seed'] = args.seed
     variant['version'] = args.title
@@ -263,7 +266,8 @@ def get_variant(args):
         clip_type=args.clip_type,
         kp=args.kp,
         damping_ratio=args.damping_ratio,
-        control_penalty_coef=args.control_penalty_coef,
+        action_norm_penalty_coef=args.action_norm_penalty_coef,
+        ate_penalty_coef=args.ate_penalty_coef,
         reward_offset=args.reward_offset,
         constant_goal=bool(args.constant_goal),
         output_max=args.output_max,

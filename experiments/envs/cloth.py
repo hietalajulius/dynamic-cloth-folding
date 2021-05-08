@@ -51,7 +51,8 @@ class ClothEnv(object):
         control_frequency,
         ctrl_filter,
         max_episode_steps,
-        control_penalty_coef,
+        ate_penalty_coef,
+        action_norm_penalty_coef,
         num_eval_rollouts,
         save_folder,
         mujoco_model_kwargs,
@@ -65,7 +66,8 @@ class ClothEnv(object):
         self.save_folder = save_folder
         self.initial_xml_dump = initial_xml_dump
         self.num_eval_rollouts = num_eval_rollouts
-        self.control_penalty_coef = control_penalty_coef
+        self.ate_penalty_coef = ate_penalty_coef
+        self.action_norm_penalty_coef = action_norm_penalty_coef
         self.filter = ctrl_filter
         self.clip_type = clip_type
         self.kp = kp
@@ -87,8 +89,6 @@ class ClothEnv(object):
 
         self.max_success_steps = 20
         #TODO: figure out this case when no reward offset used
-
-        self.max_return = self.max_success_steps * self.reward_offset + (self.max_episode_steps - self.max_success_steps)*(self.reward_offset - 1)
 
         
         self.single_goal_dim = 3
@@ -377,19 +377,18 @@ class ClothEnv(object):
 
         
     def post_action(self, action, obs, raw_action, cosine_similarity):
-        ctrl_penalty_only = False
-        task_reward = self.compute_task_reward(np.reshape(obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict(ctrl_penalty_onlys=np.array([ctrl_penalty_only])))[0] - self.reward_offset
+        task_reward = self.compute_task_reward(np.reshape(obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict())[0] - self.reward_offset
         is_success = task_reward > -1
 
 
         #TODO: figure out control pens
-        penalty_multiplier = -(self.max_return/(2*self.max_episode_steps))
-        cosine_similarity_penalty = penalty_multiplier*(1-cosine_similarity)
-        delta_size_penalty = penalty_multiplier*(np.linalg.norm(raw_action*self.max_advance)/np.linalg.norm(np.ones(3)*self.max_advance))
-        control_penalty = cosine_similarity_penalty + delta_size_penalty
-        scaled_control_penalty = control_penalty*self.control_penalty_coef
 
-        reward = task_reward + scaled_control_penalty
+        delta_size_penalty = -np.linalg.norm(raw_action)
+        ate_penalty = -np.linalg.norm(self.desired_pos_step_W - self.get_ee_position_W())
+
+        control_penalty = delta_size_penalty*self.action_norm_penalty_coef + ate_penalty*self.ate_penalty_coef
+
+        reward = task_reward + control_penalty
 
         if is_success and self.episode_success_steps == 0:
             print("Real sim success",
@@ -405,22 +404,18 @@ class ClothEnv(object):
             flattened_corners.append(corner[0]/self.image_size[0])
             flattened_corners.append(corner[1]/self.image_size[1])
 
-        flattened_corners = np.array(flattened_corners)
-        error_norm = np.linalg.norm(self.desired_pos_step_W - self.get_ee_position_W())    
+        flattened_corners = np.array(flattened_corners) 
 
         info = {
                 "task_reward": task_reward,
                 "delta_size": np.linalg.norm(raw_action*self.max_advance),
                 "cosine_similarity" : cosine_similarity,
-                "cosine_similarity_penalty": cosine_similarity_penalty,
                 "delta_size_penalty": delta_size_penalty,
+                "ate_penalty": ate_penalty,
                 "control_penalty": control_penalty,
-                "scaled_control_penalty": scaled_control_penalty,
                 "reward": reward,
                 'is_success': is_success,
-                'error_norm': error_norm,
-                'corner_positions': flattened_corners,
-                'ctrl_penalty_only': ctrl_penalty_only
+                'corner_positions': flattened_corners
                 }
 
         done = False
