@@ -149,7 +149,7 @@ def argsparser():
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
     parser.add_argument('--clip_type', type=str, default="none")
-    parser.add_argument('--output_max', type=float, default=0.1)
+    parser.add_argument('--output_max', type=float, required=True)
     parser.add_argument('--damping_ratio', type=float, default=1)
     parser.add_argument('--kp', type=float, default=1000.0)
     parser.add_argument('--constant_goal', type=int, default=1)

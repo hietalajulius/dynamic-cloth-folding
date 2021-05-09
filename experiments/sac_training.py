@@ -174,10 +174,10 @@ def experiment(variant):
             processes=variant['num_processes'],
             observation_key=path_collector_observation_key,
             desired_goal_key=desired_goal_key,
-            **variant['path_collector_kwargs'],
-            use_demos=variant['num_processes'],
+            use_demos=variant['use_demos'],
             demo_path=variant['demo_path'],
             num_demoers=variant['num_demoers'],
+            **variant['path_collector_kwargs'],
         )
     else:
         print("Single env path collection")
