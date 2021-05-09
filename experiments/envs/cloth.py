@@ -377,14 +377,12 @@ class ClothEnv(object):
 
         
     def post_action(self, action, obs, raw_action, cosine_similarity):
-        task_reward = self.compute_task_reward(np.reshape(obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict())[0] - self.reward_offset
-        is_success = task_reward > -1
+        task_reward = self.compute_task_reward(np.reshape(obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict())[0]
+        is_success = (task_reward - self.reward_offset) > -1
 
-
-        #TODO: figure out control pens
 
         delta_size_penalty = -np.linalg.norm(raw_action)
-        ate_penalty = -np.linalg.norm(self.desired_pos_step_W - self.get_ee_position_W())
+        ate_penalty = -np.linalg.norm(self.desired_pos_ctrl_W - self.get_ee_position_W())
 
         control_penalty = delta_size_penalty*self.action_norm_penalty_coef + ate_penalty*self.ate_penalty_coef
 

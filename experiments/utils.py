@@ -254,7 +254,8 @@ def get_variant(args):
             geom_size = 0.011,
             friction = 0.05,
             cone_type = "pyramidal",
-            timestep=args.timestep
+            timestep=args.timestep,
+            domain_randomization=bool(args.domain_randomization)
         )
 
     
