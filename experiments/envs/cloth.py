@@ -390,9 +390,9 @@ class ClothEnv(object):
 
         if is_success and self.episode_success_steps == 0:
             print("Real sim success",
-                np.round(reward, decimals=1),
-                np.round(task_reward, decimals=1),
-                np.round(control_penalty, decimals=1))
+                np.round(reward, decimals=3),
+                np.round(task_reward, decimals=3),
+                np.round(control_penalty, decimals=3))
 
         camera_matrix, camera_transformation = self.get_camera_matrices(self.train_camera, self.image_size[0], self.image_size[1])
         corners_in_image = self.get_corner_image_positions(self.image_size[0], self.image_size[0], camera_matrix, camera_transformation)
