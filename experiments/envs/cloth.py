@@ -17,15 +17,15 @@ import math
 
 #np.set_printoptions(suppress=True)
 
-def compute_cosine_similarity(vec1, vec2):
+def compute_cosine_distance(vec1, vec2):
     if np.all(vec1==0) or np.all(vec2==0):
         return 0
     else:
-        cosine_sim = 1 - spatial.distance.cosine(vec1, vec2)
-        if np.isnan(cosine_sim):
+        cosine_dist = spatial.distance.cosine(vec1, vec2)
+        if np.isnan(cosine_dist):
             return 0
         else:
-            return cosine_sim
+            return cosine_dist
 
 
 
@@ -53,6 +53,7 @@ class ClothEnv(object):
         max_episode_steps,
         ate_penalty_coef,
         action_norm_penalty_coef,
+        cosine_penalty_coef,
         num_eval_rollouts,
         save_folder,
         mujoco_model_kwargs,
@@ -68,6 +69,7 @@ class ClothEnv(object):
         self.num_eval_rollouts = num_eval_rollouts
         self.ate_penalty_coef = ate_penalty_coef
         self.action_norm_penalty_coef = action_norm_penalty_coef
+        self.cosine_penalty_coef = cosine_penalty_coef
         self.filter = ctrl_filter
         self.clip_type = clip_type
         self.kp = kp
@@ -291,23 +293,10 @@ class ClothEnv(object):
         raw_action = action.copy()
         action = raw_action*self.max_advance
 
-        #Find first valid initial delta
-        if self.initial_delta_vector is None and np.linalg.norm(action) > 0:
-            self.initial_delta_vector = action
-            self.previous_delta_vector = action
-
-        #Check for first valid initial delta
-        cosine_similarity = 0
-        if not self.initial_delta_vector is None:
-            cosine_similarity = compute_cosine_similarity(action, self.previous_delta_vector)
-            if self.clip_type == "sphere":
-                action = self.sphere_clip(action)
-            elif self.clip_type == "spike":
-                action = self.spike_clip(action)
-        else:
-            action = np.zeros(3)
+        #TODO: use for clipping
+        cosine_distance = compute_cosine_distance(self.previous_delta_vector, action)
+        self.previous_delta_vector = action
         
-
         previous_desired_pos_step_W = self.desired_pos_step_W.copy()
         desired_pos_step_W = previous_desired_pos_step_W + action
         
@@ -323,10 +312,10 @@ class ClothEnv(object):
         #TODO: this is only for clear markers
         #self.prepare_eval_visualization(obs, previous_desired_pos_step_W)
 
-        reward, done, info = self.post_action(action, obs, raw_action, cosine_similarity)
+        reward, done, info = self.post_action(action, obs, raw_action, cosine_distance)
         return obs, reward, done, info
 
-
+    '''
     def spike_clip(self, action):
         if compute_cosine_similarity(action, self.previous_delta_vector) > 0:
             return action
@@ -350,6 +339,7 @@ class ClothEnv(object):
             return action
         else:
             return np.zeros(3)
+    '''
 
 
     def compute_task_reward(self, achieved_goal, desired_goal, info):
@@ -376,15 +366,16 @@ class ClothEnv(object):
 
 
         
-    def post_action(self, action, obs, raw_action, cosine_similarity):
+    def post_action(self, action, obs, raw_action, cosine_distance):
         task_reward = self.compute_task_reward(np.reshape(obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict())[0]
         is_success = (task_reward - self.reward_offset) > -1
 
 
         delta_size_penalty = -np.linalg.norm(raw_action)
         ate_penalty = -np.linalg.norm(self.desired_pos_ctrl_W - self.get_ee_position_W())
+        cosine_penalty = -cosine_distance
 
-        control_penalty = delta_size_penalty*self.action_norm_penalty_coef + ate_penalty*self.ate_penalty_coef
+        control_penalty = delta_size_penalty*self.action_norm_penalty_coef + ate_penalty*self.ate_penalty_coef + cosine_penalty*self.cosine_penalty_coef
 
         reward = task_reward + control_penalty
 
@@ -407,7 +398,7 @@ class ClothEnv(object):
         info = {
                 "task_reward": task_reward,
                 "delta_size": np.linalg.norm(raw_action*self.max_advance),
-                "cosine_similarity" : cosine_similarity,
+                "cosine_distance" : cosine_distance,
                 "delta_size_penalty": delta_size_penalty,
                 "ate_penalty": ate_penalty,
                 "control_penalty": control_penalty,
@@ -631,8 +622,7 @@ class ClothEnv(object):
         self.initial_ee_p_W = None
         self.desired_pos_step_W = None
         self.desired_pos_ctrl_W = None
-        self.previous_delta_vector = None
-        self.initial_delta_vector = None
+        self.previous_delta_vector = np.zeros(3)
         self.raw_action = None
     
 

@@ -13,6 +13,7 @@ import mujoco_py
 from robosuite.wrappers import DomainRandomizationWrapper
 
 from scipy import spatial
+import sys
 
 
 COLOR_ARGS = {
@@ -146,6 +147,8 @@ def argsparser():
     # Env
     parser.add_argument('--ate_penalty_coef', type=float, default=0)
     parser.add_argument('--action_norm_penalty_coef', type=float, default=0)
+    parser.add_argument('--cosine_penalty_coef', type=float, default=0)
+
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
     parser.add_argument('--clip_type', type=str, default="none")
@@ -171,6 +174,11 @@ def argsparser():
     return args
 
 def get_variant(args):
+    arg_str = ""
+    for arg in sys.argv:
+        arg_str += arg
+        arg_str += " "
+
     variant = dict(
         algorithm="SAC",
         layer_size=256,
@@ -269,6 +277,7 @@ def get_variant(args):
         damping_ratio=args.damping_ratio,
         action_norm_penalty_coef=args.action_norm_penalty_coef,
         ate_penalty_coef=args.ate_penalty_coef,
+        cosine_penalty_coef=args.cosine_penalty_coef,
         reward_offset=args.reward_offset,
         constant_goal=bool(args.constant_goal),
         output_max=args.output_max,
@@ -320,7 +329,7 @@ def get_variant(args):
         variant['replay_buffer_kwargs']['internal_keys'] = [
             'model_params', 'robot_observation']
 
-    return variant
+    return variant, arg_str
 
 
 def remove_distance_welds(sim):

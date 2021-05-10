@@ -245,7 +245,7 @@ def experiment(variant):
 
 if __name__ == "__main__":
     args = argsparser()
-    variant = get_variant(args)
+    variant, arg_str = get_variant(args)
 
     if torch.cuda.is_available():
         print("Training with GPU")
@@ -272,6 +272,8 @@ if __name__ == "__main__":
 
         with open(f"{variant['save_folder']}/params.json", "w") as outfile:
             json.dump(variant, outfile)
+        with open(f"{variant['save_folder']}/command.txt", "w") as outfile:
+            json.dump(arg_str, outfile)
 
     except OSError:
         print ("Creation of the directory %s failed" % variant['save_folder'])
