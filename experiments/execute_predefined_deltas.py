@@ -20,12 +20,11 @@ def main(variant, folder, output_folder):
         print("folders exist already")
 
     variant['env_kwargs']['output_max'] = 1
-    variant['env_kwargs']['timestep'] = 0.01
     env = ClothEnv(**variant['env_kwargs'], has_viewer=True, save_folder=output_folder, initial_xml_dump=True)
     env = NormalizedBoxEnv(env)
 
-    env_timestep = variant['env_kwargs']['timestep']
-    steps_per_second = 1 / variant['env_kwargs']['timestep']
+    env_timestep = env.timestep
+    steps_per_second = 1 / env.timestep
     new_action_every_ctrl_step = steps_per_second / variant['env_kwargs']['control_frequency']
 
 

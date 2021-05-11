@@ -45,20 +45,21 @@ def main(real_folder, sim_folder):
                                                             2], linewidth=1, label="sim")
                                                     
     ax.plot(sim_ee_desired_pos[:, 0], sim_ee_desired_pos[:, 1], sim_ee_desired_pos[:,
-                                                            2], linewidth=1, label="sim des pos")
+                                                            2], linewidth=1, label="sim desired")
     
+    '''
     ax.plot(real_ee_pos[:, 0], real_ee_pos[:, 1], real_ee_pos[:,
                                                             2], linewidth=1, label="real")
     ax.plot(real_ee_desired_pos[:, 0], real_ee_desired_pos[:, 1], real_ee_desired_pos[:,
-                                                            2], linewidth=1, label="real des pos")
-    
+                                                      2], linewidth=1, label="real desired")
+    '''
 
     text_data = sim_ee_ctrl_deltas
     text_positions = sim_ee_desired_pos
     metric = calculate_cosine_distances(text_data)
     #metric = np.linalg.norm(text_data, axis=1)
-    for i, pos in enumerate(text_positions[1:-1]):
-        ax.text(pos[0], pos[1], pos[2], str(np.round(metric[i], decimals=4)))
+    #for i, pos in enumerate(text_positions[1:-1]):
+        #ax.text(pos[0], pos[1], pos[2], str(np.round(metric[i], decimals=4)))
 
     print("SIM ATE", calculate_ate(sim_ee_pos, sim_ee_desired_pos))
     print("REAL ATE", calculate_ate(real_ee_pos, real_ee_desired_pos))

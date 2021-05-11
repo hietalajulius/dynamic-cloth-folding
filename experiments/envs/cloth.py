@@ -533,12 +533,12 @@ class ClothEnv(object):
                 origin).copy() - self.relative_origin
 
         cloth_position = np.array(list(self.get_cloth_position_I().values()))
-        robot_position = self.get_joint_positions() 
+        robot_position = self.get_ee_position_I() #self.get_joint_positions() 
 
         if self.velocity_in_obs:
             cloth_velocity = np.array(list(self.get_cloth_velocity(
             ).values()))
-            robot_velocity = self.get_joint_velocities()
+            robot_velocity = self.get_ee_velocity()#self.get_joint_velocities()
             observation = np.concatenate([cloth_position.flatten(), cloth_velocity.flatten()])
 
             robot_observation = np.concatenate(
