@@ -2,12 +2,14 @@ from rlkit.torch.sac.policies import ScriptPolicy, TanhScriptPolicy
 import torch
 from envs.cloth import ClothEnvPickled as ClothEnv
 from rlkit.envs.wrappers import NormalizedBoxEnv
-from utils import get_variant, argsparser
+from utils import get_variant
+import argparse
+import json
 
-def main(variant):
+def main(variant, input_folder, output_folder):
 
 
-    env = ClothEnv(**variant['env_kwargs'], has_viewer=True, eval_env=True, save_folder="/home/clothmanip/robotics/cloth-manipulation/model_serialization")
+    env = ClothEnv(**variant['env_kwargs'], has_viewer=True, initial_xml_dump=True, save_folder=output_folder)
     env = NormalizedBoxEnv(env)
     eval_env = env
 
@@ -32,16 +34,6 @@ def main(variant):
         value_input_size += robot_obs_dim
         added_fc_input_size += robot_obs_dim
 
-    '''
-    policy = TanhCNNGaussianPolicy(
-                output_size=action_dim,
-                added_fc_input_size=added_fc_input_size,
-                aux_output_size=8,
-                **variant['policy_kwargs'],
-            )
-
-    '''
-
     policy = ScriptPolicy(
                 output_size=action_dim,
                 added_fc_input_size=added_fc_input_size,
@@ -49,13 +41,12 @@ def main(variant):
                 **variant['policy_kwargs'],
             )
 
-    model_path = "/home/clothmanip/robotics/cloth-manipulation/current_policy"
-    policy.load_state_dict(torch.load(model_path+".mdl"))
+    model_path = input_folder + "/current_policy"
+    policy.load_state_dict(torch.load(model_path+".mdl", map_location='cpu'))
     policy.eval()
 
     sm = torch.jit.script(policy).cpu()
     torch.jit.save(sm, model_path+".pt")
-    print("Maybe saved")
 
     tnhp = TanhScriptPolicy(output_size=action_dim,
                 added_fc_input_size=added_fc_input_size,
@@ -64,6 +55,14 @@ def main(variant):
 
 
 if __name__ == "__main__":
-    args = argsparser()
-    variant = get_variant(args)
-    main(variant)
+    parser = argparse.ArgumentParser("Parser")
+    parser.add_argument('input_folder', type=str)
+    parser.add_argument('output_folder', type=str)
+
+    args = parser.parse_args()
+
+
+    with open(f"{args.input_folder}/params.json")as json_file:
+        variant = json.load(json_file)
+    
+    main(variant, args.input_folder, args.output_folder)
