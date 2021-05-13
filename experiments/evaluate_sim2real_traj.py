@@ -15,6 +15,7 @@ def main(real_folder, sim_folder):
     sim_ee_pos_deltas = sim_trajectory[:, 12:15]
     sim_ee_ctrl_deltas = deltas_from_positions(sim_ee_desired_pos)
 
+    '''
     real_trajectory = np.genfromtxt(f"{real_folder}/real_trajectory.csv", delimiter=',')
     real_ee_pos = real_trajectory[:, 9:12]
     real_ee_desired_pos = real_trajectory[:, 0:3]
@@ -22,6 +23,7 @@ def main(real_folder, sim_folder):
 
     real_ee_pos_deltas = real_trajectory[:, 12:15]
     real_ee_ctrl_deltas = deltas_from_positions(real_ee_desired_pos)
+    '''
 
 
     fig = plt.figure()
@@ -62,7 +64,7 @@ def main(real_folder, sim_folder):
         #ax.text(pos[0], pos[1], pos[2], str(np.round(metric[i], decimals=4)))
 
     print("SIM ATE", calculate_ate(sim_ee_pos, sim_ee_desired_pos))
-    print("REAL ATE", calculate_ate(real_ee_pos, real_ee_desired_pos))
+    #print("REAL ATE", calculate_ate(real_ee_pos, real_ee_desired_pos))
 
 
 
