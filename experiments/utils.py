@@ -151,7 +151,7 @@ def argsparser():
     parser.add_argument('--image_obs_noise_mean', type=float, default=1.0)
     parser.add_argument('--image_obs_noise_std', type=float, default=0.0)
 
-
+    parser.add_argument('--robot_observation', choices=["all", "joints", "ee"], default="all")
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
     parser.add_argument('--clip_type', type=str, default="none")
@@ -160,7 +160,6 @@ def argsparser():
     parser.add_argument('--kp', type=float, default=1000.0)
     parser.add_argument('--constant_goal', type=int, default=1)
     parser.add_argument('--task', type=str, required=True)
-    parser.add_argument('--velocity_in_obs', type=int, default=1)
     parser.add_argument('--image_training', default=0, type=int, required=True)
     parser.add_argument('--image_size', type=int, default=100)
     parser.add_argument('--depth_frames', type=int, default=0)
@@ -170,7 +169,9 @@ def argsparser():
     parser.add_argument('--uniform_jnt_tend', type=int, default=1)
     parser.add_argument('--sparse_dense', type=int, default=0)
     parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.01))
-    parser.add_argument('--reward_offset', type=float, required=True)
+    parser.add_argument('--success_reward', type=int, required=True)
+    parser.add_argument('--fail_reward', type=int, required=True)
+    parser.add_argument('--extra_reward', type=int, required=True)
     parser.add_argument('--timestep', type=float, default=0.01)
     parser.add_argument('--control_frequency', type=int, default=10)
 
@@ -233,6 +234,44 @@ def get_variant(args):
         fraction_goals_rollout_goals=1 - args.her_percent
     )
 
+
+    model_kwarg_ranges = dict(
+            joint_solimp_low = (0.98,0.9999),
+            joint_solimp_high = (0.99,0.9999),
+            joint_solimp_width = (0.01, 0.03),
+            joint_solref_timeconst  = (0.01, 0.05),
+            joint_solref_dampratio = (0.99, 1.01555555555556),
+
+            tendon_shear_solimp_low = (0.98,0.9999),
+            tendon_shear_solimp_high = (0.99,0.9999),
+            tendon_shear_solimp_width = (0.01, 0.03),
+            tendon_shear_solref_timeconst  = (0.01, 0.05),
+            tendon_shear_solref_dampratio = (0.99, 1.01555555555556),
+
+            tendon_main_solimp_low = (0.98,0.9999),
+            tendon_main_solimp_high = (0.99,0.9999),
+            tendon_main_solimp_width = (0.01, 0.03),
+            tendon_main_solref_timeconst  = (0.01, 0.05),
+            tendon_main_solref_dampratio = (0.99, 1.01555555555556),
+
+            geom_solimp_low = (0.98,0.9999),
+            geom_solimp_high = (0.99,0.9999),
+            geom_solimp_width = (0.01, 0.03),
+            geom_solref_timeconst  = (0.01, 0.05),
+            geom_solref_dampratio = (0.99, 1.01555555555556),
+
+            grasp_solimp_low = (0.98,0.9999),
+            grasp_solimp_high = (0.99,0.9999),
+            grasp_solimp_width = (0.01, 0.03),
+            grasp_solref_timeconst  = (0.01, 0.05),
+            grasp_solref_dampratio = (0.99, 1.01555555555556),
+
+            geom_size = (0.008, 0.011),
+            friction = (0.05, 1),
+            cone_type = ("pyramidal", "elliptic"),
+            impratio = (1, 20)
+        )
+
     model_kwargs = dict(
             joint_solimp_low = 0.986633333333333,
             joint_solimp_high = 0.9911,
@@ -275,7 +314,9 @@ def get_variant(args):
     
 
     variant['env_kwargs'] = dict(
+        mujoco_model_kwarg_ranges=model_kwarg_ranges,
         mujoco_model_kwargs=model_kwargs,
+        robot_observation=args.robot_observation,
         control_frequency=args.control_frequency,
         ctrl_filter=args.filter,
         clip_type=args.clip_type,
@@ -286,7 +327,9 @@ def get_variant(args):
         action_norm_penalty_coef=args.action_norm_penalty_coef,
         ate_penalty_coef=args.ate_penalty_coef,
         cosine_penalty_coef=args.cosine_penalty_coef,
-        reward_offset=args.reward_offset,
+        success_reward=args.success_reward,
+        fail_reward=args.fail_reward,
+        extra_reward=args.extra_reward,
         constant_goal=bool(args.constant_goal),
         output_max=args.output_max,
         max_episode_steps=int(args.max_path_length),
@@ -297,10 +340,10 @@ def get_variant(args):
         randomize_params=bool(args.randomize_params),
         randomize_geoms=bool(args.randomize_geoms),
         uniform_jnt_tend=bool(args.uniform_jnt_tend),
-        velocity_in_obs=bool(args.velocity_in_obs),
         num_eval_rollouts=args.num_eval_rollouts,
         image_obs_noise_mean=args.image_obs_noise_mean,
-        image_obs_noise_std=args.image_obs_noise_std
+        image_obs_noise_std=args.image_obs_noise_std,
+        
     )
 
 

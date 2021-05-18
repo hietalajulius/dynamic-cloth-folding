@@ -191,7 +191,7 @@ def experiment(variant):
         )
 
     task_reward_function = reward_calculation.get_task_reward_function(
-        variant['env_kwargs']['constraints'], 3, variant['env_kwargs']['sparse_dense'], variant['env_kwargs']['reward_offset'])
+        variant['env_kwargs']['constraints'], 3, variant['env_kwargs']['sparse_dense'], variant['env_kwargs']['success_reward'], variant['env_kwargs']['fail_reward'], variant['env_kwargs']['extra_reward'])
     ob_spaces = copy.deepcopy(eval_env.observation_space.spaces)
     action_space = copy.deepcopy(eval_env.action_space)
     replay_buffer = FutureObsDictRelabelingBuffer(

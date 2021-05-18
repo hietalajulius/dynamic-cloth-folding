@@ -43,10 +43,11 @@ class ClothEnv(object):
         randomize_params,
         randomize_geoms,
         uniform_jnt_tend,
-        velocity_in_obs,
         constant_goal,
         constraints,
-        reward_offset,
+        success_reward,
+        fail_reward,
+        extra_reward,
         kp,
         damping_ratio,
         clip_type,
@@ -59,6 +60,8 @@ class ClothEnv(object):
         num_eval_rollouts,
         save_folder,
         mujoco_model_kwargs,
+        mujoco_model_kwarg_ranges,
+        robot_observation,
         image_obs_noise_mean=1,
         image_obs_noise_std=0,
         initial_xml_dump=False,
@@ -67,6 +70,7 @@ class ClothEnv(object):
         assert clip_type == "sphere" or clip_type == "spike" or clip_type == "none"
 
         self.mujoco_model_kwargs = mujoco_model_kwargs
+        self.mujoco_model_kwarg_ranges = mujoco_model_kwarg_ranges
 
         self.save_folder = save_folder
         self.initial_xml_dump = initial_xml_dump
@@ -79,11 +83,12 @@ class ClothEnv(object):
         self.kp = kp
         self.damping_ratio = damping_ratio
         self.max_advance = output_max
-        self.reward_offset = reward_offset
+        self.success_reward = success_reward
+        self.fail_reward = fail_reward
+        self.extra_reward = extra_reward
         self.sparse_dense = sparse_dense
         self.constraints = constraints
         self.goal_noise_range = goal_noise_range
-        self.velocity_in_obs = velocity_in_obs
         self.pixels = pixels
         self.depth_frames = depth_frames
         self.frame_stack_size = frame_stack_size
@@ -96,6 +101,7 @@ class ClothEnv(object):
         self.max_episode_steps = max_episode_steps
         self.image_obs_noise_mean = image_obs_noise_mean
         self.image_obs_noise_std = image_obs_noise_std
+        self.robot_observation = robot_observation
 
         self.max_success_steps = 20
         self.frame_stack = deque([], maxlen = self.frame_stack_size)
@@ -150,7 +156,7 @@ class ClothEnv(object):
         self.setup_viewer()
         
         self.task_reward_function = reward_calculation.get_task_reward_function(
-            self.constraints, self.single_goal_dim, self.sparse_dense, self.reward_offset)
+            self.constraints, self.single_goal_dim, self.sparse_dense, self.success_reward, self.fail_reward, self.extra_reward)
 
         self.action_space = gym.spaces.Box(-1,
                                            1, shape=(3,), dtype='float32')
@@ -388,7 +394,7 @@ class ClothEnv(object):
         
     def post_action(self, action, obs, raw_action, cosine_distance):
         task_reward = self.compute_task_reward(np.reshape(obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict())[0]
-        is_success = (task_reward - self.reward_offset) > -1
+        is_success = task_reward > self.fail_reward
 
 
         delta_size_penalty = -np.linalg.norm(raw_action)
@@ -431,9 +437,6 @@ class ClothEnv(object):
         self.episode_success_steps += int(is_success)
         if self.episode_success_steps >= self.max_success_steps:
             done = True
-            #ctrl_penalty_only = True
-            #task_reward = -1 + self.reward_offset
-    
 
         return reward, done, info
         
@@ -574,23 +577,23 @@ class ClothEnv(object):
                 origin).copy() - self.relative_origin
 
         cloth_position = np.array(list(self.get_cloth_position_I().values()))
-        robot_position = self.get_ee_position_W()  #self.get_joint_positions() 
-
-        if self.velocity_in_obs:
-            cloth_velocity = np.array(list(self.get_cloth_velocity(
+        cloth_velocity = np.array(list(self.get_cloth_velocity(
             ).values()))
-            robot_velocity = self.get_ee_velocity() #self.get_joint_velocities()
-            observation = np.concatenate([cloth_position.flatten(), cloth_velocity.flatten()])
 
-            robot_observation = np.concatenate(
-                [robot_position, robot_velocity])
-        else:
-            observation = np.concatenate([cloth_position.flatten()])
-            robot_observation = robot_position
+        cloth_observation = np.concatenate([cloth_position.flatten(), cloth_velocity.flatten()])
 
         desired_pos_ctrl_I = self.desired_pos_ctrl_W - self.relative_origin
-        robot_observation = np.concatenate(
-            [robot_observation, desired_pos_ctrl_I])
+
+        robot_observation = desired_pos_ctrl_I
+
+        if self.robot_observation == "all":
+            robot_observation = np.concatenate([self.get_ee_position_W(), self.get_joint_positions(), self.get_ee_velocity(), self.get_joint_velocities(), robot_observation])
+        elif self.robot_observation == "joint":
+            robot_observation = np.concatenate([self.get_joint_positions(), self.get_joint_velocities(), robot_observation])
+        elif self.robot_observation == "ee":
+            robot_observation = np.concatenate([self.get_ee_position_W(), self.get_ee_velocity(), robot_observation])
+
+        
 
         if self.randomize_geoms and self.randomize_params:
             model_params = np.array([self.current_joint_stiffness, self.current_joint_damping,
@@ -602,7 +605,7 @@ class ClothEnv(object):
             model_params = np.array([0])
 
         full_observation = {
-            'observation': observation.copy(),
+            'observation': cloth_observation.copy(),
             'achieved_goal': achieved_goal_I.copy(),
             'desired_goal': self.goal.copy(),
             'model_params': model_params.copy(),
