@@ -13,6 +13,8 @@ from skspatial.objects import Line, Sphere
 from scipy import spatial
 from template_renderer import TemplateRenderer
 import math
+from collections import deque
+import copy
 
 
 #np.set_printoptions(suppress=True)
@@ -35,13 +37,13 @@ class ClothEnv(object):
         sparse_dense,
         goal_noise_range,
         pixels,
+        depth_frames,
+        frame_stack_size,
         output_max,
         randomize_params,
         randomize_geoms,
         uniform_jnt_tend,
-        random_seed,
         velocity_in_obs,
-        image_size,
         constant_goal,
         constraints,
         reward_offset,
@@ -57,6 +59,8 @@ class ClothEnv(object):
         num_eval_rollouts,
         save_folder,
         mujoco_model_kwargs,
+        image_obs_noise_mean=1,
+        image_obs_noise_std=0,
         initial_xml_dump=False,
         has_viewer=False
     ):  
@@ -81,6 +85,8 @@ class ClothEnv(object):
         self.goal_noise_range = goal_noise_range
         self.velocity_in_obs = velocity_in_obs
         self.pixels = pixels
+        self.depth_frames = depth_frames
+        self.frame_stack_size = frame_stack_size
         self.image_size = (100, 100)
         self.randomize_geoms = randomize_geoms
         self.randomize_params = randomize_params
@@ -88,8 +94,11 @@ class ClothEnv(object):
         self.constant_goal = constant_goal
         self.has_viewer = has_viewer
         self.max_episode_steps = max_episode_steps
+        self.image_obs_noise_mean = image_obs_noise_mean
+        self.image_obs_noise_std = image_obs_noise_std
 
         self.max_success_steps = 20
+        self.frame_stack = deque([], maxlen = self.frame_stack_size)
         #TODO: figure out this case when no reward offset used
 
         
@@ -149,6 +158,11 @@ class ClothEnv(object):
         self.relative_origin = self.get_ee_position_W()
         self.goal = self.sample_goal_I()
         
+        if self.pixels:
+            image_obs = self.get_image_obs()
+            for _ in range(self.frame_stack_size):
+                self.frame_stack.append(image_obs)
+
         obs = self.get_obs()
 
 
@@ -292,6 +306,10 @@ class ClothEnv(object):
     def step(self, action):
         raw_action = action.copy()
         action = raw_action*self.max_advance
+        if self.pixels:
+            image_obs_substep_idx_mean = self.image_obs_noise_mean * (self.substeps-1)
+            image_obs_substep_idx = int(np.random.normal(image_obs_substep_idx_mean, self.image_obs_noise_std))
+            image_obs_substep_idx = np.clip(image_obs_substep_idx, 0, self.substeps-1)
 
         #TODO: use for clipping
         cosine_distance = compute_cosine_distance(self.previous_delta_vector, action)
@@ -304,8 +322,10 @@ class ClothEnv(object):
         for i in range(int(self.substeps)):
             for j in range(int(self.between_steps)):
                 self.desired_pos_ctrl_W = self.filter*self.desired_pos_step_W + (1-self.filter)*self.desired_pos_ctrl_W
-                #position_d_ = filter_params * position_d_target_ + (1.0 - filter_params) * position_d_;
             self.step_env()
+            if self.pixels and i == image_obs_substep_idx:
+                image_obs = self.get_image_obs()
+                self.frame_stack.append(image_obs)
 
         obs = self.get_obs()
         
@@ -525,6 +545,27 @@ class ClothEnv(object):
             velocities[site] = self.sim.data.get_site_xvelp(site).copy()
         return velocities
 
+    def get_image_obs(self):
+        camera_id = self.sim.model.camera_name2id(
+            self.train_camera) 
+        self.viewer.render(self.image_size[0], self.image_size[1], camera_id)
+        depth_obs = None
+        if self.depth_frames:
+            image_obs, depth_obs = copy.deepcopy(self.viewer.read_pixels(self.image_size[0], self.image_size[1], depth=True))
+            depth_obs = depth_obs[::-1, :]
+            depth_obs = cv2.normalize(depth_obs, None, alpha = 0, beta = 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        else:
+            image_obs = copy.deepcopy(self.viewer.read_pixels(self.image_size[0], self.image_size[1], depth=False))
+
+        image_obs = image_obs[::-1, :, :]
+        image_obs = cv2.cvtColor(image_obs, cv2.COLOR_BGR2GRAY)
+
+        if not depth_obs is None:
+            return np.array([(image_obs / 255).flatten(), depth_obs.flatten()]).flatten()
+        else:
+            return (image_obs / 255).flatten()
+
+
     def get_obs(self):
         achieved_goal_I = np.zeros(self.single_goal_dim*len(self.constraints))
         for i, constraint in enumerate(self.constraints):
@@ -569,14 +610,8 @@ class ClothEnv(object):
         }
 
         if self.pixels:
-            camera_id = self.sim.model.camera_name2id(
-                self.train_camera) 
-            self.viewer.render(self.image_size[0], self.image_size[1], camera_id)
-            image_obs = self.viewer.read_pixels(self.image_size[0], self.image_size[1], depth=False)
-            image_obs = image_obs[::-1, :, :]
-            image_obs = cv2.cvtColor(image_obs, cv2.COLOR_BGR2GRAY)
-            #image_obs = image_obs[:, 374:474]
-            full_observation['image'] = (image_obs / 255).flatten()
+            full_observation['image'] = np.array([image for image in self.frame_stack]).flatten()
+
         return full_observation
 
     def seed(self, seed=None):
@@ -671,6 +706,11 @@ class ClothEnv(object):
             self.current_geom_size = self.np_random.uniform(
                 self.min_geom_size, self.max_geom_size)
             self.set_geom_params()
+
+        if self.pixels:
+            image_obs = self.get_image_obs()
+            for _ in range(self.frame_stack_size):
+                self.frame_stack.append(image_obs)
 
         return self.get_obs()
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <mujoco>
     <compiler strippath="true" meshdir="{{ robotics_dir }}/cloth-manipulation/experiments/mujoco_templates/meshes" texturedir="{{ robotics_dir }}/cloth-manipulation/experiments/mujoco_templates/textures" inertiafromgeom= "true" angle="radian" inertiagrouprange="0 0"/>
-    <option timestep="{{ timestep }}" impratio="20" cone="{{ cone_type }}" />
+    <option timestep="{{ timestep }}" impratio="{{ impratio }}" cone="{{ cone_type }}" />
     <size nconmax="5000" njmax="5000"/>
     <visual>
         <headlight ambient="0.4 0.4 0.4" diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2" />

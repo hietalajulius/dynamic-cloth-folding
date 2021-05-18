@@ -148,6 +148,9 @@ def argsparser():
     parser.add_argument('--ate_penalty_coef', type=float, default=0)
     parser.add_argument('--action_norm_penalty_coef', type=float, default=0)
     parser.add_argument('--cosine_penalty_coef', type=float, default=0)
+    parser.add_argument('--image_obs_noise_mean', type=float, default=1.0)
+    parser.add_argument('--image_obs_noise_std', type=float, default=0.0)
+
 
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
@@ -156,10 +159,12 @@ def argsparser():
     parser.add_argument('--damping_ratio', type=float, default=1)
     parser.add_argument('--kp', type=float, default=1000.0)
     parser.add_argument('--constant_goal', type=int, default=1)
-    parser.add_argument('--task', type=str, default="diagonal_franka")
+    parser.add_argument('--task', type=str, required=True)
     parser.add_argument('--velocity_in_obs', type=int, default=1)
     parser.add_argument('--image_training', default=0, type=int, required=True)
     parser.add_argument('--image_size', type=int, default=100)
+    parser.add_argument('--depth_frames', type=int, default=0)
+    parser.add_argument('--frame_stack_size', type=int, default=1)
     parser.add_argument('--randomize_params', type=int, default=0)
     parser.add_argument('--randomize_geoms', type=int, default=0)
     parser.add_argument('--uniform_jnt_tend', type=int, default=1)
@@ -262,6 +267,7 @@ def get_variant(args):
             geom_size = 0.011,
             friction = 0.05,
             cone_type = "pyramidal",
+            impratio = 20,
             timestep=args.timestep,
             domain_randomization=bool(args.domain_randomization)
         )
@@ -274,6 +280,8 @@ def get_variant(args):
         ctrl_filter=args.filter,
         clip_type=args.clip_type,
         kp=args.kp,
+        frame_stack_size=args.frame_stack_size,
+        depth_frames=bool(args.depth_frames),
         damping_ratio=args.damping_ratio,
         action_norm_penalty_coef=args.action_norm_penalty_coef,
         ate_penalty_coef=args.ate_penalty_coef,
@@ -289,27 +297,25 @@ def get_variant(args):
         randomize_params=bool(args.randomize_params),
         randomize_geoms=bool(args.randomize_geoms),
         uniform_jnt_tend=bool(args.uniform_jnt_tend),
-        image_size=args.image_size,
-        random_seed=args.seed,
         velocity_in_obs=bool(args.velocity_in_obs),
-        num_eval_rollouts=args.num_eval_rollouts
+        num_eval_rollouts=args.num_eval_rollouts,
+        image_obs_noise_mean=args.image_obs_noise_mean,
+        image_obs_noise_std=args.image_obs_noise_std
     )
 
 
 
     if args.image_training:
-        channels = 1
         variant['policy_kwargs'] = dict(
             input_width=args.image_size,
             input_height=args.image_size,
-            input_channels=channels,
+            input_channels=args.frame_stack_size*(1+int(args.depth_frames)),
             kernel_sizes=[3, 3, 3, 3],
             n_channels=[32, 32, 32, 32],
             strides=[2, 2, 2, 2],
             paddings=[0, 0, 0, 0],
-            hidden_sizes_all=[256, 264],
-            hidden_sizes_aux=[8],
-            hidden_sizes_main=[256, 256],
+            hidden_sizes_aux=[256, 8],
+            hidden_sizes_main=[256, 256, 256, 256],
             init_w=1e-4,
             conv_normalization_type=args.conv_normalization_type,
             fc_normalization_type=args.fc_normalization_type,

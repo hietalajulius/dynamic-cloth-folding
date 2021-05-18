@@ -8,6 +8,7 @@ from rlkit.torch.networks import ConcatMlp
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
 from rlkit.data_management.future_obs_dict_replay_buffer import FutureObsDictRelabelingBuffer
+from rlkit.torch.sac.policies import ScriptPolicy
 import gym
 import mujoco_py
 import torch
@@ -217,7 +218,17 @@ def experiment(variant):
     )
     trainer = ClothSacHERTrainer(trainer)
 
+    script_policy = None
+    if image_training:
+        script_policy = ScriptPolicy(
+                    output_size=action_dim,
+                    added_fc_input_size=added_fc_input_size,
+                    aux_output_size=8,
+                    **variant['policy_kwargs'],
+                )
+
     algorithm = TorchBatchRLAlgorithm(
+        script_policy=script_policy,
         trainer=trainer,
         exploration_env=eval_env,
         evaluation_env=eval_env,
