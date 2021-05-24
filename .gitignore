@@ -5,7 +5,10 @@ experiments/trainings
 experiments/tblogs
 experiments/domain_rand
 experiments/.DS_Store
+examples/images
 policies
 .DS_Store
 traj_opt/.ipynb_checkpoints
 *MUJOCO_LOG.TXT
+*__pycache__
+misc

@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mujoco>
+    <compiler strippath="true" meshdir="/home/clothmanip/robotics/cloth-manipulation/experiments/mujoco_templates/meshes" texturedir="/home/clothmanip/robotics/cloth-manipulation/experiments/mujoco_templates/textures" inertiafromgeom= "true" angle="radian" inertiagrouprange="0 0"/>
+    <option timestep="0.01" impratio="20" cone="pyramidal" />
+    <size nconmax="5000" njmax="5000"/>
+    <visual>
+        <headlight ambient="0.4 0.4 0.4" diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2" />
+    </visual>
+    <asset>
+        <texture name="texplane" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2" width="512" height="512"/>
+        <texture name="texplane2" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2" width="512" height="512"/>
+        <texture name="texplane3" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2" width="512" height="512"/>
+        <material name="floorplane" reflectance="0.01" shininess="0.0" specular="0.0" texrepeat="2 2" texture="texplane" texuniform="true"/>
+        <material name="floorplane2" reflectance="0.01" shininess="0.0" specular="0.0" texrepeat="2 2" texture="texplane2" texuniform="true"/>
+        <material name="floorplane3" reflectance="0.01" shininess="0.0" specular="0.0" texrepeat="2 2" texture="texplane2" texuniform="true"/>
+        <mesh name="link0" file="meshes/link0.stl" />
+        <mesh name="link1" file="meshes/link1.stl" />
+        <mesh name="link2" file="meshes/link2.stl" />
+        <mesh name="link3" file="meshes/link3.stl" />
+        <mesh name="link4" file="meshes/link4.stl" />
+        <mesh name="link5" file="meshes/link5.stl" />
+        <mesh name="link6" file="meshes/link6.stl" />
+        <mesh name="link7" file="meshes/link7.stl" />
+        <mesh name="link0_vis" file="meshes/link0_vis.stl" />
+        <mesh name="link1_vis" file="meshes/link1_vis.stl" />
+        <mesh name="link2_vis" file="meshes/link2_vis.stl" />
+        <mesh name="link3_vis" file="meshes/link3_vis.stl" />
+        <mesh name="link4_vis" file="meshes/link4_vis.stl" />
+        <mesh name="link5_vis" file="meshes/link5_vis.stl" />
+        <mesh name="link6_vis" file="meshes/link6_vis.stl" />
+        <mesh name="link7_vis" file="meshes/link7_vis.stl" />
+        <mesh name="finger_plastic" file="meshes/3dprinted_finger.stl" />
+        <mesh name="hand" file="meshes/hand.stl" />
+        <mesh name="hand_vis" file="meshes/hand_vis.stl" />
+        <mesh name="finger" file="meshes/finger.stl" />
+        <mesh name="finger_vis" file="meshes/finger_vis.stl" />
+        <mesh name="finger_vis2" file="meshes/finger_longer.stl" />
+
+        <texture name="white_borders" type="2d" file="textures/white_borders.png"/>
+        <material name="white_borders" texture="white_borders"/>
+    </asset>
+    <worldbody>
+
+        <geom name="ground" pos="0 0 0" size="5 5 10" type="plane" contype="1" conaffinity="1" />
+
+        <body name="tabletop" pos="0.5 0 0">
+            <geom name="la_tabla_col" type="box" pos="0 0 0" size="0.3 0.6 0.127" group="0" />
+            
+                <geom name="la_tabla_vis" type="box" material="floorplane" pos="0 0 0" size="0.3 0.6 0.127" group="1" />
+            
+        </body>
+
+        <!--<body name="measuring_stick" pos="0 0 0">
+            <geom name="measuring_stick_vis" type="box" rgba="0 0 0 1" pos="0 0.02 0.2" size="0.1 0.015 0.015" group="1" />
+        </body> -->
+
+            <body euler="0 0 0" pos="0.61266394 0.13622071 0.13555208">
+                <composite type="grid" count="9 9 1" spacing="0.024" offset="-0.1 -0.1 0"  >
+                    <joint kind="main" solimpfix="0.986633333333333 0.9911 0.03" solreffix="0.03 1.01555555555556" />
+                    <tendon solimpfix="0.98 0.99 0.03" solreffix="0.05 1.01555555555556" width="0.001" kind="shear" />
+                    <tendon solimpfix="0.993266666666667 0.9966 0.004222222222222" solreffix="0.01 0.98" kind="main" />
+                   
+                    
+                        <skin material="white_borders" texcoord="true" inflate="0.001" subgrid="3"/>
+                    
+                    
+                    <geom group="0" type="sphere" size="0.011" rgba="0 0 1 0.8" friction='0.05 0.05 0.05' solimp="0.984422222222222 0.9922 0.007444444444444" solref="0.005 1.01555555555556" condim='4' />
+                </composite>
+            </body>
+
+        <body name="lookatbody" pos="0.51062629 0.03419261 0.13488681" >
+            <geom name="lookatgeom" type="box" pos="0 0 0" size="0.001 0.001 0.001" group="1" />
+        </body>
+
+
+    
+        <light name="foo" diffuse=".8 .8 .8" dir="0 -.15 -1" directional="true" pos="0.1 0.1 0.1" specular="0.3 0.3 0.3" castshadow="true"/>
+        <light name="boo" diffuse=".8 .8 .8" dir="0 -.15 -1" directional="true" pos="-0.5 -0.5 0.5" specular="0.3 0.3 0.3" castshadow="true"/>
+        <light name="foo1" diffuse=".8 .8 .8" dir="0 -.15 -1" directional="true" pos="0.1 0.1 0.1" specular="0.3 0.3 0.3" castshadow="true"/>
+        <light name="boo1" diffuse=".8 .8 .8" dir="0 -.15 -1" directional="true" pos="-0.5 -0.5 0.5" specular="0.3 0.3 0.3" castshadow="true"/>
+        <light name="foo2" diffuse=".8 .8 .8" dir="0 -.15 -1" directional="true" pos="0.1 0.1 0.1" specular="0.3 0.3 0.3" castshadow="true"/>
+        <light name="boo2" diffuse=".8 .8 .8" dir="0 -.15 -1" directional="true" pos="-0.5 -0.5 0.5" specular="0.3 0.3 0.3" castshadow="true"/>
+    
+
+
+
+
+
+
+
+        <!-- front view -->
+        <camera mode="fixed" name="frontview" pos="0.35 -0.1 0.25" quat="0.56 0.43 0.43 0.56"/>
+
+        <camera fovy="14" mode="targetbodycom" target="lookatbody" name="train_camera" pos="0.50549726 -0.60  1.03"/>
+        <camera mode="targetbodycom" target="tabletop" name="eval_camera" pos="-0.45 -1 1"/>
+        <!--cloth view -->
+        <camera mode="fixed" name="clothview" pos="0.3 -0.15 0.42" quat="0.653 0.271 0.271 0.653"/>
+        <!--cloth view 2 -->
+        <camera mode="fixed" name="clothview2" pos="0.08 -0.16 0.6" quat="0.7071 0 0 0.7071"/>
+        <!-- bird view -->
+        <camera mode="fixed" name="birdview" pos="-0.2 0 3.0" quat="0.7071 0 0 0.7071"/>
+        <!-- agent view -->
+        <camera mode="fixed" name="agentview" pos="0.5 0 1.35" quat="0.653 0.271 0.271 0.653"/>
+        <!-- side view -->
+        <camera name="sideview" pos="0.1 0.2 0.3" quat="0.2 0 0.5 0.75" />
+        <camera mode="fixed" name="eye_in_hand" pos="0.05 0 0" quat="0 0.707108 0.707108 0" fovy="75"/>
+
+        <body name="base" pos="0 0 0">
+            <camera name="robotview" pos="1 0 0.4" quat="0.653 0.271 0.271 0.653"/>
+            <body name="link0" pos="0 0 0">
+                <geom name="link0_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link0_vis"/>
+                <geom name="link0_collision" type="mesh" rgba="0 0.5 0 1" mesh="link0"/>
+                <body name="link1" pos="0 0 0.333">
+                    <joint name="joint1" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"/>
+                    <geom name="link1_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link1_vis"/>
+                    <geom name="link1_collision" type="mesh" rgba="0 0.5 0 1" mesh="link1"/>
+                    <body name="link2" pos="0 0 0" quat="0.707107 -0.707107 0 0">
+                        <joint name="joint2" pos="0 0 0" axis="0 0 1" limited="true" range="-1.7628 1.7628"/>
+                        <geom name="link2_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link2_vis"/>
+                        <geom name="link2_collision" type="mesh" rgba="0 0.5 0 1" mesh="link2"/>
+                        <body name="link3" pos="0 -0.316 0" quat="0.707107 0.707107 0 0">
+                            <joint name="joint3" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"/>
+                            <geom name="link3_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link3_vis"/>
+                            <geom name="link3_collision" type="mesh" rgba="0 0.5 0 1" mesh="link3"/>
+                            <body name="link4" pos="0.0825 0 0" quat="0.707107 0.707107 0 0">
+                                <joint name="joint4" pos="0 0 0" axis="0 0 1" limited="true" range="-3.0718 -0.0698"/>
+                                <geom name="link4_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link4_vis"/>
+                                <geom name="link4_collision" type="mesh" rgba="0 0.5 0 1" mesh="link4"/>
+                                <body name="link5" pos="-0.0825 0.384 0" quat="0.707107 -0.707107 0 0">
+                                    <joint name="joint5" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"/>
+                                    <geom name="link5_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link5_vis"/>
+                                    <geom name="link5_collision" type="mesh" rgba="0 0.5 0 1" mesh="link5"/>
+                                    <body name="link6" pos="0 0 0" quat="0.707107 0.707107 0 0">
+                                        <joint name="joint6" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0175 3.7525"/>
+                                        <geom name="link6_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link6_vis"/>
+                                        <geom name="link6_collision" type="mesh" rgba="0 0.5 0 1" mesh="link6"/>
+                                        <body name="link7" pos="0.088 0 0" quat="0.707107 0.707107 0 0">
+                                            <joint name="joint7" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"/>
+                                            <geom name="link7_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link7_vis"/>
+                                            <geom name="link7_collision" type="mesh" rgba="0 0.5 0 1" mesh="link7"/>
+                                            <body name="right_hand" pos="0 0 0.1065" quat="0.923785 0 0 -0.382911">
+                                                <site name="ee" pos="0 0 0" size="0.01" group="1" rgba="0 0 1 1"/>
+                                                <site name="ee_x" pos="0 0 0" quat="0.707105 0.707108 0 0" size="0.005 0.1" group="1" type="cylinder" rgba="1 0 0 0"/>
+                                                <site name="ee_z" pos="0 0 0" quat="0.707105 0 0 0.707108" size="0.005 0.1" group="1" type="cylinder" rgba="0 0 1 0"/>
+                                                <site name="ee_y" pos="0 0 0" quat="0.707105 0 0.707108 0" size="0.005 0.1" group="1" type="cylinder" rgba="0 1 0 0"/>
+                                                <camera name="eye_in_handu" pos="0.05 0 0" quat="0 0.707108 0.707108 0" fovy="75"/>
+                                                <body name="right_gripper" pos="0 0 0" quat="0.707107 0 0 -0.707107">
+                                                    
+                                                        <geom name="hand_visual" material="floorplane3" quat="0.707107 0 0 0.707107" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="hand_vis"/>
+                                                    
+                                                    <geom name="hand_collision" quat="0.707107 0 0 0.707107" type="mesh" rgba="0 0 0.5 1" mesh="hand"/>
+                                                    <geom name="grip_geom" size="0.0025" pos="0 0 0.155" group="1" rgba="1 0 0 0.5"/>
+                                                    <site name="ft_frame" pos="0 0 0" size="0.01" group="1" rgba="1 0 0 1"/>
+                                                    <site name="grip_site" pos="0 0 0.10377" size="0.0025" group="1" rgba="1 0 0 0.5"/>
+                                                    <body name="leftfinger" pos="0 0 0.0524" quat="0.707107 0 0 0.707107">
+                                                        
+                                                            <geom name="finger1_visual" material="floorplane2" type="mesh" contype="0" conaffinity="0" group="1" rgba="0.499 0.499 0.499 1" mesh="finger_plastic"/>
+                                                        
+                                                        <geom name="finger1_collision"  type="mesh" contype="0" condim="4" rgba="0 0 0.5 1" mesh="finger_plastic"/>
+                                                        <body name="finger_joint1_tip" pos="0 0.0085 0.056">
+                                                            <geom name="finger1_pad_collision" size="0.008 0.004 0.008" pos="0 -0.005 -0.015" quat="0 0 0 1" type="box" friction="2 0.05 0.0001" solref="0.01 0.5" rgba="0 0 0.5 1"/>
+                                                        </body>
+                                                    </body>
+                                                    <body name="rightfinger" pos="0 0 0.0524" quat="0.707107 0 0 0.707107">
+                                                        
+                                                            <geom name="finger2_visual" material="floorplane2" quat="0 0 0 1" type="mesh" contype="0" conaffinity="0" group="1" rgba="0.499 0.499 0.499 1" mesh="finger_plastic"/>
+                                                        
+                                                        <geom name="finger2_collision" quat="0 0 0 1" type="mesh" contype="0" condim="4" rgba="0 0 0.5 1" mesh="finger_plastic"/>
+                                                        <body name="finger_joint2_tip" pos="0 -0.0085 0.056">
+                                                            <geom name="finger2_pad_collision" size="0.008 0.004 0.008" pos="0 0.005 -0.015" quat="0 0 0 1" type="box" friction="2 0.05 0.0001" solref="0.01 0.5" rgba="0 0 0.5 1"/>
+                                                        </body>
+                                                    </body>
+                                                </body>
+                                            </body>
+                                        </body>
+                                    </body>
+                                </body>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+
+        <!--
+        <body mocap="true" name="robot0:mocap" pos="0.00078214 -0.0042735   0.20663855">
+            <geom group="1" name="mocap" conaffinity="0" contype="0" pos="0  0  0" rgba="0 0 1 1" size="0.005 0.005 0.005" type="box"></geom>
+        </body> -->
+    </worldbody>
+
+    <actuator>
+        <!-- Physical limits of the actuator. -->
+        <motor joint="joint1" name="torq_j1"/>
+        <motor joint="joint2" name="torq_j2"/>
+        <motor joint="joint3" name="torq_j3"/>
+        <motor joint="joint4" name="torq_j4"/>
+        <motor joint="joint5" name="torq_j5"/>
+        <motor joint="joint6" name="torq_j6"/>
+        <motor joint="joint7" name="torq_j7"/>
+    </actuator>
+
+    <equality>
+            <distance distance="0" solimp="0.99 0.99 0.01" solref="0.01 1" geom1="G8_8" geom2="grip_geom" />
+            <!--<distance distance="0" solref="0.1 0.1" geom1="G8_8" geom2="mocap" /> -->
+            <!--<distance distance="0" solref="-10000 -0.1" geom1="G8_8" geom2="mocap" /> -->
+
+    </equality>
+
+    
+
+</mujoco>
