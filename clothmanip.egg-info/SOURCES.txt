@@ -1,7 +1,0 @@
-LICENSE
-README.md
-setup.py
-clothmanip.egg-info/PKG-INFO
-clothmanip.egg-info/SOURCES.txt
-clothmanip.egg-info/dependency_links.txt
-clothmanip.egg-info/top_level.txt

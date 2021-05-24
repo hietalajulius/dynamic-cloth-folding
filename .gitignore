@@ -12,3 +12,4 @@ traj_opt/.ipynb_checkpoints
 *MUJOCO_LOG.TXT
 *__pycache__
 misc
+*egg-info
