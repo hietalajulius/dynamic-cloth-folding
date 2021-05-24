@@ -15,11 +15,11 @@ import torch
 import cProfile
 from rlkit.envs.wrappers import SubprocVecEnv
 from gym.logger import set_level
-from utils import get_variant, argsparser, get_randomized_env
+from clothmanip.utils.utils import get_variant, argsparser, get_randomized_env
 import copy
-from gym.envs.robotics import reward_calculation
+from clothmanip.utils import reward_calculation
 import numpy as np
-from envs.cloth import ClothEnvPickled as ClothEnv
+from clothmanip.envs.cloth import ClothEnvPickled as ClothEnv
 from rlkit.envs.wrappers import NormalizedBoxEnv
 import os
 from rlkit.core import logger

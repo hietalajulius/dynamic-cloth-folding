@@ -1,7 +1,7 @@
 import cma
 import numpy as np
 from rlkit.envs.wrappers import SubprocVecEnv
-from envs.cloth import ClothEnvPickled as ClothEnv
+from clothmanip.envs.cloth import ClothEnvPickled as ClothEnv
 from rlkit.envs.wrappers import NormalizedBoxEnv
 import argparse
 import json
@@ -51,40 +51,51 @@ default_model_kwargs = dict(
 )
 
 model_kwarg_ranges = dict(
-            joint_solimp_low = (0.98,0.9999),
-            joint_solimp_high = (0.99,0.9999),
+            joint_solimp_low = (0.97,0.9999),
+            joint_solimp_high = (0.97,0.9999),
             joint_solimp_width = (0.01, 0.03),
             joint_solref_timeconst  = (0.01, 0.05),
-            joint_solref_dampratio = (0.99, 1.01555555555556),
+            joint_solref_dampratio = (0.98, 1.01555555555556),
 
-            tendon_shear_solimp_low = (0.98,0.9999),
-            tendon_shear_solimp_high = (0.99,0.9999),
+            tendon_shear_solimp_low = (0.97,0.9999),
+            tendon_shear_solimp_high = (0.97,0.9999),
             tendon_shear_solimp_width = (0.01, 0.03),
             tendon_shear_solref_timeconst  = (0.01, 0.05),
-            tendon_shear_solref_dampratio = (0.99, 1.01555555555556),
+            tendon_shear_solref_dampratio = (0.98, 1.01555555555556),
 
-            tendon_main_solimp_low = (0.98,0.9999),
-            tendon_main_solimp_high = (0.99,0.9999),
+            tendon_main_solimp_low = (0.97,0.9999),
+            tendon_main_solimp_high = (0.97,0.9999),
             tendon_main_solimp_width = (0.01, 0.03),
             tendon_main_solref_timeconst  = (0.01, 0.05),
-            tendon_main_solref_dampratio = (0.99, 1.01555555555556),
+            tendon_main_solref_dampratio = (0.98, 1.01555555555556),
 
-            geom_solimp_low = (0.98,0.9999),
-            geom_solimp_high = (0.99,0.9999),
+            geom_solimp_low = (0.97,0.9999),
+            geom_solimp_high = (0.97,0.9999),
             geom_solimp_width = (0.01, 0.03),
             geom_solref_timeconst  = (0.01, 0.05),
-            geom_solref_dampratio = (0.99, 1.01555555555556),
+            geom_solref_dampratio = (0.98, 1.01555555555556),
 
-            grasp_solimp_low = (0.99,0.9999),
-            grasp_solimp_high = (0.99,0.9999),
+            grasp_solimp_low = (0.9999,0.9999),
+            grasp_solimp_high = (0.9999,0.9999),
             grasp_solimp_width = (0.01, 0.02),
             grasp_solref_timeconst  = (0.01, 0.02),
-            grasp_solref_dampratio = (0.99, 1.01555555555556),
+            grasp_solref_dampratio = (0.98, 1.01555555555556),
 
             geom_size = (0.008, 0.011),
-            friction = (0.05, 1),
+            friction = (0.01, 10),
             impratio = (1, 40)
         )
+
+def transform_cma_values_to_kwargs(values):
+    ranges = list(model_kwarg_ranges.values())
+    kwargs = copy.deepcopy(default_model_kwargs)
+    for idx, key in enumerate(default_model_kwargs.keys()):
+        a = ranges[idx][0]
+        b = ranges[idx][1]
+        x = values[idx]
+        kwargs[key] = a + (b-a) * (1 - np.cos(np.pi * x / 10)) / 2
+
+    return kwargs
 
 
 def get_objective_function(variant, input_folder, output_folder):
@@ -131,6 +142,7 @@ def get_objective_function(variant, input_folder, output_folder):
         vec_env.reset()
         error = 0
         offsets = [dict() for _ in range(num_trajs)]
+        all_images = [[] for _ in range(num_trajs)]
         for step_idx in range(max_traj_len):
             actions = np.zeros((num_trajs,3))
             real_corners = []
@@ -143,17 +155,17 @@ def get_objective_function(variant, input_folder, output_folder):
                 real_corners.append({"0": step["0"], "1": step["1"], "2": step["2"], "3": step["3"]})
             o, _, _, infos = vec_env.step(actions)
 
-            if variant["cma_evals"] % num_trajs == 0:
-                print("Writing images")
-                for t in range(num_trajs):
-                    data = o['image'][t].copy().reshape((-1, 100, 100))
-                    for i, image in enumerate(data):
-                        reshaped_image = image.reshape(100,100, 1)
-                        cv2.imwrite(f'{output_folder}/images/{t}/{step_idx}.png', reshaped_image*255)
+            for t in range(num_trajs):
+                data = o['image'][t].copy().reshape((-1, 100, 100))
+                for i, image in enumerate(data):
+                    reshaped_image = image.reshape(100,100, 1)
+                    all_images[t].append(reshaped_image)
+
+                        
 
 
             corner_errors = 0
-            print("Step", step_idx)
+            #print("Step", step_idx)
             for info_idx, info in enumerate(infos):
                 sim_corner_indices = np.array(info['corner_indices'])
                 sim_corner_positions = np.array(info['corner_positions'])
@@ -178,30 +190,47 @@ def get_objective_function(variant, input_folder, output_folder):
                     else:
                         corner_error = 0
                     corner_errors += corner_error
+
             corner_errors /= num_trajs
+            corner_errors /= max_traj_len
+            corner_errors *= 100
             error += corner_errors
 
-            print("Corner errors", corner_errors, "Total error", error)
+            #print("Corner errors", corner_errors, "Total error", error)
             
-        print("Total error", error)
+        #print("Total error", error)
 
         vec_env.close()
-        variant["cma_evals"] += 1
+
+        if error < variant["lowest_error"]:
+            variant["lowest_error"] = error
+            for t_idx, images in enumerate(all_images):
+                for image_idx, image in enumerate(images):
+                    cv2.imwrite(f'{output_folder}/images/{t_idx}/{image_idx}.png', image*255)
+            print(f"New lowest error {error}, wrote images")
         return error
 
 
     return cma_objective
 
 def main(variant, input_folder, output_folder):
-
+    variant["lowest_error"] = np.inf
     cma_options = cma.evolution_strategy.CMAOptions()
     cma_options['maxiter'] = 10
     cma_options['maxfevals'] = 100*len(list(default_model_kwargs.values()))
-    es = cma.CMAEvolutionStrategy(list(default_model_kwargs.values()), 2)
+    es = cma.CMAEvolutionStrategy(np.ones(28)*5, 2)
     cma_objective = get_objective_function(variant, input_folder, output_folder)
-    es.optimize(cma_objective)
-    es.result_pretty()
 
+    while not es.stop():
+        solutions = es.ask()
+        es.tell(solutions, [cma_objective(x) for x in solutions])
+        es.disp()
+        es.result_pretty()
+        xbest = es.result[0]
+        print("Best kwargs so far", transform_cma_values_to_kwargs(xbest))
+        print("\n")
+
+    es.result_pretty()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Parser")
