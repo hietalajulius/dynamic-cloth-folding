@@ -12,6 +12,7 @@ def main(variant):
     env.reset()
     for i, row in enumerate(example_trajectory):
         action = row[:3]/variant["env_kwargs"]["output_max"]
+        action = np.zeros(3)
         o, _, _, _ = env.step(action)
 
         corner_image, full_image = env.capture_image()

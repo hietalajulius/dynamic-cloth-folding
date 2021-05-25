@@ -467,6 +467,15 @@ class ClothEnv(object):
             positions[site] = self.sim.data.get_site_xpos(site).copy()
         return positions
 
+    def get_cloth_edge_positions_W(self):
+        positions = dict()
+        for i in range(9):
+            for j in range(9):
+                if (i in [0,8]) or (j in [0,8]):
+                    site_name = f"S{i}_{j}"
+                    positions[site_name] = self.sim.data.get_site_xpos(site_name).copy()
+        return positions
+
     def get_cloth_velocity(self):
         velocities = dict()
         for site in self.cloth_site_names:
@@ -610,6 +619,19 @@ class ClothEnv(object):
                 corner_indices.append(self.corner_index_mapping[site])
         return corners, corner_indices
 
+    def get_edge_image_positions(self, w, h, camera_matrix, camera_transformation):
+        corners = []
+        corner_indices = []
+        cloth_edge_positions = self.get_cloth_edge_positions_W()
+        for site in cloth_edge_positions.keys():
+            corner_in_image = np.ones(4)
+            corner_in_image[:3] = cloth_edge_positions[site]
+            corner = (camera_matrix @ camera_transformation) @ corner_in_image
+            u_c, v_c, _ = corner/corner[2]
+            corner = [w-u_c, v_c]
+            corners.append(corner)
+        return corners
+
     def get_camera_matrices(self, camera_name, w, h):
         camera_id = self.sim.model.camera_name2id(camera_name)        
         fovy = self.sim.model.cam_fovy[camera_id]
@@ -649,12 +671,16 @@ class ClothEnv(object):
         u_ee, v_ee, _ = ee/ee[2]
         cv2.circle(train_data, (w_train-int(u_ee), int(v_ee)), 10, (0, 0, 0), -1)
 
-        corners, _ = self.get_corner_image_positions(w_train, h_train, train_camera_matrix, train_camera_transformation)
-
+        #corners, _ = self.get_corner_image_positions(w_train, h_train, train_camera_matrix, train_camera_transformation)
+        corners = self.get_edge_image_positions(w_train, h_train, train_camera_matrix, train_camera_transformation)
+        #print("corns", corners)
+        print("corners")
         for corner in corners:
             u = int(corner[0])
             v = int(corner[1])
+            print("{", u, ",",v,"},")
             cv2.circle(train_data, (u, v), 8, (0, 0, 255), -1)
+        print("\n")
         
         if not aux_output is None:
             for aux_idx in range(int(aux_output.flatten().shape[0]/2)):
