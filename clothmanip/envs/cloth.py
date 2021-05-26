@@ -676,8 +676,8 @@ class ClothEnv(object):
         #print("corns", corners)
         print("corners")
         for corner in corners:
-            u = int(corner[0])
-            v = int(corner[1])
+            u = int(corner[0]/10)
+            v = int(corner[1]/10) #TODO FIX BACK
             print("{", u, ",",v,"},")
             cv2.circle(train_data, (u, v), 8, (0, 0, 255), -1)
         print("\n")
