@@ -124,7 +124,7 @@
     <worldbody>
         <geom name="ground" size="5 5 10" type="plane"/>
         <camera name="frontview" pos="0.35 -0.1 0.25" quat="0.56 0.43 0.43 0.56"/>
-        <camera name="train_camera" target="lookatbody" pos="0.505497 -0.6 1.03" fovy="14" mode="targetbodycom"/>
+        <camera name="train_camera" target="lookatbody" pos="0 -0.312 0.455" fovy="46" mode="targetbodycom"/>
         <camera name="eval_camera" target="tabletop" pos="-0.45 -1 1" mode="targetbodycom"/>
         <camera name="clothview" pos="0.3 -0.15 0.42" quat="0.653 0.271 0.271 0.653"/>
         <camera name="clothview2" pos="0.08 -0.16 0.6" quat="0.7071 0 0 0.7071"/>
