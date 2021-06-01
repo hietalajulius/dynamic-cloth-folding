@@ -3,19 +3,20 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
-from utils import calculate_ate, calculate_cosine_distances, deltas_from_positions
+from clothmanip.utils.utils import calculate_ate, calculate_cosine_distances, deltas_from_positions
 
 def main(real_folder, sim_folder):
 
-    sim_trajectory = np.genfromtxt(f"{sim_folder}/sim_trajectory.csv", delimiter=',')
-    sim_ee_pos = sim_trajectory[:, 9:12]
-    sim_ee_desired_pos = sim_trajectory[:, 0:3]
-    sim_ee_desired_ctrl = sim_trajectory[:, 3:6]
+    #sim_trajectory = np.genfromtxt(f"{sim_folder}/sim_trajectory.csv", delimiter=',')
+    #sim_ee_pos = sim_trajectory[:, 9:12]
 
-    sim_ee_pos_deltas = sim_trajectory[:, 12:15]
-    sim_ee_ctrl_deltas = deltas_from_positions(sim_ee_desired_pos)
+    sim_ee_pos = np.genfromtxt(f"{sim_folder}/ee_positions.csv", delimiter=',')
+    #sim_ee_desired_pos = sim_trajectory[:, 0:3]
+    #sim_ee_desired_ctrl = sim_trajectory[:, 3:6]
 
-    '''
+    #sim_ee_pos_deltas = sim_trajectory[:, 12:15]
+    #sim_ee_ctrl_deltas = deltas_from_positions(sim_ee_desired_pos)
+
     real_trajectory = np.genfromtxt(f"{real_folder}/real_trajectory.csv", delimiter=',')
     real_ee_pos = real_trajectory[:, 9:12]
     real_ee_desired_pos = real_trajectory[:, 0:3]
@@ -23,7 +24,7 @@ def main(real_folder, sim_folder):
 
     real_ee_pos_deltas = real_trajectory[:, 12:15]
     real_ee_ctrl_deltas = deltas_from_positions(real_ee_desired_pos)
-    '''
+
 
 
     fig = plt.figure()
@@ -45,17 +46,13 @@ def main(real_folder, sim_folder):
 
     ax.plot(sim_ee_pos[:, 0], sim_ee_pos[:, 1], sim_ee_pos[:,
                                                             2], linewidth=1, label="sim")
-                                                    
-    ax.plot(sim_ee_desired_pos[:, 0], sim_ee_desired_pos[:, 1], sim_ee_desired_pos[:,
-                                                            2], linewidth=1, label="sim desired")
+                                                
     
-    '''
     ax.plot(real_ee_pos[:, 0], real_ee_pos[:, 1], real_ee_pos[:,
                                                             2], linewidth=1, label="real")
     ax.plot(real_ee_desired_pos[:, 0], real_ee_desired_pos[:, 1], real_ee_desired_pos[:,
-                                                      2], linewidth=1, label="real desired")
+                                                      2], linewidth=1, label="desired")
     '''
-
     text_data = sim_ee_ctrl_deltas
     text_positions = sim_ee_desired_pos
     metric = calculate_cosine_distances(text_data)
@@ -65,6 +62,7 @@ def main(real_folder, sim_folder):
 
     print("SIM ATE", calculate_ate(sim_ee_pos, sim_ee_desired_pos))
     #print("REAL ATE", calculate_ate(real_ee_pos, real_ee_desired_pos))
+    '''
 
 
 

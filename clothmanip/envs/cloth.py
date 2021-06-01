@@ -207,7 +207,7 @@ class ClothEnv(object):
 
     def setup_initial_state_and_sim(self):
         template_renderer = TemplateRenderer()
-        if self.initial_xml_dump:
+        if self.initial_xml_dump and not os.path.exists(f"{self.save_folder}/mujoco_template.xml"):
             template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", **self.mujoco_model_kwargs)
         loaded = False
         while not loaded:
