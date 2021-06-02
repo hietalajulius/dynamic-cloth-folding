@@ -14,6 +14,8 @@ from robosuite.wrappers import DomainRandomizationWrapper
 
 from scipy import spatial
 import sys
+from clothmanip.utils import mujoco_model_kwargs
+from pathlib import Path
 
 
 COLOR_ARGS = {
@@ -116,6 +118,7 @@ def argsparser():
     parser.add_argument('--train_steps', default=1000, type=int)
     parser.add_argument('--num_epochs', default=1000, type=int)
     parser.add_argument('--save_policy_every_epoch', default=1, type=int)
+    parser.add_argument('--save_images_every_epoch', default=5, type=int)
     parser.add_argument('--num_cycles', default=20, type=int)
     parser.add_argument('--min_expl_steps', type=int, default=0)
     parser.add_argument('--num_eval_rollouts', type=int, default=20)
@@ -132,9 +135,9 @@ def argsparser():
     parser.add_argument('--her_percent', default=0.8, type=float)
     parser.add_argument('--buffer_size', default=1E6, type=int)
     parser.add_argument('--use_demos', required=True, type=int)
-    parser.add_argument('--demo_path', type=str)
     parser.add_argument('--num_demos', type=int, default=0)
     parser.add_argument('--num_demoers', type=int, default=0)
+    parser.add_argument('--demo_coef', type=float, default=1.0)
 
 
     # Collection
@@ -151,7 +154,8 @@ def argsparser():
     parser.add_argument('--image_obs_noise_mean', type=float, default=1.0)
     parser.add_argument('--image_obs_noise_std', type=float, default=0.0)
 
-    parser.add_argument('--robot_observation', choices=["all", "joints", "ee"], default="all")
+    parser.add_argument('--cloth_type', choices=["bath", "kitchen", "wipe"], required=True)
+    parser.add_argument('--robot_observation', choices=["all", "joints", "ee", "ctrl"], default="all")
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
     parser.add_argument('--clip_type', type=str, default="none")
@@ -164,9 +168,6 @@ def argsparser():
     parser.add_argument('--image_size', type=int, default=100)
     parser.add_argument('--depth_frames', type=int, default=0)
     parser.add_argument('--frame_stack_size', type=int, default=1)
-    parser.add_argument('--randomize_params', type=int, default=0)
-    parser.add_argument('--randomize_geoms', type=int, default=0)
-    parser.add_argument('--uniform_jnt_tend', type=int, default=1)
     parser.add_argument('--sparse_dense', type=int, default=0)
     parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.01))
     parser.add_argument('--success_reward', type=int, required=True)
@@ -184,6 +185,9 @@ def get_variant(args):
     for arg in sys.argv:
         arg_str += arg
         arg_str += " "
+
+    utils_dir = Path(os.path.abspath(__file__))
+    demo_path = os.path.join(utils_dir.parent.parent.parent.absolute(), "experiments", f"executable_deltas_{args.task}_{args.cloth_type}.csv")
 
     variant = dict(
         algorithm="SAC",
@@ -204,9 +208,10 @@ def get_variant(args):
         algorithm_kwargs=dict(),
         eval_folder=args.eval_folder,
         use_demos=bool(args.use_demos),
-        demo_path= args.demo_path,
+        demo_path=demo_path,
         num_demos=args.num_demos,
-        num_demoers=args.num_demoers
+        num_demoers=args.num_demoers,
+        demo_coef=args.demo_coef
     )
     variant['random_seed'] = args.seed
     variant['version'] = args.title
@@ -214,6 +219,7 @@ def get_variant(args):
     variant['num_processes'] = int(args.num_processes)
     variant['log_tabular_only'] = bool(args.log_tabular_only)
     variant['legacy_cnn'] = bool(args.legacy_cnn)
+    variant['save_images_every_epoch'] = args.save_images_every_epoch
 
     variant['algorithm_kwargs'] = dict(
         num_epochs=args.num_epochs,
@@ -234,79 +240,17 @@ def get_variant(args):
         fraction_goals_rollout_goals=1 - args.her_percent
     )
 
-
-    model_kwarg_ranges = dict(
-            joint_solimp_low = (0.98,0.9999),
-            joint_solimp_high = (0.99,0.9999),
-            joint_solimp_width = (0.01, 0.03),
-            joint_solref_timeconst  = (0.01, 0.05),
-            joint_solref_dampratio = (0.99, 1.01555555555556),
-
-            tendon_shear_solimp_low = (0.98,0.9999),
-            tendon_shear_solimp_high = (0.99,0.9999),
-            tendon_shear_solimp_width = (0.01, 0.03),
-            tendon_shear_solref_timeconst  = (0.01, 0.05),
-            tendon_shear_solref_dampratio = (0.99, 1.01555555555556),
-
-            tendon_main_solimp_low = (0.98,0.9999),
-            tendon_main_solimp_high = (0.99,0.9999),
-            tendon_main_solimp_width = (0.01, 0.03),
-            tendon_main_solref_timeconst  = (0.01, 0.05),
-            tendon_main_solref_dampratio = (0.99, 1.01555555555556),
-
-            geom_solimp_low = (0.98,0.9999),
-            geom_solimp_high = (0.99,0.9999),
-            geom_solimp_width = (0.01, 0.03),
-            geom_solref_timeconst  = (0.01, 0.05),
-            geom_solref_dampratio = (0.99, 1.01555555555556),
-
-            grasp_solimp_low = (0.98,0.9999),
-            grasp_solimp_high = (0.99,0.9999),
-            grasp_solimp_width = (0.01, 0.03),
-            grasp_solref_timeconst  = (0.01, 0.05),
-            grasp_solref_dampratio = (0.99, 1.01555555555556),
-
-            geom_size = (0.008, 0.011),
-            friction = (0.05, 1),
-            cone_type = ("pyramidal", "elliptic"),
-            impratio = (1, 20)
-        )
+    if args.cloth_type == "bath":
+        cloth_specific_kwargs = mujoco_model_kwargs.BATH_MODEL_KWARGS
+    elif args.cloth_type == "kitchen":
+        cloth_specific_kwargs = mujoco_model_kwargs.KITCHEN_MODEL_KWARGS
+    elif args.cloth_type == "wipe":
+        cloth_specific_kwargs = mujoco_model_kwargs.WIPE_MODEL_KWARGS
+    else:
+        raise("Bad cloth type provided")
 
     model_kwargs = dict(
-            joint_solimp_low = 0.986633333333333,
-            joint_solimp_high = 0.9911,
-            joint_solimp_width = 0.03,
-            joint_solref_timeconst  = 0.03,
-            joint_solref_dampratio = 1.01555555555556,
-
-            tendon_shear_solimp_low = 0.98,
-            tendon_shear_solimp_high = 0.99,
-            tendon_shear_solimp_width = 0.03,
-            tendon_shear_solref_timeconst  = 0.05,
-            tendon_shear_solref_dampratio = 1.01555555555556,
-
-            tendon_main_solimp_low = 0.993266666666667,
-            tendon_main_solimp_high = 0.9966,
-            tendon_main_solimp_width = 0.004222222222222,
-            tendon_main_solref_timeconst  = 0.01,
-            tendon_main_solref_dampratio = 0.98,
-
-            geom_solimp_low = 0.984422222222222,
-            geom_solimp_high = 0.9922,
-            geom_solimp_width = 0.007444444444444,
-            geom_solref_timeconst  = 0.005,
-            geom_solref_dampratio = 1.01555555555556,
-
-            grasp_solimp_low = 0.99,
-            grasp_solimp_high = 0.99,
-            grasp_solimp_width = 0.01,
-            grasp_solref_timeconst  = 0.01,
-            grasp_solref_dampratio = 1,
-
-            geom_size = 0.011,
-            friction = 0.05,
-            cone_type = "pyramidal",
-            impratio = 20,
+            **cloth_specific_kwargs,
             timestep=args.timestep,
             domain_randomization=bool(args.domain_randomization)
         )
@@ -314,7 +258,6 @@ def get_variant(args):
     
 
     variant['env_kwargs'] = dict(
-        mujoco_model_kwarg_ranges=model_kwarg_ranges,
         mujoco_model_kwargs=model_kwargs,
         robot_observation=args.robot_observation,
         control_frequency=args.control_frequency,
@@ -337,9 +280,6 @@ def get_variant(args):
         constraints=task_definitions.constraints[args.task],
         pixels=bool(args.image_training),
         goal_noise_range=tuple(args.goal_noise_range),
-        randomize_params=bool(args.randomize_params),
-        randomize_geoms=bool(args.randomize_geoms),
-        uniform_jnt_tend=bool(args.uniform_jnt_tend),
         num_eval_rollouts=args.num_eval_rollouts,
         image_obs_noise_mean=args.image_obs_noise_mean,
         image_obs_noise_std=args.image_obs_noise_std,

@@ -37,9 +37,6 @@ class ClothEnv(object):
         depth_frames,
         frame_stack_size,
         output_max,
-        randomize_params,
-        randomize_geoms,
-        uniform_jnt_tend,
         constant_goal,
         constraints,
         success_reward,
@@ -57,23 +54,24 @@ class ClothEnv(object):
         num_eval_rollouts,
         save_folder,
         mujoco_model_kwargs,
-        mujoco_model_kwarg_ranges,
         robot_observation,
         image_obs_noise_mean=1,
         image_obs_noise_std=0,
         initial_xml_dump=False,
-        has_viewer=False
+        has_viewer=False,
+        cloth_parameter_randomization=False
     ):  
         assert clip_type == "sphere" or clip_type == "spike" or clip_type == "none"
 
         self.mujoco_model_kwargs = mujoco_model_kwargs
         self.mujoco_model_numerical_values = []
-        for param in self.mujoco_model_kwargs:
-            value = self.mujoco_model_kwargs[param]
-            if type(value) == float:
-                self.mujoco_model_numerical_values.append(value)
-
-        self.mujoco_model_kwarg_ranges = mujoco_model_kwarg_ranges
+        if cloth_parameter_randomization:
+            for param in self.mujoco_model_kwargs:
+                value = self.mujoco_model_kwargs[param]
+                if type(value) == float:
+                    self.mujoco_model_numerical_values.append(value)
+        else:
+            self.mujoco_model_numerical_values.append(0)
 
         self.save_folder = save_folder
         self.initial_xml_dump = initial_xml_dump
@@ -85,7 +83,7 @@ class ClothEnv(object):
         self.clip_type = clip_type
         self.kp = kp
         self.damping_ratio = damping_ratio
-        self.max_advance = output_max
+        self.output_max = output_max
         self.success_reward = success_reward
         self.fail_reward = fail_reward
         self.extra_reward = extra_reward
@@ -96,9 +94,6 @@ class ClothEnv(object):
         self.depth_frames = depth_frames
         self.frame_stack_size = frame_stack_size
         self.image_size = (100, 100)
-        self.randomize_geoms = randomize_geoms
-        self.randomize_params = randomize_params
-        self.uniform_jnt_tend = uniform_jnt_tend
         self.constant_goal = constant_goal
         self.has_viewer = has_viewer
         self.max_episode_steps = max_episode_steps
@@ -282,7 +277,7 @@ class ClothEnv(object):
 
     def step(self, action):
         raw_action = action.copy()
-        action = raw_action*self.max_advance
+        action = raw_action*self.output_max
         if self.pixels:
             image_obs_substep_idx_mean = self.image_obs_noise_mean * (self.substeps-1)
             image_obs_substep_idx = int(np.random.normal(image_obs_substep_idx_mean, self.image_obs_noise_std))
@@ -328,12 +323,12 @@ class ClothEnv(object):
         reward = task_reward + control_penalty
 
         if is_success and self.episode_success_steps == 0:
-            '''
+            
             print("Sim success",
                 np.round(reward, decimals=3),
                 np.round(task_reward, decimals=3),
                 np.round(control_penalty, decimals=3))
-            '''
+            
 
         camera_matrix, camera_transformation = self.get_camera_matrices(self.train_camera, self.image_size[0], self.image_size[1])
         corners_in_image, corner_indices = self.get_corner_image_positions(self.image_size[0], self.image_size[0], camera_matrix, camera_transformation)
@@ -347,7 +342,7 @@ class ClothEnv(object):
 
         info = {
                 "task_reward": task_reward,
-                "delta_size": np.linalg.norm(raw_action*self.max_advance),
+                "delta_size": np.linalg.norm(raw_action*self.output_max),
                 "cosine_distance" : cosine_distance,
                 "delta_size_penalty": delta_size_penalty,
                 "ate_penalty": ate_penalty,
@@ -518,14 +513,15 @@ class ClothEnv(object):
 
         desired_pos_ctrl_I = self.desired_pos_ctrl_W - self.relative_origin
 
-        robot_observation = desired_pos_ctrl_I
 
         if self.robot_observation == "all":
-            robot_observation = np.concatenate([self.get_ee_position_W(), self.get_joint_positions(), self.get_ee_velocity(), self.get_joint_velocities(), robot_observation])
+            robot_observation = np.concatenate([self.get_ee_position_I(), self.get_joint_positions(), self.get_ee_velocity(), self.get_joint_velocities(), desired_pos_ctrl_I])
         elif self.robot_observation == "joint":
-            robot_observation = np.concatenate([self.get_joint_positions(), self.get_joint_velocities(), robot_observation])
+            robot_observation = np.concatenate([self.get_joint_positions(), self.get_joint_velocities(), desired_pos_ctrl_I])
         elif self.robot_observation == "ee":
-            robot_observation = np.concatenate([self.get_ee_position_W(), self.get_ee_velocity(), robot_observation])
+            robot_observation = np.concatenate([self.get_ee_position_I(), self.get_ee_velocity(), desired_pos_ctrl_I])
+        elif self.robot_observation == "ctrl":
+            robot_observation = self.previous_delta_vector
 
 
         full_observation = {
@@ -671,16 +667,16 @@ class ClothEnv(object):
         u_ee, v_ee, _ = ee/ee[2]
         cv2.circle(train_data, (w_train-int(u_ee), int(v_ee)), 10, (0, 0, 0), -1)
 
-        #corners, _ = self.get_corner_image_positions(w_train, h_train, train_camera_matrix, train_camera_transformation)
-        corners = self.get_edge_image_positions(w_train, h_train, train_camera_matrix, train_camera_transformation)
+        corners, _ = self.get_corner_image_positions(w_train, h_train, train_camera_matrix, train_camera_transformation)
+        #corners = self.get_edge_image_positions(w_train, h_train, train_camera_matrix, train_camera_transformation)
         #print("corns", corners)
-        print("corners")
+        #print("corners")
         for corner in corners:
             u = int(corner[0])
-            v = int(corner[1]) #TODO FIX BACK
-            print("{", u, ",",v,"},")
+            v = int(corner[1]) 
+            #print("{", u, ",",v,"},")
             cv2.circle(train_data, (u, v), 8, (0, 0, 255), -1)
-        print("\n")
+        #print("\n")
         
         if not aux_output is None:
             for aux_idx in range(int(aux_output.flatten().shape[0]/2)):

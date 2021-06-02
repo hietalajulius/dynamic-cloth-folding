@@ -121,6 +121,7 @@ def experiment(variant):
     eval_path_collector = EvalKeyPathCollector(
         eval_env,
         eval_policy,
+        save_images_every_epoch=variant['save_images_every_epoch'],
         observation_key=path_collector_observation_key,
         desired_goal_key=desired_goal_key,
         save_folder=variant['save_folder'],
@@ -146,6 +147,7 @@ def experiment(variant):
             eval_env,
             policy,
             use_demos=True,
+            demo_coef=variant['demo_coef'],
             demo_path=variant['demo_path'],
             save_folder=variant['save_folder'],
             observation_key=path_collector_observation_key,
@@ -153,42 +155,32 @@ def experiment(variant):
             **variant['path_collector_kwargs']
         )
 
-    if variant['num_processes'] > 1:
-        print("Vectorized path collection")
-
-        def make_env():
-            env = ClothEnv(**variant['env_kwargs'], save_folder=variant['save_folder'], has_viewer=variant['image_training'])
-            env = NormalizedBoxEnv(env)
+    def make_env():
+        env = ClothEnv(**variant['env_kwargs'], save_folder=variant['save_folder'], has_viewer=variant['image_training'])
+        env = NormalizedBoxEnv(env)
+        
+        if variant['domain_randomization']:
+            env = get_randomized_env(env)
             
-            if variant['domain_randomization']:
-                env = get_randomized_env(env)
-                
-            
-            return env
+        
+        return env
 
-        env_fns = [make_env for _ in range(variant['num_processes'])]
-        vec_env = SubprocVecEnv(env_fns)
+    env_fns = [make_env for _ in range(variant['num_processes'])]
+    vec_env = SubprocVecEnv(env_fns)
 
-        expl_path_collector = VectorizedKeyPathCollector(
-            vec_env,
-            policy,
-            processes=variant['num_processes'],
-            observation_key=path_collector_observation_key,
-            desired_goal_key=desired_goal_key,
-            use_demos=variant['use_demos'],
-            demo_path=variant['demo_path'],
-            num_demoers=variant['num_demoers'],
-            **variant['path_collector_kwargs'],
-        )
-    else:
-        print("Single env path collection")
-        expl_path_collector = KeyPathCollector(
-            eval_env,
-            policy,
-            observation_key=path_collector_observation_key,
-            desired_goal_key=desired_goal_key,
-            **variant['path_collector_kwargs']
-        )
+    expl_path_collector = VectorizedKeyPathCollector(
+        vec_env,
+        policy,
+        output_max=variant["env_kwargs"]["output_max"],
+        demo_coef=variant['demo_coef'],
+        processes=variant['num_processes'],
+        observation_key=path_collector_observation_key,
+        desired_goal_key=desired_goal_key,
+        use_demos=variant['use_demos'],
+        demo_path=variant['demo_path'],
+        num_demoers=variant['num_demoers'],
+        **variant['path_collector_kwargs'],
+    )
 
     task_reward_function = reward_calculation.get_task_reward_function(
         variant['env_kwargs']['constraints'], 3, variant['env_kwargs']['sparse_dense'], variant['env_kwargs']['success_reward'], variant['env_kwargs']['fail_reward'], variant['env_kwargs']['extra_reward'])
