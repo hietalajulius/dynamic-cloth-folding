@@ -169,7 +169,7 @@ def argsparser():
     parser.add_argument('--depth_frames', type=int, default=0)
     parser.add_argument('--frame_stack_size', type=int, default=1)
     parser.add_argument('--sparse_dense', type=int, default=0)
-    parser.add_argument('--goal_noise_range', type=tuple, default=(0, 0.01))
+    parser.add_argument('--goal_noise', type=float, default=0.01)
     parser.add_argument('--success_reward', type=int, required=True)
     parser.add_argument('--fail_reward', type=int, required=True)
     parser.add_argument('--extra_reward', type=int, required=True)
@@ -279,7 +279,7 @@ def get_variant(args):
         sparse_dense=bool(args.sparse_dense),
         constraints=task_definitions.constraints[args.task],
         pixels=bool(args.image_training),
-        goal_noise_range=tuple(args.goal_noise_range),
+        goal_noise_range=tuple(0, args.goal_noise),
         num_eval_rollouts=args.num_eval_rollouts,
         image_obs_noise_mean=args.image_obs_noise_mean,
         image_obs_noise_std=args.image_obs_noise_std,
