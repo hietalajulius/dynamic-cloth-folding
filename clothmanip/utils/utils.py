@@ -279,7 +279,7 @@ def get_variant(args):
         sparse_dense=bool(args.sparse_dense),
         constraints=task_definitions.constraints[args.task],
         pixels=bool(args.image_training),
-        goal_noise_range=(0, args.goal_noise),
+        goal_noise_range=(0.0, args.goal_noise),
         num_eval_rollouts=args.num_eval_rollouts,
         image_obs_noise_mean=args.image_obs_noise_mean,
         image_obs_noise_std=args.image_obs_noise_std,
