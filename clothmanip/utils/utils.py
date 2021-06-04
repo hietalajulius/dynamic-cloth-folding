@@ -187,7 +187,7 @@ def get_variant(args):
         arg_str += " "
 
     utils_dir = Path(os.path.abspath(__file__))
-    demo_path = os.path.join(utils_dir.parent.parent.parent.absolute(), "experiments", f"executable_deltas_{args.task}_{args.cloth_type}.csv")
+    demo_path = os.path.join(utils_dir.parent.parent.parent.absolute(), "experiments", f'executable_deltas_{args.task.split("_")[0]}_{args.cloth_type}.csv')
 
     variant = dict(
         algorithm="SAC",
