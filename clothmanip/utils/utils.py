@@ -154,6 +154,7 @@ def argsparser():
     parser.add_argument('--image_obs_noise_mean', type=float, default=1.0)
     parser.add_argument('--image_obs_noise_std', type=float, default=0.0)
 
+    parser.add_argument('--camera_type', choices=["up", "side"], default="up")
     parser.add_argument('--cloth_type', choices=["bath", "kitchen", "wipe"], required=True)
     parser.add_argument('--robot_observation', choices=["all", "joints", "ee", "ctrl"], default="all")
     parser.add_argument('--seed', type=int, default=0)
@@ -258,6 +259,7 @@ def get_variant(args):
     
 
     variant['env_kwargs'] = dict(
+        camera_type=args.camera_type,
         mujoco_model_kwargs=model_kwargs,
         robot_observation=args.robot_observation,
         control_frequency=args.control_frequency,

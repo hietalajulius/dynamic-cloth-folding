@@ -44,11 +44,11 @@
         <geom name="ground" pos="0 0 0" size="5 5 10" type="plane" contype="1" conaffinity="1" />
 
         <body name="tabletop" pos="0.5 0 0">
-            <geom name="la_tabla_col" type="box" pos="0 0 0" size="0.3 0.6 0.127" group="0" />
+            <geom name="la_tabla_col" type="box" pos="0 0 0" size="0.3 0.6 0.113" group="0" />
             {% if domain_randomization %}
-                <geom name="la_tabla_vis" type="box" material="floorplane" pos="0 0 0" size="0.3 0.6 0.127" group="1" />
+                <geom name="la_tabla_vis" type="box" material="floorplane" pos="0 0 0" size="0.3 0.6 0.113" group="1" />
             {% else %}
-                <geom name="la_tabla_vis" type="box" rgba="1 1 1 1" pos="0 0 0" size="0.3 0.6 0.127" group="1" />
+                <geom name="la_tabla_vis" type="box" rgba="0.9 0.9 0.9 1" pos="0 0 0" size="0.3 0.6 0.113" group="1" />
             {% endif %}
         </body>
 
@@ -56,8 +56,8 @@
             <geom name="measuring_stick_vis" type="box" rgba="0 0 0 1" pos="0 0.02 0.2" size="0.1 0.015 0.015" group="1" />
         </body> -->
 
-            <body euler="0 0 0" pos="0.63266394 0.14622071 0.13555208">
-                <composite type="grid" count="9 9 1" spacing="0.024" offset="-0.1 -0.1 0"  >
+            <body euler="0 0 0" pos="0.62536418 0.13844214 0.13">
+                <composite type="grid" count="9 9 1" spacing="0.024" offset="{{ -geom_size*8.5 }} {{ -geom_size*8.5 }} 0"  >
                     <joint kind="main" solimpfix="{{joint_solimp_low}} {{joint_solimp_high}} {{joint_solimp_width}}" solreffix="{{joint_solref_timeconst}} {{joint_solref_dampratio}}" />
                     <tendon solimpfix="{{tendon_shear_solimp_low}} {{tendon_shear_solimp_high}} {{tendon_shear_solimp_width}}" solreffix="{{tendon_shear_solref_timeconst}} {{tendon_shear_solref_dampratio}}" width="0.001" kind="shear" />
                     <tendon solimpfix="{{tendon_main_solimp_low}} {{tendon_main_solimp_high}} {{tendon_main_solimp_width}}" solreffix="{{tendon_main_solref_timeconst}} {{tendon_main_solref_dampratio}}" kind="main" />
@@ -72,9 +72,7 @@
                 </composite>
             </body>
 
-        <body name="lookatbody" pos="0.53062629 0.04419261 0.13488681" >
-            <geom name="lookatgeom" type="box" pos="0 0 0" size="0.001 0.001 0.001" group="1" />
-        </body>
+        <body mocap="true" name="lookatbody" pos="0.53062629 0.00.5" />
 
 
     {% if domain_randomization %}
@@ -95,8 +93,9 @@
         <!-- front view -->
         <camera mode="fixed" name="frontview" pos="0.35 -0.1 0.25" quat="0.56 0.43 0.43 0.56"/>
 
-        <camera fovy="14" mode="targetbodycom" target="lookatbody" name="train_camera" pos="0.50549726 -0.60  1.03"/> 
-        <!--<camera fovy="46" mode="targetbodycom" target="lookatbody" name="train_camera" pos="-0.0 -0.312  0.455"/> -->
+        <camera fovy="14" mode="targetbody" target="lookatbody" name="train_camera_up" pos="0.52536418 -0.60  1.03"/>
+        <camera fovy="46" mode="targetbody" target="lookatbody" name="train_camera_side" pos="-0.0 -0.312  0.455"/>
+
         <camera mode="targetbodycom" target="tabletop" name="eval_camera" pos="-0.45 -1 1"/>
         <!--cloth view -->
         <camera mode="fixed" name="clothview" pos="0.3 -0.15 0.42" quat="0.653 0.271 0.271 0.653"/>
@@ -116,7 +115,7 @@
                 <geom name="link0_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link0_vis"/>
                 <geom name="link0_collision" type="mesh" rgba="0 0.5 0 1" mesh="link0"/>
                 <body name="link1" pos="0 0 0.333">
-                    <joint name="joint1" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"/>
+                    <joint name="joint1" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973" />
                     <geom name="link1_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link1_vis"/>
                     <geom name="link1_collision" type="mesh" rgba="0 0.5 0 1" mesh="link1"/>
                     <body name="link2" pos="0 0 0" quat="0.707107 -0.707107 0 0">
@@ -124,15 +123,15 @@
                         <geom name="link2_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link2_vis"/>
                         <geom name="link2_collision" type="mesh" rgba="0 0.5 0 1" mesh="link2"/>
                         <body name="link3" pos="0 -0.316 0" quat="0.707107 0.707107 0 0">
-                            <joint name="joint3" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"/>
+                            <joint name="joint3" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973" />
                             <geom name="link3_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link3_vis"/>
                             <geom name="link3_collision" type="mesh" rgba="0 0.5 0 1" mesh="link3"/>
                             <body name="link4" pos="0.0825 0 0" quat="0.707107 0.707107 0 0">
-                                <joint name="joint4" pos="0 0 0" axis="0 0 1" limited="true" range="-3.0718 -0.0698"/>
+                                <joint name="joint4" pos="0 0 0" axis="0 0 1" limited="true" range="-3.0718 -0.0698" />
                                 <geom name="link4_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link4_vis"/>
                                 <geom name="link4_collision" type="mesh" rgba="0 0.5 0 1" mesh="link4"/>
                                 <body name="link5" pos="-0.0825 0.384 0" quat="0.707107 -0.707107 0 0">
-                                    <joint name="joint5" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973"/>
+                                    <joint name="joint5" pos="0 0 0" axis="0 0 1" limited="true" range="-2.8973 2.8973" />
                                     <geom name="link5_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link5_vis"/>
                                     <geom name="link5_collision" type="mesh" rgba="0 0.5 0 1" mesh="link5"/>
                                     <body name="link6" pos="0 0 0" quat="0.707107 0.707107 0 0">

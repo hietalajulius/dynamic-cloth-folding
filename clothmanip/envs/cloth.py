@@ -55,6 +55,7 @@ class ClothEnv(object):
         save_folder,
         mujoco_model_kwargs,
         robot_observation,
+        camera_type,
         image_obs_noise_mean=1,
         image_obs_noise_std=0,
         initial_xml_dump=False,
@@ -100,6 +101,7 @@ class ClothEnv(object):
         self.image_obs_noise_mean = image_obs_noise_mean
         self.image_obs_noise_std = image_obs_noise_std
         self.robot_observation = robot_observation
+        self.camera_type = camera_type
 
         self.max_success_steps = 20
         self.frame_stack = deque([], maxlen = self.frame_stack_size)
@@ -114,7 +116,10 @@ class ClothEnv(object):
         self.delta_tau_max = 1000 / steps_per_second
 
         self.corner_index_mapping = {"S0_8" : 0, "S8_8": 1, "S0_0": 2, "S8_0": 3}
-        self.train_camera = "train_camera"
+        if camera_type == "up":
+            self.train_camera = "train_camera_up"
+        else:
+            self.train_camera = "train_camera_side"
         self.eval_camera = "eval_camera"
         self.limits_min = [-0.35, -0.35, 0.0]
         self.limits_max = [0.05, 0.05, 0.4]        
@@ -124,7 +129,7 @@ class ClothEnv(object):
 
         #sideways
         self.initial_qpos = np.array([0.212422, 0.362907, -0.00733391, -1.9649, -0.0198034, 2.37451, -1.50499])
-        self.initial_des_pos = np.array([0.610123, 0.125163, 0.189346])
+        self.initial_des_pos = np.array([0.62536418, 0.13844214, 0.19553383]) #TODO: SIM OR REAL?
 
         #diagonal
         #self.initial_qpos = np.array([0.114367, 0.575019, 0.0550664, -1.60919, -0.079246, 2.23369, -1.56064])
@@ -198,7 +203,18 @@ class ClothEnv(object):
 
         with open(f"{self.save_folder}/compiled_mujoco_model_with_intertias.xml", "w") as f:
             self.sim.save(f, format='xml', keep_inertials=True)
-
+    
+    def reset_camera(self):
+        des_cam_look_pos = self.sim.data.get_body_xpos("B4_4").copy()
+        if self.train_camera == "train_camera_up":
+            cam_scale = 1
+            des_cam_pos = des_cam_look_pos + cam_scale * (np.array([0.52536418, -0.60,  1.03])-des_cam_look_pos)
+        else:
+            cam_scale = 0.5
+            des_cam_pos = des_cam_look_pos + cam_scale * (np.array([-0.0, -0.312,  0.455])-des_cam_look_pos)
+        cam_id = self.sim.model.camera_name2id(self.train_camera) 
+        self.mjpy_model.cam_pos[cam_id] = des_cam_pos
+        self.sim.data.set_mocap_pos("lookatbody", des_cam_look_pos)
 
     def setup_initial_state_and_sim(self):
         template_renderer = TemplateRenderer()
@@ -229,6 +245,7 @@ class ClothEnv(object):
             self.sim.data.qfrc_applied[self.joint_vel_addr] = self.sim.data.qfrc_bias[self.joint_vel_addr]
             mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
 
+        self.reset_camera()
         self.initial_state = copy.deepcopy(self.sim.get_state())
         self.initial_qfrc_applied = self.sim.data.qfrc_applied[self.joint_vel_addr].copy()
         self.initial_qfrc_bias = self.sim.data.qfrc_bias[self.joint_vel_addr].copy()
@@ -578,10 +595,12 @@ class ClothEnv(object):
         self.sim.set_state(self.initial_state)
         self.sim.data.qfrc_applied[self.joint_vel_addr] = self.initial_qfrc_applied
         self.sim.data.qfrc_bias[self.joint_vel_addr] = self.initial_qfrc_bias
+        self.reset_camera()
         self.sim.forward()
         self.reset_osc_values()
         self.update_osc_values()
         utils.enable_distance_welds(self.sim)
+
         
         self.relative_origin = self.get_ee_position_W()
         self.goal = self.sample_goal_I()
