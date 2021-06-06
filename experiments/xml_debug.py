@@ -8,12 +8,16 @@ import numpy as np
 
 def main(variant, inp, outp):
 
-    env = NormalizedBoxEnv(ClothEnv(**variant['env_kwargs'], save_folder=outp, has_viewer=True, initial_xml_dump=True))
+    env = NormalizedBoxEnv(ClothEnv(
+        **variant['env_kwargs'], save_folder=outp, has_viewer=True, initial_xml_dump=True))
 
+    rollouts = 0
     while True:
-        for _ in range(50):
-            env.step(np.random.normal(3))
         env.reset()
+        for i in range(50):
+            print(i, rollouts)
+            env.step(np.random.normal(3))
+        rollouts += 1
 
 
 if __name__ == "__main__":
@@ -22,7 +26,6 @@ if __name__ == "__main__":
     parser.add_argument('output_folder', type=str)
 
     args = parser.parse_args()
-
 
     with open(f"{args.input_folder}/params.json")as json_file:
         variant = json.load(json_file)
