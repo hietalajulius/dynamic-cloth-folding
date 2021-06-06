@@ -4,19 +4,27 @@ import mujoco_py
 from rlkit.envs.wrappers import NormalizedBoxEnv
 from clothmanip.envs.cloth import ClothEnvPickled as ClothEnv
 import numpy as np
+from rlkit.envs.wrappers import SubprocVecEnv
 
 
 def main(variant, inp, outp):
 
-    env = NormalizedBoxEnv(ClothEnv(
-        **variant['env_kwargs'], save_folder=outp, has_viewer=True, initial_xml_dump=True))
+    def make_env():
+        env = ClothEnv(**variant['env_kwargs'], save_folder=outp,
+                       has_viewer=True)
+        env = NormalizedBoxEnv(env)
+
+        return env
+
+    env_fns = [make_env for _ in range(5)]
+    env = SubprocVecEnv(env_fns)
 
     rollouts = 0
     while True:
         env.reset()
         for i in range(50):
             print(i, rollouts)
-            env.step(np.random.normal(3))
+            env.step(np.random.normal((5, 3)))
         rollouts += 1
 
 
