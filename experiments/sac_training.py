@@ -34,7 +34,7 @@ def experiment(variant):
     env = NormalizedBoxEnv(env)
     
     if variant['domain_randomization']:
-        eval_env = get_randomized_env(env)
+        eval_env = get_randomized_env(env, variant)
     else:
         eval_env = env
 
@@ -160,7 +160,7 @@ def experiment(variant):
         env = NormalizedBoxEnv(env)
         
         if variant['domain_randomization']:
-            env = get_randomized_env(env)
+            env = get_randomized_env(env, variant)
             
         
         return env

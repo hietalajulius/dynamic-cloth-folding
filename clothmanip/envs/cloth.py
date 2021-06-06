@@ -14,6 +14,7 @@ from clothmanip.envs.template_renderer import TemplateRenderer
 import math
 from collections import deque
 import copy
+from clothmanip.utils import mujoco_model_kwargs as cloth_model_kwargs
 
 
 def compute_cosine_distance(vec1, vec2):
@@ -53,22 +54,22 @@ class ClothEnv(object):
         cosine_penalty_coef,
         num_eval_rollouts,
         save_folder,
-        mujoco_model_kwargs,
+        default_mujoco_model_kwargs,
+        randomize_xml,
         robot_observation,
         camera_type,
         image_obs_noise_mean=1,
         image_obs_noise_std=0,
         initial_xml_dump=False,
-        has_viewer=False,
-        cloth_parameter_randomization=False
+        has_viewer=False
     ):  
         assert clip_type == "sphere" or clip_type == "spike" or clip_type == "none"
 
-        self.mujoco_model_kwargs = mujoco_model_kwargs
+        self.randomize_xml = randomize_xml
         self.mujoco_model_numerical_values = []
-        if cloth_parameter_randomization:
-            for param in self.mujoco_model_kwargs:
-                value = self.mujoco_model_kwargs[param]
+        if self.randomize_xml:
+            for param in default_mujoco_model_kwargs:
+                value = default_mujoco_model_kwargs[param]
                 if type(value) == float:
                     self.mujoco_model_numerical_values.append(value)
         else:
@@ -107,7 +108,7 @@ class ClothEnv(object):
         self.frame_stack = deque([], maxlen = self.frame_stack_size)
 
         self.single_goal_dim = 3
-        self.timestep = mujoco_model_kwargs["timestep"]
+        self.timestep = default_mujoco_model_kwargs["timestep"]
         self.control_frequency = control_frequency
 
         steps_per_second = 1 / self.timestep
@@ -144,7 +145,7 @@ class ClothEnv(object):
 
         self.mjpy_model = None
         self.sim = None
-        self.setup_initial_state_and_sim()
+        self.setup_initial_state_and_sim(default_mujoco_model_kwargs)
         self.setup_viewer()
         
         self.task_reward_function = reward_calculation.get_task_reward_function(
@@ -219,11 +220,11 @@ class ClothEnv(object):
         self.mjpy_model.cam_pos[cam_id] = des_cam_pos
         self.sim.data.set_mocap_pos("lookatbody", des_cam_look_pos)
 
-    def setup_initial_state_and_sim(self):
+    def setup_initial_state_and_sim(self, model_kwargs):
         template_renderer = TemplateRenderer()
         #if self.initial_xml_dump and not os.path.exists(f"{self.save_folder}/mujoco_template.xml"):
         #template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", **self.mujoco_model_kwargs)
-        xml = template_renderer.render_template("arena.xml", **self.mujoco_model_kwargs)
+        xml = template_renderer.render_template("arena.xml", **model_kwargs)
         '''
         loaded = False
         while not loaded:
@@ -601,11 +602,33 @@ class ClothEnv(object):
         self.desired_pos_ctrl_W = None
         self.previous_delta_vector = np.zeros(3)
         self.raw_action = None
+
+    def randomize_xml_model(self):
+        model_kwargs = dict()
+        wipe = cloth_model_kwargs.WIPE_MODEL_KWARGS
+        bath = cloth_model_kwargs.BATH_MODEL_KWARGS
+        kitchen = cloth_model_kwargs.KITCHEN_MODEL_KWARGS
+        for key in cloth_model_kwargs.model_kwarg_ranges.keys():
+            val_min = np.min(np.array([wipe[key], bath[key], kitchen[key]]))
+            val_max = np.max(np.array([wipe[key], bath[key], kitchen[key]]))
+            val = np.random.uniform(val_min, val_max)
+            model_kwargs[key] = val
+
+        model_kwargs['cone_type'] = np.random.choice(["pyramidal", "elliptic"])
+        model_kwargs['timestep'] = self.timestep
+        model_kwargs['domain_randomization'] = True
+
+        self.mujoco_model_numerical_values = []
+        for param in model_kwargs:
+            value = model_kwargs[param]
+            if type(value) == float:
+                self.mujoco_model_numerical_values.append(value)
+
+        self.setup_initial_state_and_sim(model_kwargs)
+
     
 
     def reset(self):
-        self.setup_initial_state_and_sim()
-        print("setup new xml")
         self.sim.reset()
         utils.remove_distance_welds(self.sim)
         self.sim.set_state(self.initial_state)

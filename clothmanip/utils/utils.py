@@ -55,9 +55,10 @@ CAMERA_ARGS = {
     'fovy_perturbation_size': 1,
 }
 
-def get_randomized_env(env):
+def get_randomized_env(env, variant):
     return DomainRandomizationWrapper(
                 env,
+                randomize_xml=variant["randomize_xml"],
                 randomize_on_reset=True,
                 randomize_camera=True,
                 randomize_every_n_steps=0,
@@ -143,6 +144,7 @@ def argsparser():
     # Collection
     parser.add_argument('--max_path_length', default=50, type=int)
     parser.add_argument('--domain_randomization', required=True, type=int)
+    parser.add_argument('--randomize_xml', required=True, type=int)
 
     # sim2real
     parser.add_argument('--eval_folder', type=str, required=False)
@@ -212,7 +214,8 @@ def get_variant(args):
         demo_path=demo_path,
         num_demos=args.num_demos,
         num_demoers=args.num_demoers,
-        demo_coef=args.demo_coef
+        demo_coef=args.demo_coef,
+        randomize_xml=bool(args.randomize_xml)
     )
     variant['random_seed'] = args.seed
     variant['version'] = args.title
@@ -260,7 +263,8 @@ def get_variant(args):
 
     variant['env_kwargs'] = dict(
         camera_type=args.camera_type,
-        mujoco_model_kwargs=model_kwargs,
+        default_mujoco_model_kwargs=model_kwargs,
+        randomize_xml=bool(args.randomize_xml),
         robot_observation=args.robot_observation,
         control_frequency=args.control_frequency,
         ctrl_filter=args.filter,
