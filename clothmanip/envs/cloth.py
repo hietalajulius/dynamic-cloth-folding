@@ -141,6 +141,9 @@ class ClothEnv(object):
                 self.cloth_site_names.append(f"S{i}_{j}")
         self.ee_site_name = 'grip_site'
         self.joints = ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"]
+
+        self.mjpy_model = None
+        self.sim = None
         self.setup_initial_state_and_sim()
         self.setup_viewer()
         
@@ -218,8 +221,10 @@ class ClothEnv(object):
 
     def setup_initial_state_and_sim(self):
         template_renderer = TemplateRenderer()
-        if self.initial_xml_dump and not os.path.exists(f"{self.save_folder}/mujoco_template.xml"):
-            template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", **self.mujoco_model_kwargs)
+        #if self.initial_xml_dump and not os.path.exists(f"{self.save_folder}/mujoco_template.xml"):
+        #template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", **self.mujoco_model_kwargs)
+        xml = template_renderer.render_template("arena.xml", **self.mujoco_model_kwargs)
+        '''
         loaded = False
         while not loaded:
             try:
@@ -227,6 +232,12 @@ class ClothEnv(object):
                 loaded = True
             except:
                 print("Retrying model load")
+        '''
+        if not self.mjpy_model is None:
+            del self.mjpy_model
+        if not self.sim is None:
+            del self.sim 
+        self.mjpy_model = mujoco_py.load_model_from_xml(xml)
         self.sim = mujoco_py.MjSim(self.mjpy_model)
         utils.remove_distance_welds(self.sim)
 
@@ -249,11 +260,14 @@ class ClothEnv(object):
         self.initial_state = copy.deepcopy(self.sim.get_state())
         self.initial_qfrc_applied = self.sim.data.qfrc_applied[self.joint_vel_addr].copy()
         self.initial_qfrc_bias = self.sim.data.qfrc_bias[self.joint_vel_addr].copy()
+
+        '''
         if self.initial_xml_dump:
             self.dump_xml_models()
 
         self.mjpy_model = mujoco_py.load_model_from_path(f"{self.save_folder}/compiled_mujoco_model_no_inertias.xml")
         self.sim = mujoco_py.MjSim(self.mjpy_model)
+        '''
 
 
     def set_robot_initial_joints(self):
@@ -590,6 +604,8 @@ class ClothEnv(object):
     
 
     def reset(self):
+        self.setup_initial_state_and_sim()
+        print("setup new xml")
         self.sim.reset()
         utils.remove_distance_welds(self.sim)
         self.sim.set_state(self.initial_state)
