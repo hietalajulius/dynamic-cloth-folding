@@ -3,7 +3,6 @@ import copy
 from clothmanip.envs.cloth import ClothEnvPickled as ClothEnv
 import numpy as np
 from rlkit.envs.wrappers import SubprocVecEnv
-from clothmanip.envs.cloth import ClothEnvPickled as ClothEnv
 from rlkit.envs.wrappers import NormalizedBoxEnv
 import json
 import pandas as pd
