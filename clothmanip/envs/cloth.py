@@ -617,15 +617,15 @@ class ClothEnv(object):
             val = np.random.uniform(val_min, val_max)
             model_kwargs[key] = val
 
-        model_kwargs['cone_type'] = np.random.choice(["pyramidal", "elliptic"])
-        model_kwargs['timestep'] = self.timestep
-        model_kwargs['domain_randomization'] = True
-
         self.mujoco_model_numerical_values = []
         for param in model_kwargs:
             value = model_kwargs[param]
             if not type(value) == str:
                 self.mujoco_model_numerical_values.append(value)
+        #TODO: fix ghetto
+        model_kwargs['cone_type'] = np.random.choice(["pyramidal", "elliptic"])
+        model_kwargs['timestep'] = self.timestep
+        model_kwargs['domain_randomization'] = True
 
         self.setup_initial_state_and_sim(model_kwargs)
 
