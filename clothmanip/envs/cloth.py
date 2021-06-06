@@ -310,6 +310,7 @@ class ClothEnv(object):
         mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
 
     def step(self, action):
+        print("step", action)
         raw_action = action.copy()
         action = raw_action*self.output_max
         if self.pixels:

@@ -24,7 +24,7 @@ def main(variant, inp, outp):
         env.reset()
         for i in range(50):
             print(i, rollouts)
-            env.step(np.random.normal((5, 3)))
+            env.step(np.zeros((5, 3)))
         rollouts += 1
 
 
