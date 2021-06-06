@@ -631,6 +631,8 @@ class ClothEnv(object):
     
 
     def reset(self):
+        self.randomize_xml_model()
+        print("randomized xml")
         self.sim.reset()
         utils.remove_distance_welds(self.sim)
         self.sim.set_state(self.initial_state)
