@@ -70,7 +70,7 @@ class ClothEnv(object):
         if self.randomize_xml:
             for param in default_mujoco_model_kwargs:
                 value = default_mujoco_model_kwargs[param]
-                if type(value) == float:
+                if not type(value) == str:
                     self.mujoco_model_numerical_values.append(value)
         else:
             self.mujoco_model_numerical_values.append(0)
@@ -624,7 +624,7 @@ class ClothEnv(object):
         self.mujoco_model_numerical_values = []
         for param in model_kwargs:
             value = model_kwargs[param]
-            if type(value) == float:
+            if not type(value) == str:
                 self.mujoco_model_numerical_values.append(value)
 
         self.setup_initial_state_and_sim(model_kwargs)
