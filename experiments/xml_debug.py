@@ -16,7 +16,7 @@ def main(variant, inp, outp):
 
         return env
 
-    env_fns = [make_env for _ in range(5)]
+    env_fns = [make_env for _ in range(10)]
     env = SubprocVecEnv(env_fns)
 
     rollouts = 0
@@ -24,7 +24,7 @@ def main(variant, inp, outp):
         env.reset()
         for i in range(50):
             print(i, rollouts)
-            env.step(np.zeros((5, 3)))
+            env.step(np.random.rand((10, 3)))
         rollouts += 1
 
 
