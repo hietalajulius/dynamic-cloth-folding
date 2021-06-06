@@ -74,7 +74,8 @@ class ClothEnv(object):
                     self.mujoco_model_numerical_values.append(value)
         else:
             self.mujoco_model_numerical_values.append(0)
-
+            
+        self.template_renderer = TemplateRenderer()
         self.save_folder = save_folder
         self.initial_xml_dump = initial_xml_dump
         self.num_eval_rollouts = num_eval_rollouts
@@ -221,10 +222,10 @@ class ClothEnv(object):
         self.sim.data.set_mocap_pos("lookatbody", des_cam_look_pos)
 
     def setup_initial_state_and_sim(self, model_kwargs):
-        template_renderer = TemplateRenderer()
+        
         #if self.initial_xml_dump and not os.path.exists(f"{self.save_folder}/mujoco_template.xml"):
         #template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", **self.mujoco_model_kwargs)
-        xml = template_renderer.render_template("arena.xml", **model_kwargs)
+        xml = self.template_renderer.render_template("arena.xml", **model_kwargs)
         '''
         loaded = False
         while not loaded:
@@ -239,6 +240,7 @@ class ClothEnv(object):
         if not self.sim is None:
             del self.sim 
         self.mjpy_model = mujoco_py.load_model_from_xml(xml)
+        del xml
         self.sim = mujoco_py.MjSim(self.mjpy_model)
         utils.remove_distance_welds(self.sim)
 
