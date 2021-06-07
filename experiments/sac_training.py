@@ -165,22 +165,32 @@ def experiment(variant):
         
         return env
 
-    env_fns = [make_env for _ in range(variant['num_processes'])]
-    vec_env = SubprocVecEnv(env_fns)
+    if variant['num_processes'] > 0:
+        env_fns = [make_env for _ in range(variant['num_processes'])]
+        vec_env = SubprocVecEnv(env_fns)
 
-    expl_path_collector = VectorizedKeyPathCollector(
-        vec_env,
-        policy,
-        output_max=variant["env_kwargs"]["output_max"],
-        demo_coef=variant['demo_coef'],
-        processes=variant['num_processes'],
-        observation_key=path_collector_observation_key,
-        desired_goal_key=desired_goal_key,
-        use_demos=variant['use_demos'],
-        demo_path=variant['demo_path'],
-        num_demoers=variant['num_demoers'],
-        **variant['path_collector_kwargs'],
-    )
+        expl_path_collector = VectorizedKeyPathCollector(
+            vec_env,
+            policy,
+            output_max=variant["env_kwargs"]["output_max"],
+            demo_coef=variant['demo_coef'],
+            processes=variant['num_processes'],
+            observation_key=path_collector_observation_key,
+            desired_goal_key=desired_goal_key,
+            use_demos=variant['use_demos'],
+            demo_path=variant['demo_path'],
+            num_demoers=variant['num_demoers'],
+            **variant['path_collector_kwargs'],
+        )
+    else:
+        expl_path_collector = KeyPathCollector(
+            eval_env,
+            policy,
+            observation_key=path_collector_observation_key,
+            desired_goal_key=desired_goal_key,
+            use_demos=False,
+            **variant['path_collector_kwargs'],
+        )
 
     task_reward_function = reward_calculation.get_task_reward_function(
         variant['env_kwargs']['constraints'], 3, variant['env_kwargs']['sparse_dense'], variant['env_kwargs']['success_reward'], variant['env_kwargs']['fail_reward'], variant['env_kwargs']['extra_reward'])

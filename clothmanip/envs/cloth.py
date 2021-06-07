@@ -222,7 +222,6 @@ class ClothEnv(object):
         self.sim.data.set_mocap_pos("lookatbody", des_cam_look_pos)
 
     def setup_initial_state_and_sim(self, model_kwargs):
-        
         #if self.initial_xml_dump and not os.path.exists(f"{self.save_folder}/mujoco_template.xml"):
         #template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", **self.mujoco_model_kwargs)
         xml = self.template_renderer.render_template("arena.xml", **model_kwargs)
@@ -310,7 +309,6 @@ class ClothEnv(object):
         mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
 
     def step(self, action):
-        print("step", action)
         raw_action = action.copy()
         action = raw_action*self.output_max
         if self.pixels:
@@ -633,8 +631,9 @@ class ClothEnv(object):
     
 
     def reset(self):
-        self.randomize_xml_model()
-        print("randomized xml")
+        if self.randomize_xml:
+            print("Randomize xml")
+            self.randomize_xml_model()
         self.sim.reset()
         utils.remove_distance_welds(self.sim)
         self.sim.set_state(self.initial_state)
@@ -661,7 +660,7 @@ class ClothEnv(object):
             image_obs = self.get_image_obs()
             for _ in range(self.frame_stack_size):
                 self.frame_stack.append(image_obs)
-
+                
         return self.get_obs()
 
     def get_corner_image_positions(self, w, h, camera_matrix, camera_transformation):
