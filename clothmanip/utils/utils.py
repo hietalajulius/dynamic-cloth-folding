@@ -157,8 +157,9 @@ def argsparser():
     parser.add_argument('--image_obs_noise_std', type=float, default=0.0)
 
     parser.add_argument('--camera_type', choices=["up", "side"], default="up")
+    parser.add_argument('--camera_config', choices=["small", "large"], default="small")
     parser.add_argument('--cloth_type', choices=["bath", "kitchen", "wipe"], required=True)
-    parser.add_argument('--robot_observation', choices=["all", "joints", "ee", "ctrl"], default="all")
+    parser.add_argument('--robot_observation', choices=["all", "joints", "ee", "ctrl", "none"], default="all")
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
     parser.add_argument('--clip_type', type=str, default="none")
@@ -260,9 +261,13 @@ def get_variant(args):
         )
 
     
-
+    if args.camera_config == "small":
+        camera_config = dict(fovy=14, height=100, width=848)
+    else:
+        camera_config = dict(fovy=59, height=480, width=848)
     variant['env_kwargs'] = dict(
         camera_type=args.camera_type,
+        camera_config=camera_config,
         default_mujoco_model_kwargs=model_kwargs,
         randomize_xml=bool(args.randomize_xml),
         robot_observation=args.robot_observation,

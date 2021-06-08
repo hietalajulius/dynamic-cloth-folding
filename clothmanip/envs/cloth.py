@@ -15,6 +15,13 @@ import math
 from collections import deque
 import copy
 from clothmanip.utils import mujoco_model_kwargs as cloth_model_kwargs
+import gc
+
+def print_refs(object):
+    refs = gc.get_referrers(object)
+    print(f"{type(object)} referrers", len(refs))
+    for referrer in refs:
+        print(dir(referrer))
 
 
 def compute_cosine_distance(vec1, vec2):
@@ -58,6 +65,7 @@ class ClothEnv(object):
         randomize_xml,
         robot_observation,
         camera_type,
+        camera_config,
         image_obs_noise_mean=1,
         image_obs_noise_std=0,
         initial_xml_dump=False,
@@ -197,6 +205,7 @@ class ClothEnv(object):
     def setup_viewer(self):
         if self.has_viewer:
             if not self.viewer is None:
+                #print_refs(self.viewer)
                 del self.viewer
             self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, device_id=-1)
             self.viewer.vopt.geomgroup[0] = 0
@@ -216,7 +225,8 @@ class ClothEnv(object):
             cam_scale = 1
             des_cam_pos = des_cam_look_pos + cam_scale * (np.array([0.52536418, -0.60,  1.03])-des_cam_look_pos)
         else:
-            cam_scale = 0.5
+            #cam_scale = 0.5
+            cam_scale = 1.6
             des_cam_pos = des_cam_look_pos + cam_scale * (np.array([-0.0, -0.312,  0.455])-des_cam_look_pos)
         cam_id = self.sim.model.camera_name2id(self.train_camera) 
         self.mjpy_model.cam_pos[cam_id] = des_cam_pos
@@ -235,9 +245,14 @@ class ClothEnv(object):
             except:
                 print("Retrying model load")
         '''
+        
         if not self.mjpy_model is None:
+            #print_refs(self.mjpy_model)
             del self.mjpy_model
         if not self.sim is None:
+            #print_refs(self.sim.data)
+            #print_refs(self.sim)
+
             del self.sim 
         self.mjpy_model = mujoco_py.load_model_from_xml(xml)
         del xml
@@ -557,6 +572,8 @@ class ClothEnv(object):
             robot_observation = np.concatenate([self.get_ee_position_I(), self.get_ee_velocity(), desired_pos_ctrl_I])
         elif self.robot_observation == "ctrl":
             robot_observation = self.previous_delta_vector
+        elif self.robot_observation == "none":
+            robot_observation = np.zeros(1)
 
 
         full_observation = {
@@ -633,9 +650,6 @@ class ClothEnv(object):
     
 
     def reset(self):
-        if self.randomize_xml:
-            print("Randomize xml")
-            self.randomize_xml_model()
         self.sim.reset()
         utils.remove_distance_welds(self.sim)
         self.sim.set_state(self.initial_state)
