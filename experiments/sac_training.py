@@ -1,14 +1,14 @@
 import rlkit.torch.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import KeyPathCollector, EvalKeyPathCollector, VectorizedKeyPathCollector, PresetEvalKeyPathCollector
-from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, GaussianPolicy, GaussianCNNPolicy, LegacyTanhCNNGaussianPolicy, TanhScriptPolicy
+from rlkit.torch.sac import policies
+from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, GaussianPolicy, GaussianCNNPolicy, LegacyTanhCNNGaussianPolicy, TanhScriptPolicy, CustomScriptPolicy, CustomTanhScriptPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.her.cloth.her import ClothSacHERTrainer
 from rlkit.torch.networks import ConcatMlp
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
 from rlkit.data_management.future_obs_dict_replay_buffer import FutureObsDictRelabelingBuffer
-from rlkit.torch.sac.policies import ScriptPolicy
 import gym
 import mujoco_py
 import torch
@@ -98,7 +98,15 @@ def experiment(variant):
                 **variant['policy_kwargs'],
             )
         else:
+            '''
             policy = TanhScriptPolicy(
+                output_size=action_dim,
+                added_fc_input_size=added_fc_input_size,
+                aux_output_size=8,
+                **variant['policy_kwargs'],
+            )
+            '''
+            policy = CustomTanhScriptPolicy(
                 output_size=action_dim,
                 added_fc_input_size=added_fc_input_size,
                 aux_output_size=8,
@@ -222,12 +230,20 @@ def experiment(variant):
 
     script_policy = None
     if image_training:
+        '''
         script_policy = ScriptPolicy(
                     output_size=action_dim,
                     added_fc_input_size=added_fc_input_size,
                     aux_output_size=8,
                     **variant['policy_kwargs'],
                 )
+        '''
+        script_policy = CustomScriptPolicy(
+                output_size=action_dim,
+                added_fc_input_size=added_fc_input_size,
+                aux_output_size=8,
+                **variant['policy_kwargs'],
+            )
 
     algorithm = TorchBatchRLAlgorithm(
         script_policy=script_policy,
