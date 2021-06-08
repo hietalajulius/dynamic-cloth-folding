@@ -146,8 +146,8 @@ class ClothEnv(object):
 
         self.mjpy_model = None
         self.sim = None
+        self.viewer = None
         self.setup_initial_state_and_sim(default_mujoco_model_kwargs)
-        self.setup_viewer()
         
         self.task_reward_function = reward_calculation.get_task_reward_function(
             self.constraints, self.single_goal_dim, self.sparse_dense, self.success_reward, self.fail_reward, self.extra_reward)
@@ -196,11 +196,12 @@ class ClothEnv(object):
 
     def setup_viewer(self):
         if self.has_viewer:
+            if not self.viewer is None:
+                del self.viewer
             self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, device_id=-1)
             self.viewer.vopt.geomgroup[0] = 0
             self.viewer.vopt.geomgroup[1] = 1
-        else:
-            self.viewer = None
+            
 
     def dump_xml_models(self):
         with open(f"{self.save_folder}/compiled_mujoco_model_no_inertias.xml", "w") as f:
@@ -241,6 +242,7 @@ class ClothEnv(object):
         self.mjpy_model = mujoco_py.load_model_from_xml(xml)
         del xml
         self.sim = mujoco_py.MjSim(self.mjpy_model)
+        self.setup_viewer()
         utils.remove_distance_welds(self.sim)
 
         self.joint_indexes = [self.sim.model.joint_name2id(joint) for joint in self.joints]
