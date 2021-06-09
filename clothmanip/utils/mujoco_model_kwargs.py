@@ -90,6 +90,8 @@ appearance_kwarg_ranges = dict(
     robot2_texture_repeat_x = (1,100),
     robot2_texture_repeat_y = (1,100),
 
+    train_camera_side_fovy = (13,15),
+
 )
 
 appearance_kwarg_choices = dict(
