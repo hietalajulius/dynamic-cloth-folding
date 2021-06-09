@@ -25,6 +25,8 @@ import os
 from rlkit.core import logger
 import json
 
+torch.cuda.empty_cache()
+
 
 set_level(50)
 
