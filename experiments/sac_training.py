@@ -2,7 +2,7 @@ import rlkit.torch.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import KeyPathCollector, EvalKeyPathCollector, VectorizedKeyPathCollector, PresetEvalKeyPathCollector
 from rlkit.torch.sac import policies
-from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhCNNGaussianPolicy, GaussianPolicy, GaussianCNNPolicy, LegacyTanhCNNGaussianPolicy, TanhScriptPolicy, CustomScriptPolicy, CustomTanhScriptPolicy
+from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhScriptPolicy, CustomScriptPolicy, CustomTanhScriptPolicy, ScriptPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.her.cloth.her import ClothSacHERTrainer
 from rlkit.torch.networks import ConcatMlp
@@ -90,29 +90,20 @@ def experiment(variant):
     )
 
     if image_training:
-        if variant['legacy_cnn']:
-            policy = LegacyTanhCNNGaussianPolicy(
-                output_size=action_dim,
-                added_fc_input_size=added_fc_input_size,
-                aux_output_size=8,
-                **variant['policy_kwargs'],
-            )
-        else:
-            '''
-            policy = TanhScriptPolicy(
-                output_size=action_dim,
-                added_fc_input_size=added_fc_input_size,
-                aux_output_size=8,
-                **variant['policy_kwargs'],
-            )
-            '''
+        if variant['pretrained_cnn']:
             policy = CustomTanhScriptPolicy(
                 output_size=action_dim,
                 added_fc_input_size=added_fc_input_size,
                 aux_output_size=8,
                 **variant['policy_kwargs'],
             )
-
+        else:
+            policy = TanhScriptPolicy(
+                output_size=action_dim,
+                added_fc_input_size=added_fc_input_size,
+                aux_output_size=8,
+                **variant['policy_kwargs'],
+            )
     else:
         policy = TanhGaussianPolicy(
             obs_dim=policy_obs_dim,
@@ -230,20 +221,21 @@ def experiment(variant):
 
     script_policy = None
     if image_training:
-        '''
-        script_policy = ScriptPolicy(
-                    output_size=action_dim,
-                    added_fc_input_size=added_fc_input_size,
-                    aux_output_size=8,
-                    **variant['policy_kwargs'],
-                )
-        '''
-        script_policy = CustomScriptPolicy(
+        if variant['pretrained_cnn']:
+            script_policy = CustomScriptPolicy(
                 output_size=action_dim,
                 added_fc_input_size=added_fc_input_size,
                 aux_output_size=8,
                 **variant['policy_kwargs'],
             )
+        else:
+            script_policy = ScriptPolicy(
+                        output_size=action_dim,
+                        added_fc_input_size=added_fc_input_size,
+                        aux_output_size=8,
+                        **variant['policy_kwargs'],
+                    )
+        
 
     algorithm = TorchBatchRLAlgorithm(
         script_policy=script_policy,

@@ -55,18 +55,29 @@ CAMERA_ARGS = {
     'fovy_perturbation_size': 1,
 }
 
+BLUR_ARGS = {
+    'kernel_size_range': (1,4)
+}
+
+LOOKAT_ARGS = {
+    'radius' : 0.02
+}
+
 def get_randomized_env(env, variant):
     return DomainRandomizationWrapper(
                 env,
                 randomize_xml=variant["randomize_xml"],
+                randomize_lookat=True,
+                lookat_randomization_args=LOOKAT_ARGS,
                 randomize_on_reset=True,
                 randomize_camera=True,
-                randomize_every_n_steps=0,
+                randomize_every_n_steps=1,
                 randomize_color=True,
                 camera_randomization_args=CAMERA_ARGS,
                 color_randomization_args=COLOR_ARGS,
                 randomize_lighting=True,
                 randomize_blur=True,
+                blur_randomization_args=BLUR_ARGS,
                 custom_randomize_color=True,
                 lighting_randomization_args=LIGHTING_ARGS)
 
@@ -115,7 +126,7 @@ def argsparser():
     parser.add_argument('--log_tabular_only', type=int, default=0)
 
     # Train
-    parser.add_argument('--legacy_cnn', default=0, type=int)
+    parser.add_argument('--pretrained_cnn', default=1, type=int)
     parser.add_argument('--train_steps', default=1000, type=int)
     parser.add_argument('--num_epochs', default=1000, type=int)
     parser.add_argument('--save_policy_every_epoch', default=1, type=int)
@@ -223,8 +234,8 @@ def get_variant(args):
     variant['image_training'] = bool(args.image_training)
     variant['num_processes'] = int(args.num_processes)
     variant['log_tabular_only'] = bool(args.log_tabular_only)
-    variant['legacy_cnn'] = bool(args.legacy_cnn)
     variant['save_images_every_epoch'] = args.save_images_every_epoch
+    variant['pretrained_cnn'] = bool(args.pretrained_cnn)
 
     variant['algorithm_kwargs'] = dict(
         num_epochs=args.num_epochs,

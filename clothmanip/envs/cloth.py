@@ -218,9 +218,14 @@ class ClothEnv(object):
 
         with open(f"{self.save_folder}/compiled_mujoco_model_with_intertias.xml", "w") as f:
             self.sim.save(f, format='xml', keep_inertials=True)
+
     
-    def reset_camera(self):
-        des_cam_look_pos = self.sim.data.get_body_xpos("B4_4").copy()
+    def reset_camera(self, randomize=False, radius=0):
+        lookat_offset = np.zeros(3)
+        if randomize:
+            lookat_offset[0] += np.random.uniform(-radius, radius)
+            lookat_offset[1] += np.random.uniform(-radius, radius)
+        des_cam_look_pos = self.sim.data.get_body_xpos("B4_4").copy() + lookat_offset
         if self.train_camera == "train_camera_up":
             cam_scale = 1
             des_cam_pos = des_cam_look_pos + cam_scale * (np.array([0.52536418, -0.60,  1.03])-des_cam_look_pos)
