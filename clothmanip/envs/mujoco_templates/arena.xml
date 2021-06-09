@@ -38,6 +38,23 @@
 
         <texture name="white_borders" type="2d" file="textures/white_borders.png"/>
         <material name="white_borders" texture="white_borders"/>
+
+
+
+        <texture width="{{cloth_texture_width}}" height="{{cloth_texture_height}}" name="cloth_texture" type="2d" random="{{cloth_texture_random}}" rgb1="{{cloth_texture_r_1}} {{cloth_texture_g_1}} {{cloth_texture_b_1}}" rgb2="{{cloth_texture_r_2}} {{cloth_texture_g_2}} {{cloth_texture_b_2}}" builtin="{{cloth_texture_builtin}}" mark="{{cloth_texture_mark}}" />
+        <material texrepeat="{{cloth_texture_repeat_x}} {{cloth_texture_repeat_y}}" name="cloth_material" texture="cloth_texture" />
+
+        <texture width="{{table_texture_width}}" height="{{table_texture_height}}" name="table_texture" type="cube" random="{{table_texture_random}}" rgb1="{{table_texture_r_1}} {{table_texture_g_1}} {{table_texture_b_1}}" rgb2="{{table_texture_r_2}} {{table_texture_g_2}} {{table_texture_b_2}}" builtin="{{table_texture_builtin}}" mark="{{table_texture_mark}}" />
+        <material texrepeat="{{table_texture_repeat_x}} {{table_texture_repeat_y}}" name="table_material" texture="table_texture" />
+
+        <texture width="{{robot1_texture_width}}" height="{{robot1_texture_height}}" name="robot1_texture" type="2d" random="{{robot1_texture_random}}" rgb1="{{robot1_texture_r_1}} {{robot1_texture_g_1}} {{robot1_texture_b_1}}" rgb2="{{robot1_texture_r_2}} {{robot1_texture_g_2}} {{robot1_texture_b_2}}" builtin="{{robot1_texture_builtin}}" mark="{{robot1_texture_mark}}" />
+        <material texrepeat="{{robot1_texture_repeat_x}} {{robot1_texture_repeat_y}}" name="robot1_material" texture="robot1_texture" />
+
+        <texture width="{{robot2_texture_width}}" height="{{robot2_texture_height}}" name="robot2_texture" type="2d" random="{{robot2_texture_random}}" rgb1="{{robot2_texture_r_1}} {{robot2_texture_g_1}} {{robot2_texture_b_1}}" rgb2="{{robot2_texture_r_2}} {{robot2_texture_g_2}} {{robot2_texture_b_2}}" builtin="{{robot2_texture_builtin}}" mark="{{robot2_texture_mark}}" />
+        <material texrepeat="{{robot2_texture_repeat_x}} {{robot2_texture_repeat_y}}" name="robot2_material" texture="robot2_texture" />
+
+
+
     </asset>
     <worldbody>
 
@@ -46,7 +63,7 @@
         <body name="tabletop" pos="0.5 0 0">
             <geom name="la_tabla_col" type="box" pos="0 0 0" size="0.3 0.6 0.113" group="0" />
             {% if domain_randomization %}
-                <geom name="la_tabla_vis" type="box" material="floorplane" pos="0 0 0" size="0.3 0.6 0.113" group="1" />
+                <geom name="la_tabla_vis" type="box" material="table_material" pos="0 0 0" size="0.3 0.6 0.113" group="1" />
             {% else %}
                 <geom name="la_tabla_vis" type="box" rgba="0.9 0.9 0.9 1" pos="0 0 0" size="0.3 0.6 0.113" group="1" />
             {% endif %}
@@ -63,7 +80,7 @@
                     <tendon solimpfix="{{tendon_main_solimp_low}} {{tendon_main_solimp_high}} {{tendon_main_solimp_width}}" solreffix="{{tendon_main_solref_timeconst}} {{tendon_main_solref_dampratio}}" kind="main" />
                    
                     {% if domain_randomization %}
-                        <skin material="white_borders" texcoord="true" inflate="0.001" subgrid="3"/>
+                        <skin material="cloth_material" texcoord="true" inflate="0.001" subgrid="3"/>
                     {% else %}
                         <skin rgba="0.5 0.5 0.5 1" texcoord="true" inflate="0.001" subgrid="3"/>
                     {% endif %}
@@ -152,7 +169,7 @@
                                                 <camera name="eye_in_handu" pos="0.05 0 0" quat="0 0.707108 0.707108 0" fovy="75"/>
                                                 <body name="right_gripper" pos="0 0 0" quat="0.707107 0 0 -0.707107">
                                                     {% if domain_randomization %}
-                                                        <geom name="hand_visual" material="floorplane3" quat="0.707107 0 0 0.707107" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="hand_vis"/>
+                                                        <geom name="hand_visual" material="robot1_material" quat="0.707107 0 0 0.707107" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="hand_vis"/>
                                                     {% else %}
                                                         <geom name="hand_visual" quat="0.707107 0 0 0.707107" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="hand_vis"/>
                                                     {% endif %}
@@ -162,7 +179,7 @@
                                                     <site name="grip_site" pos="0 0 0.10377" size="0.0025" group="1" rgba="1 0 0 0.5"/>
                                                     <body name="leftfinger" pos="0 0 0.0524" quat="0.707107 0 0 0.707107">
                                                         {% if domain_randomization %}
-                                                            <geom name="finger1_visual" material="floorplane2" type="mesh" contype="0" conaffinity="0" group="1" rgba="0.499 0.499 0.499 1" mesh="finger_plastic"/>
+                                                            <geom name="finger1_visual" material="robot2_material" type="mesh" contype="0" conaffinity="0" group="1" rgba="0.499 0.499 0.499 1" mesh="finger_plastic"/>
                                                         {% else %}
                                                             <geom name="finger1_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="0.499 0.499 0.499 1" mesh="finger_plastic"/>
                                                         {% endif %}
@@ -173,7 +190,7 @@
                                                     </body>
                                                     <body name="rightfinger" pos="0 0 0.0524" quat="0.707107 0 0 0.707107">
                                                         {% if domain_randomization %}
-                                                            <geom name="finger2_visual" material="floorplane2" quat="0 0 0 1" type="mesh" contype="0" conaffinity="0" group="1" rgba="0.499 0.499 0.499 1" mesh="finger_plastic"/>
+                                                            <geom name="finger2_visual" material="robot2_material" quat="0 0 0 1" type="mesh" contype="0" conaffinity="0" group="1" rgba="0.499 0.499 0.499 1" mesh="finger_plastic"/>
                                                         {% else %}
                                                             <geom name="finger2_visual" quat="0 0 0 1" type="mesh" contype="0" conaffinity="0" group="1" rgba="0.499 0.499 0.499 1" mesh="finger_plastic"/>
                                                         {% endif %}

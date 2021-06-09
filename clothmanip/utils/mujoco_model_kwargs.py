@@ -41,6 +41,72 @@ model_kwarg_choices = dict(
     timestep = [0.01]
 )
 
+appearance_kwarg_ranges = dict(
+    cloth_texture_width = (1,1000),
+    cloth_texture_height = (1,1000),
+    cloth_texture_random = (0,1),
+    cloth_texture_r_1 = (0,1),
+    cloth_texture_g_1 = (0,1),
+    cloth_texture_b_1 = (0,1),
+    cloth_texture_r_2 = (0,1),
+    cloth_texture_g_2 = (0,1),
+    cloth_texture_b_2 = (0,1),
+    cloth_texture_repeat_x = (1,100),
+    cloth_texture_repeat_y = (1,100),
+
+    table_texture_width = (1,1000),
+    table_texture_height = (1,1000),
+    table_texture_random = (0,1),
+    table_texture_r_1 = (0,0.9),
+    table_texture_g_1 = (0,0.9),
+    table_texture_b_1 = (0,0.9),
+    table_texture_r_2 = (0,0.9),
+    table_texture_g_2 = (0,0.9),
+    table_texture_b_2 = (0,0.9),
+    table_texture_repeat_x = (1,100),
+    table_texture_repeat_y = (1,100),
+
+    robot1_texture_width = (1,1000),
+    robot1_texture_height = (1,1000),
+    robot1_texture_random = (0,1),
+    robot1_texture_r_1 = (0,1),
+    robot1_texture_g_1 = (0,1),
+    robot1_texture_b_1 = (0,1),
+    robot1_texture_r_2 = (0,1),
+    robot1_texture_g_2 = (0,1),
+    robot1_texture_b_2 = (0,1),
+    robot1_texture_repeat_x = (1,100),
+    robot1_texture_repeat_y = (1,100),
+
+    robot2_texture_width = (1,1000),
+    robot2_texture_height = (1,1000),
+    robot2_texture_random = (0,1),
+    robot2_texture_r_1 = (0,1),
+    robot2_texture_g_1 = (0,1),
+    robot2_texture_b_1 = (0,1),
+    robot2_texture_r_2 = (0,1),
+    robot2_texture_g_2 = (0,1),
+    robot2_texture_b_2 = (0,1),
+    robot2_texture_repeat_x = (1,100),
+    robot2_texture_repeat_y = (1,100),
+
+)
+
+appearance_kwarg_choices = dict(
+    cloth_texture_builtin = ["gradient", "checker", "flat"],
+    cloth_texture_mark = ["none", "edge", "cross", "random"],
+
+    table_texture_builtin = ["gradient", "checker", "flat"],
+    table_texture_mark = ["none", "edge", "cross", "random"],
+
+    robot1_texture_builtin = ["gradient", "checker", "flat"],
+    robot1_texture_mark = ["none", "edge", "cross", "random"],
+
+    robot2_texture_builtin = ["gradient", "checker", "flat"],
+    robot2_texture_mark = ["none", "edge", "cross", "random"],
+
+)
+
 BATH_MODEL_KWARGS = dict(
     joint_solimp_low = 0.986633333333333,
     joint_solimp_high = 0.9911,

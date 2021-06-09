@@ -71,14 +71,13 @@ def get_randomized_env(env, variant):
                 lookat_randomization_args=LOOKAT_ARGS,
                 randomize_on_reset=True,
                 randomize_camera=True,
-                randomize_every_n_steps=1,
+                randomize_every_n_steps=0,
                 randomize_color=True,
                 camera_randomization_args=CAMERA_ARGS,
                 color_randomization_args=COLOR_ARGS,
                 randomize_lighting=True,
                 randomize_blur=True,
                 blur_randomization_args=BLUR_ARGS,
-                custom_randomize_color=True,
                 lighting_randomization_args=LIGHTING_ARGS)
 
 
@@ -267,8 +266,7 @@ def get_variant(args):
 
     model_kwargs = dict(
             **cloth_specific_kwargs,
-            timestep=args.timestep,
-            domain_randomization=bool(args.domain_randomization)
+            timestep=args.timestep
         )
 
     

@@ -155,7 +155,17 @@ class ClothEnv(object):
         self.mjpy_model = None
         self.sim = None
         self.viewer = None
-        self.setup_initial_state_and_sim(default_mujoco_model_kwargs)
+
+        #TODO FIX GHETTO
+        local_model_kwargs = copy.deepcopy(default_mujoco_model_kwargs)
+        appearance_choices = cloth_model_kwargs.appearance_kwarg_choices
+        appearance_ranges = cloth_model_kwargs.appearance_kwarg_ranges
+        for key in appearance_choices.keys():
+            local_model_kwargs[key] = np.random.choice(appearance_choices[key])
+        for key in appearance_ranges.keys():
+            values = appearance_ranges[key]
+            local_model_kwargs[key] = np.random.uniform(values[0], values[1])
+        self.setup_initial_state_and_sim(local_model_kwargs)
         
         self.task_reward_function = reward_calculation.get_task_reward_function(
             self.constraints, self.single_goal_dim, self.sparse_dense, self.success_reward, self.fail_reward, self.extra_reward)
@@ -640,7 +650,6 @@ class ClothEnv(object):
             model_kwargs[key] = val
 
         model_kwargs['timestep'] = self.timestep
-        model_kwargs['domain_randomization'] = True
 
         self.mujoco_model_numerical_values = []
         for param in model_kwargs:
@@ -649,6 +658,15 @@ class ClothEnv(object):
                 self.mujoco_model_numerical_values.append(float(value))
         #TODO: fix ghetto
         model_kwargs['cone_type'] = np.random.choice(["pyramidal", "elliptic"])
+        model_kwargs['domain_randomization'] = True
+
+        appearance_choices = cloth_model_kwargs.appearance_kwarg_choices
+        appearance_ranges = cloth_model_kwargs.appearance_kwarg_ranges
+        for key in appearance_choices.keys():
+            model_kwargs[key] = np.random.choice(appearance_choices[key])
+        for key in appearance_ranges.keys():
+            values = appearance_ranges[key]
+            model_kwargs[key] = np.random.uniform(values[0], values[1])
 
         self.setup_initial_state_and_sim(model_kwargs)
 
