@@ -36,6 +36,17 @@
         <mesh name="finger_vis" file="meshes/finger_vis.stl" />
         <mesh name="finger_vis2" file="meshes/finger_longer.stl" />
 
+
+        <texture name="bath_real_texture" type="2d" file="textures/bath1.png" />
+        <material name="bath_real_material" texture="bath_real_texture"/>
+
+        <texture name="table_real_texture" type="cube" file="textures/table1.png" />
+        <material name="table_real_material" texture="table_real_texture"/>
+
+        <texture name="wall_real_texture" type="2d" file="textures/wall1.png" />
+        <material name="wall_real_material" texture="wall_real_texture"/>
+
+
         <texture name="white_borders" type="2d" file="textures/white_borders.png"/>
         <material name="white_borders" texture="white_borders"/>
 
@@ -58,14 +69,14 @@
     </asset>
     <worldbody>
 
-        <geom name="ground" pos="0 0 0" size="5 5 10" type="plane" contype="1" conaffinity="1" />
+        <geom name="ground" pos="0 0 0" size="5 5 10" type="plane" contype="1" conaffinity="1" material="wall_real_material"  />
 
         <body name="tabletop" pos="0.5 0 0">
             <geom name="la_tabla_col" type="box" pos="0 0 0" size="0.3 0.6 0.113" group="0" />
             {% if domain_randomization %}
                 <geom name="la_tabla_vis" type="box" material="table_material" pos="0 0 0" size="0.3 0.6 0.113" group="1" />
             {% else %}
-                <geom name="la_tabla_vis" type="box" rgba="0.9 0.9 0.9 1" pos="0 0 0" size="0.3 0.6 0.113" group="1" />
+                <geom name="la_tabla_vis" type="box" material="table_real_material" pos="0 0 0" size="0.3 0.6 0.113" group="1" />
             {% endif %}
         </body>
 
@@ -82,7 +93,7 @@
                     {% if domain_randomization %}
                         <skin material="cloth_material" texcoord="true" inflate="0.001" subgrid="3"/>
                     {% else %}
-                        <skin rgba="0.5 0.5 0.5 1" texcoord="true" inflate="0.001" subgrid="3"/>
+                        <skin material="bath_real_material" texcoord="true" inflate="0.001" subgrid="3"/>
                     {% endif %}
                     
                     <geom group="0" type="sphere" size="{{ geom_size }}" rgba="0 0 1 0.8" friction='{{ friction }} {{ friction }} {{ friction }}' solimp="{{geom_solimp_low}} {{geom_solimp_high}} {{geom_solimp_width}}" solref="{{geom_solref_timeconst}} {{geom_solref_dampratio}}" condim='4' />
@@ -110,10 +121,9 @@
         <!-- front view -->
         <camera mode="fixed" name="frontview" pos="0.35 -0.1 0.25" quat="0.56 0.43 0.43 0.56"/>
 
-        <camera fovy="14" mode="targetbody" target="lookatbody" name="train_camera_up" pos="0.52536418 -0.60  1.03"/>
+        <camera fovy="{{train_camera_fovy}}" mode="targetbody" target="lookatbody" name="train_camera_up" pos="0.52536418 -0.60  1.03"/>
         <!--<camera fovy="46" mode="targetbody" target="lookatbody" name="train_camera_side" pos="-0.0 -0.312  0.455"/> -->
-        <!--<camera fovy="58" mode="targetbody" target="lookatbody" name="train_camera_side" pos="-0.0 -0.312  0.455"/> -->
-        <camera fovy="{{train_camera_side_fovy}}" mode="targetbody" target="lookatbody" name="train_camera_side" pos="-0.0 -0.312  0.455"/> 
+        <camera fovy="{{train_camera_fovy}}" mode="targetbody" target="lookatbody" name="train_camera_side" pos="-0.0 -0.312  0.455"/> 
 
         <camera mode="targetbodycom" target="tabletop" name="eval_camera" pos="-0.45 -1 1"/>
         <!--cloth view -->

@@ -271,10 +271,12 @@ def get_variant(args):
 
     
     if args.camera_config == "small":
-        camera_config = dict(fovy=14, height=100, width=848)
+        camera_config = dict(type="small", fovy_range=(13,15), height=100, width=848)
     else:
-        camera_config = dict(fovy=59, height=480, width=848)
+        camera_config = dict(type="large", fovy_range=(57,59), height=480, width=848)
+        
     variant['env_kwargs'] = dict(
+        image_size=args.image_size,
         camera_type=args.camera_type,
         camera_config=camera_config,
         default_mujoco_model_kwargs=model_kwargs,

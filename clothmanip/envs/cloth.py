@@ -42,6 +42,7 @@ class ClothEnv(object):
         sparse_dense,
         goal_noise_range,
         pixels,
+        image_size,
         depth_frames,
         frame_stack_size,
         output_max,
@@ -104,7 +105,7 @@ class ClothEnv(object):
         self.pixels = pixels
         self.depth_frames = depth_frames
         self.frame_stack_size = frame_stack_size
-        self.image_size = (100, 100)
+        self.image_size = (image_size, image_size)
         self.constant_goal = constant_goal
         self.has_viewer = has_viewer
         self.max_episode_steps = max_episode_steps
@@ -131,7 +132,8 @@ class ClothEnv(object):
         else:
             self.train_camera = "train_camera_side"
         self.eval_camera = "eval_camera"
-        self.limits_min = [-0.35, -0.35, 0.0]
+        self.camera_config = camera_config
+        self.limits_min = [-0.35, -0.35, 0.0] #TODO: FIX
         self.limits_max = [0.05, 0.05, 0.4]        
         self.episode_success_steps = 0
 
@@ -165,6 +167,7 @@ class ClothEnv(object):
         for key in appearance_ranges.keys():
             values = appearance_ranges[key]
             local_model_kwargs[key] = np.random.uniform(values[0], values[1])
+        local_model_kwargs['train_camera_fovy'] = (self.camera_config['fovy_range'][0] + self.camera_config['fovy_range'][1])/2
         self.setup_initial_state_and_sim(local_model_kwargs)
         
         self.task_reward_function = reward_calculation.get_task_reward_function(
@@ -240,10 +243,13 @@ class ClothEnv(object):
             cam_scale = 1
             des_cam_pos = des_cam_look_pos + cam_scale * (np.array([0.52536418, -0.60,  1.03])-des_cam_look_pos)
         else:
-            #cam_scale = 0.5
-            cam_scale = 1.6
+            if self.camera_config['type'] == "small":
+                cam_scale = 1.6
+            else:
+                cam_scale = 0.4
             des_cam_pos = des_cam_look_pos + cam_scale * (np.array([-0.0, -0.312,  0.455])-des_cam_look_pos)
-        cam_id = self.sim.model.camera_name2id(self.train_camera) 
+        cam_id = self.sim.model.camera_name2id(self.train_camera)
+        print("desired camera position", des_cam_pos)
         self.mjpy_model.cam_pos[cam_id] = des_cam_pos
         self.sim.data.set_mocap_pos("lookatbody", des_cam_look_pos)
 
@@ -545,16 +551,25 @@ class ClothEnv(object):
     def get_image_obs(self):
         camera_id = self.sim.model.camera_name2id(
             self.train_camera) 
-        self.viewer.render(self.image_size[0], self.image_size[1], camera_id)
+        width = self.camera_config['width']
+        height = self.camera_config['height']
+        self.viewer.render(width, height, camera_id)
         depth_obs = None
         if self.depth_frames:
-            image_obs, depth_obs = copy.deepcopy(self.viewer.read_pixels(self.image_size[0], self.image_size[1], depth=True))
+            image_obs, depth_obs = copy.deepcopy(self.viewer.read_pixels(width, height, depth=True))
             depth_obs = depth_obs[::-1, :]
             depth_obs = cv2.normalize(depth_obs, None, alpha = 0, beta = 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         else:
-            image_obs = copy.deepcopy(self.viewer.read_pixels(self.image_size[0], self.image_size[1], depth=False))
+            image_obs = copy.deepcopy(self.viewer.read_pixels(width, height, depth=False))
 
         image_obs = image_obs[::-1, :, :]
+
+        height_start = int(image_obs.shape[0]/2 - self.image_size[1]/2)
+        height_end = height_start + self.image_size[1]
+
+        width_start = int(image_obs.shape[1]/2 - self.image_size[0]/2)
+        width_end = width_start + self.image_size[0]
+        image_obs = image_obs[height_start:height_end, width_start:width_end, :]
         image_obs = cv2.cvtColor(image_obs, cv2.COLOR_BGR2GRAY)
 
         if not depth_obs is None:
@@ -668,6 +683,8 @@ class ClothEnv(object):
             values = appearance_ranges[key]
             model_kwargs[key] = np.random.uniform(values[0], values[1])
 
+        model_kwargs['train_camera_fovy'] = np.random.uniform(self.camera_config['fovy_range'][0], self.camera_config['fovy_range'][1])
+
         self.setup_initial_state_and_sim(model_kwargs)
 
     
@@ -746,55 +763,61 @@ class ClothEnv(object):
         return camera_matrix, camera_transformation
 
 
+    def get_masked_image(self, camera, width, height, ee_in_image, aux_output, point_size, greyscale=False, mask_type=None, mask_name=None):
+        camera_matrix, camera_transformation = self.get_camera_matrices(camera, width, height)
+        camera_id = self.sim.model.camera_name2id(camera) 
+        self.viewer.render(width, height, camera_id)
+        data = np.float32(self.viewer.read_pixels(width, height, depth=False)).copy()
+        data = np.float32(data[::-1, :, :]).copy()
+        data = np.float32(data)
+        if greyscale:
+            data = cv2.cvtColor(data, cv2.COLOR_BGR2GRAY)
+        ee = camera_matrix @ camera_transformation @ ee_in_image
+        u_ee, v_ee, _ = ee/ee[2]
+        cv2.circle(data, (width-int(u_ee), int(v_ee)), point_size, (0, 0, 0), -1)
 
-    def capture_image(self, aux_output=None):
+        if mask_type == "corners":
+            mask = self.get_corner_image_positions(width, height, camera_matrix, camera_transformation)[0]
+        elif mask_type == "edges":
+            mask = self.get_edge_image_positions(width, height, camera_matrix, camera_transformation)
+        else:
+            mask = []
+
+        print(mask_name)
+        for point in mask:
+            u = int(point[0])
+            v = int(point[1])
+            print("{", u, ",",v,"},")
+            cv2.circle(data, (u, v), point_size, (0, 0, 255), -1)
+        print("\n")
+        if not aux_output is None:
+            for aux_idx in range(int(aux_output.flatten().shape[0]/2)):
+                aux_u = int(aux_output.flatten()[aux_idx*2]*width)
+                aux_v = int(aux_output.flatten()[aux_idx*2+1]*height)
+                cv2.circle(data, (aux_u, aux_v), point_size, (0, 255, 0), -1)
+
+        return data
+
+
+
+    def capture_images(self, aux_output=None):
         w_eval, h_eval = 1000, 1000
-        w_train, h_train = self.image_size
-        w_train *= 10
-        h_train *= 10
-
-        train_camera_matrix, train_camera_transformation = self.get_camera_matrices(self.train_camera, w_train, h_train)
-
-        train_camera_id = self.sim.model.camera_name2id(self.train_camera) 
+        w_corners, h_corners = 1000, 1000
+        w_cnn, h_cnn = self.image_size
+        w_cnn_full, h_cnn_full = self.camera_config['width'], self.camera_config['height']
 
         ee_in_image = np.ones(4)
         ee_pos = self.get_ee_position_W()
         ee_in_image[:3] = ee_pos
 
-        self.viewer.render(w_train, h_train, train_camera_id)
-        train_data = np.float32(self.viewer.read_pixels(w_train, h_train, depth=False)).copy()
-        train_data = np.float32(train_data[::-1, :, :]).copy()
-        train_data = np.float32(train_data)
-        ee = train_camera_matrix @ train_camera_transformation @ ee_in_image
-        u_ee, v_ee, _ = ee/ee[2]
-        cv2.circle(train_data, (w_train-int(u_ee), int(v_ee)), 10, (0, 0, 0), -1)
-
-        corners, _ = self.get_corner_image_positions(w_train, h_train, train_camera_matrix, train_camera_transformation)
-        #corners = self.get_edge_image_positions(w_train, h_train, train_camera_matrix, train_camera_transformation)
-        #print("corns", corners)
-        #print("corners")
-        for corner in corners:
-            u = int(corner[0])
-            v = int(corner[1]) 
-            #print("{", u, ",",v,"},")
-            cv2.circle(train_data, (u, v), 8, (0, 0, 255), -1)
-        #print("\n")
-        
-        if not aux_output is None:
-            for aux_idx in range(int(aux_output.flatten().shape[0]/2)):
-                aux_u = int(aux_output.flatten()[aux_idx*2]*w_train)
-                aux_v = int(aux_output.flatten()[aux_idx*2+1]*h_train)
-                cv2.circle(train_data, (aux_u, aux_v), 8, (0, 255, 0), -1)
+        corner_image = self.get_masked_image(self.train_camera, w_corners, h_corners, ee_in_image, aux_output, 8, greyscale=False, mask_type="edges", mask_name="corner_image")
+        eval_image = self.get_masked_image(self.eval_camera, w_eval, h_eval, ee_in_image, None, 4, greyscale=False, mask_type="edges", mask_name="eval_image")
+        cnn_color_image_full = self.get_masked_image(self.train_camera, w_cnn_full, h_cnn_full, ee_in_image, aux_output, 2, mask_type="edges", mask_name="cnn_full")
+        cnn_color_image = self.get_masked_image(self.train_camera, w_cnn, h_cnn, ee_in_image, aux_output, 2, mask_type="edges", mask_name="cnn")
+        cnn_image = self.get_masked_image(self.train_camera, w_cnn, h_cnn, ee_in_image, aux_output, 2, greyscale=True, mask_type="edges", mask_name="cnn_grey")
 
 
-
-        eval_camera_id = self.sim.model.camera_name2id(self.eval_camera) 
-        self.viewer.render(h_eval,w_eval, eval_camera_id)
-        eval_data = np.float32(self.viewer.read_pixels(w_eval, h_eval, depth=False)).copy()
-        eval_data = np.float32(eval_data[::-1, :, :]).copy()
-        eval_data = np.float32(eval_data)
-
-        return train_data, eval_data
+        return corner_image, eval_image, cnn_color_image_full, cnn_color_image, cnn_image
 
 
 
