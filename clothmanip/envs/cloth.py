@@ -642,7 +642,7 @@ class ClothEnv(object):
             model_kwargs[key] = val
 
         model_kwargs['timestep'] = self.timestep
-
+        model_kwargs['domain_randomization'] = True
         self.mujoco_model_numerical_values = []
         for param in model_kwargs:
             value = model_kwargs[param]
@@ -650,7 +650,7 @@ class ClothEnv(object):
                 self.mujoco_model_numerical_values.append(float(value))
         #TODO: fix ghetto
         model_kwargs['cone_type'] = np.random.choice(["pyramidal", "elliptic"])
-        model_kwargs['domain_randomization'] = True
+        
 
         appearance_choices = cloth_model_kwargs.appearance_kwarg_choices
         appearance_ranges = cloth_model_kwargs.appearance_kwarg_ranges
