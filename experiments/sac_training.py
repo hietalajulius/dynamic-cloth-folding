@@ -117,7 +117,6 @@ def experiment(variant):
             use_demos=True,
             demo_coef=variant['demo_coef'],
             demo_path=variant['demo_path'],
-            save_folder=variant['save_folder'],
             observation_key=keys['path_collector_observation_key'],
             desired_goal_key=keys['desired_goal_key'],
             **variant['path_collector_kwargs']
