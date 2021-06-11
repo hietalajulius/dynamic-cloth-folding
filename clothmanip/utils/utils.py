@@ -16,7 +16,65 @@ from scipy import spatial
 import sys
 from clothmanip.utils import mujoco_model_kwargs
 from pathlib import Path
+from git import Repo
+import json
 
+def get_keys_and_dims(variant, env):
+    obs_dim = env.observation_space.spaces['observation'].low.size
+    goal_dim = env.observation_space.spaces['desired_goal'].low.size
+    action_dim = env.action_space.low.size
+    policy_obs_dim = obs_dim + goal_dim
+    value_input_size = obs_dim + action_dim + goal_dim
+    added_fc_input_size = goal_dim
+
+    if 'model_params' in env.observation_space.spaces:
+        model_params_dim = env.observation_space.spaces['model_params'].low.size
+        value_input_size += model_params_dim
+
+    if 'robot_observation' in env.observation_space.spaces:
+        robot_obs_dim = env.observation_space.spaces['robot_observation'].low.size
+        policy_obs_dim += robot_obs_dim
+        value_input_size += robot_obs_dim
+        added_fc_input_size += robot_obs_dim
+
+    image_training = variant['image_training']
+    if image_training:
+        path_collector_observation_key = 'image'
+    else:
+        path_collector_observation_key = 'observation'
+
+    observation_key = 'observation'
+    desired_goal_key = 'desired_goal'
+    achieved_goal_key = desired_goal_key.replace("desired", "achieved")
+
+    keys = {
+        'path_collector_observation_key': path_collector_observation_key,
+        'observation_key': observation_key,
+        'desired_goal_key': desired_goal_key,
+        'achieved_goal_key': achieved_goal_key
+    }
+
+    dims = {
+        'value_input_size': value_input_size,
+        'action_dim': action_dim,
+        'added_fc_input_size': added_fc_input_size,
+        'policy_obs_dim': policy_obs_dim,
+    }
+
+    return keys, dims
+
+def dump_commit_hashes(save_folder):
+    robotics_dir = os.getenv('ROBOTICS_PATH')
+    repos = ['mujoco-py', 'rlkit', 'clothmanip', 'gym', 'robosuite']
+    commit_hashes = dict()
+    for repo_name in repos:
+        repo = Repo.init(os.path.join(robotics_dir, repo_name))
+        repo_value = dict(hash=str(repo.head.commit), message=repo.head.commit.message)
+        commit_hashes[repo_name] = repo_value
+
+    with open(f"{save_folder}/commit_hashes.json", "w") as outfile:
+            json.dump(commit_hashes, outfile)
+    
 
 COLOR_ARGS = {
     'geom_names': None,  # all geoms are randomized
@@ -133,9 +191,7 @@ def argsparser():
     parser.add_argument('--num_cycles', default=20, type=int)
     parser.add_argument('--min_expl_steps', type=int, default=0)
     parser.add_argument('--num_eval_rollouts', type=int, default=20)
-    parser.add_argument('--num_eval_param_buckets', type=int, default=1)
     parser.add_argument('--batch_size', type=int, default=256)
-    parser.add_argument('--debug_same_batch', type=int, default=0)
     parser.add_argument('--conv_normalization_type', type=str, default='none')
     parser.add_argument('--fc_normalization_type', type=str, default='none')
     parser.add_argument('--pool_type', type=str, default='none')
@@ -172,7 +228,6 @@ def argsparser():
     parser.add_argument('--robot_observation', choices=["all", "joints", "ee", "ctrl", "none"], default="all")
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
-    parser.add_argument('--clip_type', type=str, default="none")
     parser.add_argument('--output_max', type=float, required=True)
     parser.add_argument('--damping_ratio', type=float, default=1)
     parser.add_argument('--kp', type=float, default=1000.0)
@@ -229,12 +284,13 @@ def get_variant(args):
         randomize_xml=bool(args.randomize_xml)
     )
     variant['random_seed'] = args.seed
-    variant['version'] = args.title
     variant['image_training'] = bool(args.image_training)
     variant['num_processes'] = int(args.num_processes)
     variant['log_tabular_only'] = bool(args.log_tabular_only)
     variant['save_images_every_epoch'] = args.save_images_every_epoch
     variant['pretrained_cnn'] = bool(args.pretrained_cnn)
+
+    variant['num_eval_rollouts'] = args.num_eval_rollouts
 
     variant['algorithm_kwargs'] = dict(
         num_epochs=args.num_epochs,
@@ -242,12 +298,9 @@ def get_variant(args):
         num_expl_steps_per_train_loop=args.train_steps,
         num_train_loops_per_epoch=int(args.num_cycles),
         max_path_length=int(args.max_path_length),
-        num_eval_rollouts_per_epoch=args.num_eval_rollouts,
-        num_eval_param_buckets=args.num_eval_param_buckets,
         save_policy_every_epoch=args.save_policy_every_epoch,
         min_num_steps_before_training=args.min_expl_steps,
-        batch_size=args.batch_size,
-        debug_same_batch=bool(args.debug_same_batch)
+        batch_size=args.batch_size
     )
 
     variant['replay_buffer_kwargs'] = dict(
@@ -266,7 +319,8 @@ def get_variant(args):
 
     model_kwargs = dict(
             **cloth_specific_kwargs,
-            timestep=args.timestep
+            timestep=args.timestep,
+            domain_randomization=bool(args.domain_randomization)
         )
 
     
@@ -284,7 +338,6 @@ def get_variant(args):
         robot_observation=args.robot_observation,
         control_frequency=args.control_frequency,
         ctrl_filter=args.filter,
-        clip_type=args.clip_type,
         kp=args.kp,
         frame_stack_size=args.frame_stack_size,
         depth_frames=bool(args.depth_frames),

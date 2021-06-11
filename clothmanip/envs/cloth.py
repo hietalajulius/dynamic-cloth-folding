@@ -17,12 +17,6 @@ import copy
 from clothmanip.utils import mujoco_model_kwargs as cloth_model_kwargs
 import gc
 
-def print_refs(object):
-    refs = gc.get_referrers(object)
-    print(f"{type(object)} referrers", len(refs))
-    for referrer in refs:
-        print(dir(referrer))
-
 
 def compute_cosine_distance(vec1, vec2):
     if np.all(vec1==0) or np.all(vec2==0):
@@ -53,7 +47,6 @@ class ClothEnv(object):
         extra_reward,
         kp,
         damping_ratio,
-        clip_type,
         control_frequency,
         ctrl_filter,
         max_episode_steps,
@@ -69,11 +62,8 @@ class ClothEnv(object):
         camera_config,
         image_obs_noise_mean=1,
         image_obs_noise_std=0,
-        initial_xml_dump=False,
         has_viewer=False
     ):  
-        assert clip_type == "sphere" or clip_type == "spike" or clip_type == "none"
-
         self.randomize_xml = randomize_xml
         self.mujoco_model_numerical_values = []
         if self.randomize_xml:
@@ -86,13 +76,11 @@ class ClothEnv(object):
             
         self.template_renderer = TemplateRenderer()
         self.save_folder = save_folder
-        self.initial_xml_dump = initial_xml_dump
         self.num_eval_rollouts = num_eval_rollouts
         self.ate_penalty_coef = ate_penalty_coef
         self.action_norm_penalty_coef = action_norm_penalty_coef
         self.cosine_penalty_coef = cosine_penalty_coef
         self.filter = ctrl_filter
-        self.clip_type = clip_type
         self.kp = kp
         self.damping_ratio = damping_ratio
         self.output_max = output_max
@@ -126,15 +114,12 @@ class ClothEnv(object):
         self.between_steps = 1000 / steps_per_second
         self.delta_tau_max = 1000 / steps_per_second
 
-        self.corner_index_mapping = {"S0_8" : 0, "S8_8": 1, "S0_0": 2, "S8_0": 3}
         if camera_type == "up":
             self.train_camera = "train_camera_up"
         else:
             self.train_camera = "train_camera_side"
         self.eval_camera = "eval_camera"
-        self.camera_config = camera_config
-        self.limits_min = [-0.35, -0.35, 0.0] #TODO: FIX
-        self.limits_max = [0.05, 0.05, 0.4]        
+        self.camera_config = camera_config     
         self.episode_success_steps = 0
 
         self.seed()
@@ -151,6 +136,12 @@ class ClothEnv(object):
         for i in [0, 4, 8]:
             for j in [0, 4, 8]:
                 self.cloth_site_names.append(f"S{i}_{j}")
+        self.corner_index_mapping = {"S0_8" : 0, "S8_8": 1, "S0_0": 2, "S8_0": 3}
+        self.corner_indices = [] #TODO: fix ghetto
+        for site in self.cloth_site_names:
+            if not "4" in site:
+                self.corner_indices.append(self.corner_index_mapping[site])
+
         self.ee_site_name = 'grip_site'
         self.joints = ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"]
 
@@ -249,31 +240,15 @@ class ClothEnv(object):
                 cam_scale = 0.4
             des_cam_pos = des_cam_look_pos + cam_scale * (np.array([-0.0, -0.312,  0.455])-des_cam_look_pos)
         cam_id = self.sim.model.camera_name2id(self.train_camera)
-        print("desired camera position", des_cam_pos)
+        #print("desired camera position", des_cam_pos)
         self.mjpy_model.cam_pos[cam_id] = des_cam_pos
         self.sim.data.set_mocap_pos("lookatbody", des_cam_look_pos)
 
     def setup_initial_state_and_sim(self, model_kwargs):
-        #if self.initial_xml_dump and not os.path.exists(f"{self.save_folder}/mujoco_template.xml"):
-        #template_renderer.render_to_file("arena.xml", f"{self.save_folder}/mujoco_template.xml", **self.mujoco_model_kwargs)
         xml = self.template_renderer.render_template("arena.xml", **model_kwargs)
-        '''
-        loaded = False
-        while not loaded:
-            try:
-                self.mjpy_model = mujoco_py.load_model_from_path(f"{self.save_folder}/mujoco_template.xml")
-                loaded = True
-            except:
-                print("Retrying model load")
-        '''
-        
         if not self.mjpy_model is None:
-            #print_refs(self.mjpy_model)
             del self.mjpy_model
         if not self.sim is None:
-            #print_refs(self.sim.data)
-            #print_refs(self.sim)
-
             del self.sim 
         self.mjpy_model = mujoco_py.load_model_from_xml(xml)
         del xml
@@ -300,14 +275,6 @@ class ClothEnv(object):
         self.initial_state = copy.deepcopy(self.sim.get_state())
         self.initial_qfrc_applied = self.sim.data.qfrc_applied[self.joint_vel_addr].copy()
         self.initial_qfrc_bias = self.sim.data.qfrc_bias[self.joint_vel_addr].copy()
-
-        '''
-        if self.initial_xml_dump:
-            self.dump_xml_models()
-
-        self.mjpy_model = mujoco_py.load_model_from_path(f"{self.save_folder}/compiled_mujoco_model_no_inertias.xml")
-        self.sim = mujoco_py.MjSim(self.mjpy_model)
-        '''
 
 
     def set_robot_initial_joints(self):
@@ -348,19 +315,17 @@ class ClothEnv(object):
 
     def step(self, action):
         raw_action = action.copy()
+        self.previous_delta_vector = raw_action
+
         action = raw_action*self.output_max
         if self.pixels:
             image_obs_substep_idx_mean = self.image_obs_noise_mean * (self.substeps-1)
             image_obs_substep_idx = int(np.random.normal(image_obs_substep_idx_mean, self.image_obs_noise_std))
             image_obs_substep_idx = np.clip(image_obs_substep_idx, 0, self.substeps-1)
 
-        cosine_distance = compute_cosine_distance(self.previous_delta_vector, action)
-        self.previous_delta_vector = action
-        
-        previous_desired_pos_step_W = self.desired_pos_step_W.copy()
-        desired_pos_step_W = previous_desired_pos_step_W + action
-        
-        self.desired_pos_step_W = np.clip(desired_pos_step_W, self.min_absolute_W, self.max_absolute_W)
+        cosine_distance = compute_cosine_distance(self.previous_raw_action, action)
+        self.desired_pos_step_W += action
+
         for i in range(int(self.substeps)):
             for j in range(int(self.between_steps)):
                 self.desired_pos_ctrl_W = self.filter*self.desired_pos_step_W + (1-self.filter)*self.desired_pos_ctrl_W
@@ -501,7 +466,19 @@ class ClothEnv(object):
         if self.initial_ee_p_W is None:
             self.initial_ee_p_W = p.copy()
 
-        
+    
+    def get_trajectory_log_entry(self):
+        entry = {
+            'origin': self.relative_origin,
+            'output_max': self.output_max,
+            'desired_pos_step_I': self.desired_pos_step_W - self.relative_origin,
+            'desired_pos_ctrl_I': self.desired_pos_ctrl_W - self.relative_origin,
+            'ee_position_I': self.get_ee_position_I(),
+            'raw_action': self.previous_raw_action,
+            'substeps': self.substeps,
+            'timestep': self.timestep
+        }
+        return entry
 
 
     def get_ee_position_W(self):
@@ -601,7 +578,7 @@ class ClothEnv(object):
         elif self.robot_observation == "ee":
             robot_observation = np.concatenate([self.get_ee_position_I(), self.get_ee_velocity(), desired_pos_ctrl_I])
         elif self.robot_observation == "ctrl":
-            robot_observation = self.previous_delta_vector
+            robot_observation = self.previous_raw_action
         elif self.robot_observation == "none":
             robot_observation = np.zeros(1)
 
@@ -650,7 +627,7 @@ class ClothEnv(object):
         self.initial_ee_p_W = None
         self.desired_pos_step_W = None
         self.desired_pos_ctrl_W = None
-        self.previous_delta_vector = np.zeros(3)
+        self.previous_raw_action = np.zeros(3)
         self.raw_action = None
 
     def randomize_xml_model(self):
@@ -704,8 +681,7 @@ class ClothEnv(object):
         
         self.relative_origin = self.get_ee_position_W()
         self.goal = self.sample_goal_I()
-        self.min_absolute_W = self.initial_ee_p_W + self.limits_min
-        self.max_absolute_W = self.initial_ee_p_W + self.limits_max
+
 
         if not self.viewer is None:
             del self.viewer._markers[:]
@@ -736,7 +712,6 @@ class ClothEnv(object):
 
     def get_edge_image_positions(self, w, h, camera_matrix, camera_transformation):
         corners = []
-        corner_indices = []
         cloth_edge_positions = self.get_cloth_edge_positions_W()
         for site in cloth_edge_positions.keys():
             corner_in_image = np.ones(4)
@@ -783,13 +758,13 @@ class ClothEnv(object):
         else:
             mask = []
 
-        print(mask_name)
+        #print(mask_name)
         for point in mask:
             u = int(point[0])
             v = int(point[1])
-            print("{", u, ",",v,"},")
+            #print("{", u, ",",v,"},")
             cv2.circle(data, (u, v), point_size, (0, 0, 255), -1)
-        print("\n")
+        #print("\n")
         if not aux_output is None:
             for aux_idx in range(int(aux_output.flatten().shape[0]/2)):
                 aux_u = int(aux_output.flatten()[aux_idx*2]*width)

@@ -1,6 +1,6 @@
 import rlkit.torch.pytorch_util as ptu
 from rlkit.launchers.launcher_util import setup_logger
-from rlkit.samplers.data_collector import KeyPathCollector, EvalKeyPathCollector, VectorizedKeyPathCollector, PresetEvalKeyPathCollector
+from rlkit.samplers.data_collector import KeyPathCollector, VectorizedKeyPathCollector
 from rlkit.torch.sac import policies
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, TanhScriptPolicy, CustomScriptPolicy, CustomTanhScriptPolicy, ScriptPolicy
 from rlkit.torch.sac.sac import SACTrainer
@@ -15,7 +15,7 @@ import torch
 import cProfile
 from rlkit.envs.wrappers import SubprocVecEnv
 from gym.logger import set_level
-from clothmanip.utils.utils import get_variant, argsparser, get_randomized_env
+from clothmanip.utils.utils import get_variant, argsparser, get_randomized_env, dump_commit_hashes, get_keys_and_dims
 import copy
 from clothmanip.utils import reward_calculation
 import numpy as np
@@ -24,123 +24,90 @@ from rlkit.envs.wrappers import NormalizedBoxEnv
 import os
 from rlkit.core import logger
 import json
+from rlkit.samplers.eval_suite.success_rate_test import SuccessRateTest
+from rlkit.samplers.eval_suite.blank_images_test import BlankImagesTest
+from rlkit.samplers.eval_suite.real_corner_prediction_test import RealCornerPredictionTest
+
+from rlkit.samplers.eval_suite.base import EvalTestSuite
+
 
 torch.cuda.empty_cache()
 
 
 set_level(50)
 
-
 def experiment(variant):
-    env = ClothEnv(**variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'], initial_xml_dump=True)
+    env = ClothEnv(**variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'])
     env = NormalizedBoxEnv(env)
-    
+
     if variant['domain_randomization']:
+        print("Randomized eval env")
         eval_env = get_randomized_env(env, variant)
     else:
+        print("Not randomized eval env")
         eval_env = env
 
-    #TODO these into utils
-    obs_dim = eval_env.observation_space.spaces['observation'].low.size
-    goal_dim = eval_env.observation_space.spaces['desired_goal'].low.size
-    action_dim = eval_env.action_space.low.size
-    policy_obs_dim = obs_dim + goal_dim
-    value_input_size = obs_dim + action_dim + goal_dim
-    added_fc_input_size = goal_dim
+    #TODO: extract keys and sizes to utils
 
-    if 'model_params' in eval_env.observation_space.spaces:
-        model_params_dim = eval_env.observation_space.spaces['model_params'].low.size
-        value_input_size += model_params_dim
-
-    if 'robot_observation' in eval_env.observation_space.spaces:
-        robot_obs_dim = eval_env.observation_space.spaces['robot_observation'].low.size
-        policy_obs_dim += robot_obs_dim
-        value_input_size += robot_obs_dim
-        added_fc_input_size += robot_obs_dim
-
+    keys, dims = get_keys_and_dims(variant, eval_env)
     image_training = variant['image_training']
-    if image_training:
-        path_collector_observation_key = 'image'
-    else:
-        path_collector_observation_key = 'observation'
-
-    observation_key = 'observation'
-    desired_goal_key = 'desired_goal'
-    achieved_goal_key = desired_goal_key.replace("desired", "achieved")
+    
 
     M = variant['layer_size']
 
     qf1 = ConcatMlp(
-        input_size=value_input_size,
+        input_size=dims['value_input_size'],
         output_size=1,
         hidden_sizes=[M, M],
     )
     qf2 = ConcatMlp(
-        input_size=value_input_size,
+        input_size=dims['value_input_size'],
         output_size=1,
         hidden_sizes=[M, M],
     )
     target_qf1 = ConcatMlp(
-        input_size=value_input_size,
+        input_size=dims['value_input_size'],
         output_size=1,
         hidden_sizes=[M, M],
     )
     target_qf2 = ConcatMlp(
-        input_size=value_input_size,
+        input_size=dims['value_input_size'],
         output_size=1,
         hidden_sizes=[M, M],
     )
 
+    #TODO: combine own script policy with pretrained structs
     if image_training:
         if variant['pretrained_cnn']:
             policy = CustomTanhScriptPolicy(
-                output_size=action_dim,
-                added_fc_input_size=added_fc_input_size,
+                output_size=dims['action_dim'],
+                added_fc_input_size=dims['added_fc_input_size'],
                 aux_output_size=8,
                 **variant['policy_kwargs'],
             )
         else:
             policy = TanhScriptPolicy(
-                output_size=action_dim,
-                added_fc_input_size=added_fc_input_size,
+                output_size=dims['action_dim'],
+                added_fc_input_size=dims['added_fc_input_size'],
                 aux_output_size=8,
                 **variant['policy_kwargs'],
             )
     else:
         policy = TanhGaussianPolicy(
-            obs_dim=policy_obs_dim,
-            action_dim=action_dim,
+            obs_dim=dims['policy_obs_dim'],
+            action_dim=dims['action_dim'],
             hidden_sizes=[M, M],
             **variant['policy_kwargs']
         )
 
     eval_policy = MakeDeterministic(policy)
 
-    steps_per_second = 1 / eval_env.timestep
-    new_action_every_ctrl_step = steps_per_second / variant['env_kwargs']['control_frequency']
+    real_corner_prediction_test = RealCornerPredictionTest(eval_env, eval_policy, 'real_corner_error', ['corner_error'], 1, variant=variant)
+    success_rate_test = SuccessRateTest(eval_env, eval_policy, 'regular', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
+    blank_images_test = BlankImagesTest(eval_env, eval_policy, 'blank', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
+                                        
+    eval_test_suite = EvalTestSuite([real_corner_prediction_test, success_rate_test, blank_images_test], variant['save_folder'])
 
-    eval_path_collector = EvalKeyPathCollector(
-        eval_env,
-        eval_policy,
-        save_images_every_epoch=variant['save_images_every_epoch'],
-        observation_key=path_collector_observation_key,
-        desired_goal_key=desired_goal_key,
-        save_folder=variant['save_folder'],
-        env_timestep=eval_env.timestep,
-        new_action_every_ctrl_step=new_action_every_ctrl_step,
-        **variant['path_collector_kwargs']
-    )
-
-    if 'randomize_params' in variant['env_kwargs'].keys() and variant['env_kwargs']['randomize_params']:
-        preset_eval_path_collector = PresetEvalKeyPathCollector(
-            eval_env,
-            eval_policy,
-            observation_key=path_collector_observation_key,
-            desired_goal_key=desired_goal_key,
-            **variant['path_collector_kwargs']
-        )
-    else:
-        preset_eval_path_collector = None
 
     demo_path_collector = None
     if variant['use_demos']:
@@ -151,8 +118,8 @@ def experiment(variant):
             demo_coef=variant['demo_coef'],
             demo_path=variant['demo_path'],
             save_folder=variant['save_folder'],
-            observation_key=path_collector_observation_key,
-            desired_goal_key=desired_goal_key,
+            observation_key=keys['path_collector_observation_key'],
+            desired_goal_key=keys['desired_goal_key'],
             **variant['path_collector_kwargs']
         )
 
@@ -166,32 +133,23 @@ def experiment(variant):
         
         return env
 
-    if variant['num_processes'] > 0:
-        env_fns = [make_env for _ in range(variant['num_processes'])]
-        vec_env = SubprocVecEnv(env_fns)
+    env_fns = [make_env for _ in range(variant['num_processes'])]
+    vec_env = SubprocVecEnv(env_fns)
 
-        expl_path_collector = VectorizedKeyPathCollector(
-            vec_env,
-            policy,
-            output_max=variant["env_kwargs"]["output_max"],
-            demo_coef=variant['demo_coef'],
-            processes=variant['num_processes'],
-            observation_key=path_collector_observation_key,
-            desired_goal_key=desired_goal_key,
-            use_demos=variant['use_demos'],
-            demo_path=variant['demo_path'],
-            num_demoers=variant['num_demoers'],
-            **variant['path_collector_kwargs'],
-        )
-    else:
-        expl_path_collector = KeyPathCollector(
-            eval_env,
-            policy,
-            observation_key=path_collector_observation_key,
-            desired_goal_key=desired_goal_key,
-            use_demos=False,
-            **variant['path_collector_kwargs'],
-        )
+    expl_path_collector = VectorizedKeyPathCollector(
+        vec_env,
+        policy,
+        output_max=variant["env_kwargs"]["output_max"],
+        demo_coef=variant['demo_coef'],
+        processes=variant['num_processes'],
+        observation_key=keys['path_collector_observation_key'],
+        desired_goal_key=keys['desired_goal_key'],
+        use_demos=variant['use_demos'],
+        demo_path=variant['demo_path'],
+        num_demoers=variant['num_demoers'],
+        **variant['path_collector_kwargs'],
+    )
+
 
     task_reward_function = reward_calculation.get_task_reward_function(
         variant['env_kwargs']['constraints'], 3, variant['env_kwargs']['sparse_dense'], variant['env_kwargs']['success_reward'], variant['env_kwargs']['fail_reward'], variant['env_kwargs']['extra_reward'])
@@ -200,9 +158,9 @@ def experiment(variant):
     replay_buffer = FutureObsDictRelabelingBuffer(
         ob_spaces=ob_spaces,
         action_space=action_space,
-        observation_key=observation_key,
-        desired_goal_key=desired_goal_key,
-        achieved_goal_key=achieved_goal_key,
+        observation_key=keys['observation_key'],
+        desired_goal_key=keys['desired_goal_key'],
+        achieved_goal_key=keys['achieved_goal_key'],
         **variant['replay_buffer_kwargs']
     )
     replay_buffer.set_task_reward_function(task_reward_function)
@@ -225,15 +183,15 @@ def experiment(variant):
     if image_training:
         if variant['pretrained_cnn']:
             script_policy = CustomScriptPolicy(
-                output_size=action_dim,
-                added_fc_input_size=added_fc_input_size,
+                output_size=dims['action_dim'],
+                added_fc_input_size=dims['added_fc_input_size'],
                 aux_output_size=8,
                 **variant['policy_kwargs'],
             )
         else:
             script_policy = ScriptPolicy(
-                        output_size=action_dim,
-                        added_fc_input_size=added_fc_input_size,
+                        output_size=dims['action_dim'],
+                        added_fc_input_size=dims['added_fc_input_size'],
                         aux_output_size=8,
                         **variant['policy_kwargs'],
                     )
@@ -241,17 +199,15 @@ def experiment(variant):
 
     algorithm = TorchBatchRLAlgorithm(
         script_policy=script_policy,
+        eval_suite=eval_test_suite,
         trainer=trainer,
         exploration_env=eval_env,
         evaluation_env=eval_env,
         exploration_data_collector=expl_path_collector,
-        evaluation_data_collector=eval_path_collector,
-        preset_evaluation_data_collector=preset_eval_path_collector,
         demo_data_collector=demo_path_collector,
         num_demos=variant['num_demos'],
         replay_buffer=replay_buffer,
         save_folder=variant['save_folder'],
-        title=variant['version'],
         **variant['algorithm_kwargs']
     )
     algorithm.to(ptu.device)
@@ -259,11 +215,8 @@ def experiment(variant):
     with mujoco_py.ignore_mujoco_warnings():
         algorithm.train()
 
-    torch.save(eval_policy.state_dict(), f"{variant['save_folder']}/policies/trained_policy.mdl")
-
-    if variant['num_processes'] > 1:
-        vec_env.close()
-        print("Closed subprocesses")
+    vec_env.close()
+    print("Closed subprocesses")
 
 
 if __name__ == "__main__":
@@ -284,19 +237,15 @@ if __name__ == "__main__":
 
     try:
         profiling_path = f"{variant['save_folder']}/profiling"
-        images_path = f"{variant['save_folder']}/images"
-        eval_trajs_path = f"{variant['save_folder']}/eval_trajs"
-        policies_path = f"{variant['save_folder']}/policies"
         os.makedirs(variant['save_folder'])
         os.makedirs(profiling_path)
-        os.makedirs(images_path)
-        os.makedirs(eval_trajs_path)
-        os.makedirs(policies_path)
 
         with open(f"{variant['save_folder']}/params.json", "w") as outfile:
             json.dump(variant, outfile)
         with open(f"{variant['save_folder']}/command.txt", "w") as outfile:
             json.dump(arg_str, outfile)
+
+        dump_commit_hashes(variant['save_folder'])
 
     except OSError:
         print ("Creation of the directory %s failed" % variant['save_folder'])
