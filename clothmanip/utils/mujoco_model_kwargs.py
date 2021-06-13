@@ -37,8 +37,7 @@ model_kwarg_ranges = dict(
 )
 
 model_kwarg_choices = dict(
-    cone_type = ["pyramidal", "elliptic"],
-    timestep = [0.01]
+    cone_type = ["pyramidal", "elliptic"]
 )
 
 appearance_kwarg_ranges = dict(

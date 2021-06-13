@@ -14,8 +14,9 @@ from clothmanip.envs.template_renderer import TemplateRenderer
 import math
 from collections import deque
 import copy
-from clothmanip.utils import mujoco_model_kwargs as cloth_model_kwargs
-import gc
+from clothmanip.utils import mujoco_model_kwargs
+from shutil import copyfile
+import psutil
 
 
 def compute_cosine_distance(vec1, vec2):
@@ -33,6 +34,8 @@ def compute_cosine_distance(vec1, vec2):
 class ClothEnv(object):
     def __init__(
         self,
+        timestep,
+        cloth_type,
         sparse_dense,
         goal_noise_range,
         pixels,
@@ -55,8 +58,7 @@ class ClothEnv(object):
         cosine_penalty_coef,
         num_eval_rollouts,
         save_folder,
-        default_mujoco_model_kwargs,
-        randomize_xml,
+        randomization_kwargs,
         robot_observation,
         camera_type,
         camera_config,
@@ -64,17 +66,13 @@ class ClothEnv(object):
         image_obs_noise_std=0,
         has_viewer=False
     ):  
-        self.randomize_xml = randomize_xml
-        self.mujoco_model_numerical_values = []
-        if self.randomize_xml:
-            for param in default_mujoco_model_kwargs:
-                value = default_mujoco_model_kwargs[param]
-                if not type(value) == str:
-                    self.mujoco_model_numerical_values.append(float(value))
-        else:
-            self.mujoco_model_numerical_values.append(0)
-            
-        self.template_renderer = TemplateRenderer()
+        self.process = psutil.Process(os.getpid())
+        self.randomization_kwargs = randomization_kwargs       
+        file_dir = os.path.dirname(os.path.abspath(__file__))
+        source = os.path.join(file_dir, "mujoco_templates", "arena.xml")
+        destination = os.path.join(save_folder, "arena.xml")
+        copyfile(source, destination)
+        self.template_renderer = TemplateRenderer(save_folder)
         self.save_folder = save_folder
         self.num_eval_rollouts = num_eval_rollouts
         self.ate_penalty_coef = ate_penalty_coef
@@ -106,7 +104,7 @@ class ClothEnv(object):
         self.frame_stack = deque([], maxlen = self.frame_stack_size)
 
         self.single_goal_dim = 3
-        self.timestep = default_mujoco_model_kwargs["timestep"]
+        self.timestep = timestep
         self.control_frequency = control_frequency
 
         steps_per_second = 1 / self.timestep
@@ -126,7 +124,6 @@ class ClothEnv(object):
 
         #sideways
         self.initial_qpos = np.array([0.212422, 0.362907, -0.00733391, -1.9649, -0.0198034, 2.37451, -1.50499])
-        self.initial_des_pos = np.array([0.62536418, 0.13844214, 0.19553383]) #TODO: SIM OR REAL?
 
         #diagonal
         #self.initial_qpos = np.array([0.114367, 0.575019, 0.0550664, -1.60919, -0.079246, 2.23369, -1.56064])
@@ -149,17 +146,11 @@ class ClothEnv(object):
         self.sim = None
         self.viewer = None
 
-        #TODO FIX GHETTO
-        local_model_kwargs = copy.deepcopy(default_mujoco_model_kwargs)
-        appearance_choices = cloth_model_kwargs.appearance_kwarg_choices
-        appearance_ranges = cloth_model_kwargs.appearance_kwarg_ranges
-        for key in appearance_choices.keys():
-            local_model_kwargs[key] = np.random.choice(appearance_choices[key])
-        for key in appearance_ranges.keys():
-            values = appearance_ranges[key]
-            local_model_kwargs[key] = np.random.uniform(values[0], values[1])
-        local_model_kwargs['train_camera_fovy'] = (self.camera_config['fovy_range'][0] + self.camera_config['fovy_range'][1])/2
-        self.setup_initial_state_and_sim(local_model_kwargs)
+        self.cloth_type = cloth_type
+        model_kwargs, model_numerical_values = self.build_xml_kwargs_and_numerical_values()
+        self.mujoco_model_numerical_values = model_numerical_values
+        self.setup_initial_state_and_sim(model_kwargs)
+        self.dump_xml_models()
         
         self.task_reward_function = reward_calculation.get_task_reward_function(
             self.constraints, self.single_goal_dim, self.sparse_dense, self.success_reward, self.fail_reward, self.extra_reward)
@@ -205,6 +196,55 @@ class ClothEnv(object):
                 model_params=gym.spaces.Box(-np.inf, np.inf,
                                             shape=obs['model_params'].shape, dtype='float32')
             ))
+
+    def build_xml_kwargs_and_numerical_values(self):
+        model_kwargs = dict()
+        wipe = mujoco_model_kwargs.WIPE_MODEL_KWARGS
+        bath = mujoco_model_kwargs.BATH_MODEL_KWARGS
+        kitchen = mujoco_model_kwargs.KITCHEN_MODEL_KWARGS
+
+        #Dynamics
+        model_numerical_values = [0]
+        if self.randomization_kwargs['dynamics_randomization']:
+            for key in mujoco_model_kwargs.model_kwarg_ranges.keys():
+                val_min = np.min(np.array([wipe[key], bath[key], kitchen[key]]))
+                val_max = np.max(np.array([wipe[key], bath[key], kitchen[key]]))
+                val = np.random.uniform(val_min, val_max)
+                model_kwargs[key] = val
+                model_numerical_values.append(val)
+            for key in mujoco_model_kwargs.model_kwarg_choices.keys():
+                val = np.random.choice(mujoco_model_kwargs.model_kwarg_choices[key])
+                model_kwargs[key] = val
+
+        elif self.cloth_type == "bath":
+            model_kwargs = bath
+        elif self.cloth_type == "wipe": 
+            model_kwargs = wipe
+        elif self.cloth_type == "kitchen":
+            model_kwargs = kitchen
+
+        #General
+        model_kwargs['timestep'] = self.timestep
+        model_kwargs['texture_randomization'] = self.randomization_kwargs['texture_randomization']
+        model_kwargs['lights_randomization'] = self.randomization_kwargs['lights_randomization']
+        model_kwargs['robot_appearance_randomization'] = self.randomization_kwargs['robot_appearance_randomization']
+
+        model_kwargs['train_camera_fovy'] = (self.camera_config['fovy_range'][0] + self.camera_config['fovy_range'][1])/2
+        
+        #Appearance
+        appearance_choices = mujoco_model_kwargs.appearance_kwarg_choices
+        appearance_ranges = mujoco_model_kwargs.appearance_kwarg_ranges
+        for key in appearance_choices.keys():
+            model_kwargs[key] = np.random.choice(appearance_choices[key])
+        for key in appearance_ranges.keys():
+            values = appearance_ranges[key]
+            model_kwargs[key] = np.random.uniform(values[0], values[1])
+
+        #Camera fovy
+        if self.randomization_kwargs['camera_randomization']:
+            model_kwargs['train_camera_fovy'] = np.random.uniform(self.camera_config['fovy_range'][0], self.camera_config['fovy_range'][1])
+        
+        return model_kwargs, model_numerical_values
 
     def setup_viewer(self):
         if self.has_viewer:
@@ -333,10 +373,13 @@ class ClothEnv(object):
             if self.pixels and i == image_obs_substep_idx:
                 image_obs = self.get_image_obs()
                 self.frame_stack.append(image_obs)
+                flattened_corners, corner_indices = self.post_action_image_capture()
 
         obs = self.get_obs()
         
-        reward, done, info = self.post_action(action, obs, raw_action, cosine_distance)
+        reward, done, info = self.post_action(obs, raw_action, cosine_distance)
+        info['corner_positions'] = flattened_corners
+        info['corner_indices'] = corner_indices
 
         return obs, reward, done, info
 
@@ -344,49 +387,62 @@ class ClothEnv(object):
     def compute_task_reward(self, achieved_goal, desired_goal, info):
         return self.task_reward_function(achieved_goal, desired_goal, info)
 
+    def post_action_image_capture(self):
+        camera_matrix, camera_transformation = self.get_camera_matrices(self.train_camera, self.image_size[0], self.image_size[1])
+        corners_in_image, corner_indices = self.get_corner_image_positions(self.image_size[0], self.image_size[0], camera_matrix, camera_transformation)
+        flattened_corners = []
+        for corner in corners_in_image:
+            flattened_corners.append(corner[0]/self.image_size[0])
+            flattened_corners.append(corner[1]/self.image_size[1])
+        flattened_corners = np.array(flattened_corners)
+
+        return flattened_corners, corner_indices
+
+
         
-    def post_action(self, action, obs, raw_action, cosine_distance):
+    def post_action(self, obs, raw_action, cosine_distance):
         task_reward = self.compute_task_reward(np.reshape(obs['achieved_goal'], (1, -1)), np.reshape(self.goal, (1, -1)), dict())[0]
         is_success = task_reward > self.fail_reward
 
 
-        delta_size_penalty = -np.linalg.norm(raw_action)
-        ate_penalty = -np.linalg.norm(self.desired_pos_ctrl_W - self.get_ee_position_W())
-        cosine_penalty = -cosine_distance
+        delta_size_penalty = np.linalg.norm(raw_action)
+        scaled_delta_size_penalty = -delta_size_penalty*self.action_norm_penalty_coef
 
-        control_penalty = delta_size_penalty*self.action_norm_penalty_coef + ate_penalty*self.ate_penalty_coef + cosine_penalty*self.cosine_penalty_coef
+        ate_penalty = np.linalg.norm(self.desired_pos_ctrl_W - self.get_ee_position_W())
+        scaled_ate_penalty = -ate_penalty*self.ate_penalty_coef
+
+        cosine_penalty = cosine_distance
+        scaled_cosine_penalty = -cosine_penalty*self.cosine_penalty_coef
+
+        control_penalty =  scaled_delta_size_penalty + scaled_ate_penalty + scaled_cosine_penalty
 
         reward = task_reward + control_penalty
 
         if is_success and self.episode_success_steps == 0:
-            
             print("Sim success",
                 np.round(reward, decimals=3),
                 np.round(task_reward, decimals=3),
                 np.round(control_penalty, decimals=3))
             
 
-        camera_matrix, camera_transformation = self.get_camera_matrices(self.train_camera, self.image_size[0], self.image_size[1])
-        corners_in_image, corner_indices = self.get_corner_image_positions(self.image_size[0], self.image_size[0], camera_matrix, camera_transformation)
-
-        flattened_corners = []
-        for corner in corners_in_image:
-            flattened_corners.append(corner[0]/self.image_size[0])
-            flattened_corners.append(corner[1]/self.image_size[1])
-
-        flattened_corners = np.array(flattened_corners) 
-
+         
+        env_memory_usage = self.process.memory_info().rss
         info = {
                 "task_reward": task_reward,
-                "delta_size": np.linalg.norm(raw_action*self.output_max),
-                "cosine_distance" : cosine_distance,
-                "delta_size_penalty": delta_size_penalty,
-                "ate_penalty": ate_penalty,
-                "control_penalty": control_penalty,
                 "reward": reward,
                 'is_success': is_success,
-                'corner_positions': flattened_corners,
-                'corner_indices': corner_indices
+
+                "delta_size_penalty": delta_size_penalty,
+                "scaled_delta_size_penalty": scaled_delta_size_penalty,
+
+                "cosine_penalty" : cosine_penalty,
+                "scaled_cosine_penalty": scaled_cosine_penalty,
+
+                "ate_penalty": ate_penalty,
+                "scaled_ate_penalty": scaled_ate_penalty,
+
+                "control_penalty": control_penalty,
+                "env_memory_usage": env_memory_usage
                 }
 
         done = False
@@ -631,40 +687,10 @@ class ClothEnv(object):
         self.raw_action = None
 
     def randomize_xml_model(self):
-        model_kwargs = dict()
-        wipe = cloth_model_kwargs.WIPE_MODEL_KWARGS
-        bath = cloth_model_kwargs.BATH_MODEL_KWARGS
-        kitchen = cloth_model_kwargs.KITCHEN_MODEL_KWARGS
-        for key in cloth_model_kwargs.model_kwarg_ranges.keys():
-            val_min = np.min(np.array([wipe[key], bath[key], kitchen[key]]))
-            val_max = np.max(np.array([wipe[key], bath[key], kitchen[key]]))
-            val = np.random.uniform(val_min, val_max)
-            model_kwargs[key] = val
-
-        model_kwargs['timestep'] = self.timestep
-        model_kwargs['domain_randomization'] = True
-        self.mujoco_model_numerical_values = []
-        for param in model_kwargs:
-            value = model_kwargs[param]
-            if not type(value) == str:
-                self.mujoco_model_numerical_values.append(float(value))
-        #TODO: fix ghetto
-        model_kwargs['cone_type'] = np.random.choice(["pyramidal", "elliptic"])
-        
-
-        appearance_choices = cloth_model_kwargs.appearance_kwarg_choices
-        appearance_ranges = cloth_model_kwargs.appearance_kwarg_ranges
-        for key in appearance_choices.keys():
-            model_kwargs[key] = np.random.choice(appearance_choices[key])
-        for key in appearance_ranges.keys():
-            values = appearance_ranges[key]
-            model_kwargs[key] = np.random.uniform(values[0], values[1])
-
-        model_kwargs['train_camera_fovy'] = np.random.uniform(self.camera_config['fovy_range'][0], self.camera_config['fovy_range'][1])
-
+        model_kwargs, model_numerical_values = self.build_xml_kwargs_and_numerical_values()
+        self.mujoco_model_numerical_values = model_numerical_values
         self.setup_initial_state_and_sim(model_kwargs)
 
-    
 
     def reset(self):
         self.sim.reset()
@@ -738,7 +764,7 @@ class ClothEnv(object):
         return camera_matrix, camera_transformation
 
 
-    def get_masked_image(self, camera, width, height, ee_in_image, aux_output, point_size, greyscale=False, mask_type=None, mask_name=None):
+    def get_masked_image(self, camera, width, height, ee_in_image, aux_output, point_size, greyscale=False, mask_type=None):
         camera_matrix, camera_transformation = self.get_camera_matrices(camera, width, height)
         camera_id = self.sim.model.camera_name2id(camera) 
         self.viewer.render(width, height, camera_id)
@@ -785,11 +811,11 @@ class ClothEnv(object):
         ee_pos = self.get_ee_position_W()
         ee_in_image[:3] = ee_pos
 
-        corner_image = self.get_masked_image(self.train_camera, w_corners, h_corners, ee_in_image, aux_output, 8, greyscale=False, mask_type="edges", mask_name="corner_image")
-        eval_image = self.get_masked_image(self.eval_camera, w_eval, h_eval, ee_in_image, None, 4, greyscale=False, mask_type="edges", mask_name="eval_image")
-        cnn_color_image_full = self.get_masked_image(self.train_camera, w_cnn_full, h_cnn_full, ee_in_image, aux_output, 2, mask_type="edges", mask_name="cnn_full")
-        cnn_color_image = self.get_masked_image(self.train_camera, w_cnn, h_cnn, ee_in_image, aux_output, 2, mask_type="edges", mask_name="cnn")
-        cnn_image = self.get_masked_image(self.train_camera, w_cnn, h_cnn, ee_in_image, aux_output, 2, greyscale=True, mask_type="edges", mask_name="cnn_grey")
+        corner_image = self.get_masked_image(self.train_camera, w_corners, h_corners, ee_in_image, aux_output, 8, greyscale=False, mask_type="corners")
+        eval_image = self.get_masked_image(self.eval_camera, w_eval, h_eval, ee_in_image, None, 4, greyscale=False, mask_type="corners")
+        cnn_color_image_full = self.get_masked_image(self.train_camera, w_cnn_full, h_cnn_full, ee_in_image, aux_output, 2, mask_type="corners")
+        cnn_color_image = self.get_masked_image(self.train_camera, w_cnn, h_cnn, ee_in_image, aux_output, 2, mask_type="corners")
+        cnn_image = self.get_masked_image(self.train_camera, w_cnn, h_cnn, ee_in_image, aux_output, 2, greyscale=True, mask_type="corners")
 
 
         return corner_image, eval_image, cnn_color_image_full, cnn_color_image, cnn_image

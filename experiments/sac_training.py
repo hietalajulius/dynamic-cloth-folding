@@ -39,15 +39,7 @@ set_level(50)
 def experiment(variant):
     env = ClothEnv(**variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'])
     env = NormalizedBoxEnv(env)
-
-    if variant['domain_randomization']:
-        print("Randomized eval env")
-        eval_env = get_randomized_env(env, variant)
-    else:
-        print("Not randomized eval env")
-        eval_env = env
-
-    #TODO: extract keys and sizes to utils
+    eval_env = get_randomized_env(env, variant)
 
     keys, dims = get_keys_and_dims(variant, eval_env)
     image_training = variant['image_training']
@@ -125,11 +117,7 @@ def experiment(variant):
     def make_env():
         env = ClothEnv(**variant['env_kwargs'], save_folder=variant['save_folder'], has_viewer=variant['image_training'])
         env = NormalizedBoxEnv(env)
-        
-        if variant['domain_randomization']:
-            env = get_randomized_env(env, variant)
-            
-        
+        env = get_randomized_env(env, variant)
         return env
 
     env_fns = [make_env for _ in range(variant['num_processes'])]

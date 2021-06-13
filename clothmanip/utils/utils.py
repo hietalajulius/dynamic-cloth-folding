@@ -76,18 +76,6 @@ def dump_commit_hashes(save_folder):
             json.dump(commit_hashes, outfile)
     
 
-COLOR_ARGS = {
-    'geom_names': None,  # all geoms are randomized
-    'randomize_local': False,  # sample nearby colors
-    'randomize_material': True,  # randomize material reflectance / shininess / specular
-    'local_rgb_interpolation': 0.02,
-    'local_material_interpolation': 0.05,
-    # all texture variation types
-    'texture_variations': ['rgb', 'checker', 'noise', 'gradient'],
-    'randomize_skybox': False,  # by default, randomize skybox too
-}
-
-
 LIGHTING_ARGS = {
     'light_names': None,  # all lights are randomized
     'randomize_position': True,
@@ -96,25 +84,26 @@ LIGHTING_ARGS = {
     'randomize_ambient': True,
     'randomize_diffuse': True,
     'randomize_active': True,
-    'position_perturbation_size': 0.05,
-    'direction_perturbation_size': 0.05,
-    'specular_perturbation_size': 0.01,
-    'ambient_perturbation_size': 0.01,
-    'diffuse_perturbation_size': 0.01,
+    'position_perturbation_size': 0.99,
+    'direction_perturbation_size': 0.99,
+    'specular_perturbation_size': 0.99,
+    'ambient_perturbation_size': 0.99,
+    'diffuse_perturbation_size': 0.99,
 }
 
 CAMERA_ARGS = {
     'camera_names': None,  # all cameras are randomized
     'randomize_position': True,
     'randomize_rotation': True,
-    'randomize_fovy': True,
-    'position_perturbation_size': 0.05,
-    'rotation_perturbation_size': 0.05,
-    'fovy_perturbation_size': 1,
+    'randomize_fovy': False,
+    'position_perturbation_size': 0.1,
+    'rotation_perturbation_size': 0.1,
+    'fovy_perturbation_size': 0.0,
 }
 
 BLUR_ARGS = {
     'kernel_size_range': (1,4)
+    #TODO: add hue changes here
 }
 
 LOOKAT_ARGS = {
@@ -122,21 +111,20 @@ LOOKAT_ARGS = {
 }
 
 def get_randomized_env(env, variant):
+    r = variant['env_kwargs']['randomization_kwargs']
     return DomainRandomizationWrapper(
                 env,
-                randomize_xml=variant["randomize_xml"],
-                randomize_lookat=True,
+                xml_randomization_kwargs=r,
                 lookat_randomization_args=LOOKAT_ARGS,
-                randomize_on_reset=True,
-                randomize_camera=True,
-                randomize_every_n_steps=0,
-                randomize_color=True,
-                camera_randomization_args=CAMERA_ARGS,
-                color_randomization_args=COLOR_ARGS,
-                randomize_lighting=True,
-                randomize_blur=True,
                 blur_randomization_args=BLUR_ARGS,
-                lighting_randomization_args=LIGHTING_ARGS)
+                randomize_on_reset=True,
+                randomize_camera=r['camera_randomization'],
+                randomize_every_n_steps=0,
+                randomize_color=False,
+                camera_randomization_args=CAMERA_ARGS,
+                randomize_lighting=r['lights_randomization'],
+                lighting_randomization_args=LIGHTING_ARGS
+                )
 
 
 def deltas_from_positions(positions):
@@ -209,8 +197,15 @@ def argsparser():
 
     # Collection
     parser.add_argument('--max_path_length', default=50, type=int)
-    parser.add_argument('--domain_randomization', required=True, type=int)
-    parser.add_argument('--randomize_xml', required=True, type=int)
+
+    parser.add_argument('--lights_randomization', default=1, type=int)
+    parser.add_argument('--texture_randomization', default=0, type=int)
+    parser.add_argument('--robot_appearance_randomization', default=1, type=int)
+    parser.add_argument('--camera_randomization', default=1, type=int)
+    parser.add_argument('--lookat_randomization', default=1, type=int)
+    parser.add_argument('--dynamics_randomization', default=0, type=int)
+    parser.add_argument('--blur_randomization', default=0, type=int)
+
 
     # sim2real
     parser.add_argument('--eval_folder', type=str, required=False)
@@ -257,11 +252,10 @@ def get_variant(args):
 
     utils_dir = Path(os.path.abspath(__file__))
     demo_path = os.path.join(utils_dir.parent.parent.parent.absolute(), "experiments", f'executable_deltas_{args.task.split("_")[0]}_{args.cloth_type}.csv')
-
+    
     variant = dict(
         algorithm="SAC",
         layer_size=256,
-        domain_randomization=bool(args.domain_randomization),
         trainer_kwargs=dict(
             discount=args.discount,
             soft_target_tau=5e-3,
@@ -280,8 +274,7 @@ def get_variant(args):
         demo_path=demo_path,
         num_demos=args.num_demos,
         num_demoers=args.num_demoers,
-        demo_coef=args.demo_coef,
-        randomize_xml=bool(args.randomize_xml)
+        demo_coef=args.demo_coef
     )
     variant['random_seed'] = args.seed
     variant['image_training'] = bool(args.image_training)
@@ -307,22 +300,6 @@ def get_variant(args):
         max_size=int(args.buffer_size),
         fraction_goals_rollout_goals=1 - args.her_percent
     )
-
-    if args.cloth_type == "bath":
-        cloth_specific_kwargs = mujoco_model_kwargs.BATH_MODEL_KWARGS
-    elif args.cloth_type == "kitchen":
-        cloth_specific_kwargs = mujoco_model_kwargs.KITCHEN_MODEL_KWARGS
-    elif args.cloth_type == "wipe":
-        cloth_specific_kwargs = mujoco_model_kwargs.WIPE_MODEL_KWARGS
-    else:
-        raise("Bad cloth type provided")
-
-    model_kwargs = dict(
-            **cloth_specific_kwargs,
-            timestep=args.timestep,
-            domain_randomization=bool(args.domain_randomization)
-        )
-
     
     if args.camera_config == "small":
         camera_config = dict(type="small", fovy_range=(13,15), height=100, width=848)
@@ -330,11 +307,20 @@ def get_variant(args):
         camera_config = dict(type="large", fovy_range=(57,59), height=480, width=848)
         
     variant['env_kwargs'] = dict(
+        timestep=args.timestep,
+        cloth_type=args.cloth_type,
         image_size=args.image_size,
         camera_type=args.camera_type,
         camera_config=camera_config,
-        default_mujoco_model_kwargs=model_kwargs,
-        randomize_xml=bool(args.randomize_xml),
+        randomization_kwargs=dict(
+            lights_randomization=bool(args.lights_randomization),
+            texture_randomization=bool(args.texture_randomization),
+            robot_appearance_randomization=bool(args.robot_appearance_randomization),
+            camera_randomization=bool(args.camera_randomization),
+            lookat_randomization=bool(args.lookat_randomization),
+            dynamics_randomization=bool(args.dynamics_randomization),
+            blur_randomization=bool(args.lights_randomization),
+        ),
         robot_observation=args.robot_observation,
         control_frequency=args.control_frequency,
         ctrl_filter=args.filter,
