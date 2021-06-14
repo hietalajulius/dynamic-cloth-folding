@@ -46,12 +46,10 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
 
     while True:
         if batch_processed_event.is_set():
-            print("Buffer: batch processed received")
             batch = replay_buffer.random_batch(
                 variant['algorithm_kwargs']['batch_size'])
             batch = np_to_pytorch_batch_explicit_device(batch, device)
             batch_queue.put(batch)
-            print("Buffer: put new batch to queue")
 
             if paths_available_event.is_set():
                 paths = path_queue.get()
