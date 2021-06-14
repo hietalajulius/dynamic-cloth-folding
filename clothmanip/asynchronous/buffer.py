@@ -52,7 +52,6 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
             batch = np_to_pytorch_batch_explicit_device(batch, device)
             batch_queue.put(batch)
             print("Buffer: put new batch to queue")
-            batch_processed_event.clear()
 
             if paths_available_event.is_set():
                 paths = path_queue.get()
