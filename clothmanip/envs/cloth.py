@@ -231,6 +231,7 @@ class ClothEnv(object):
         model_kwargs['texture_randomization'] = self.randomization_kwargs['texture_randomization']
         model_kwargs['lights_randomization'] = self.randomization_kwargs['lights_randomization']
         model_kwargs['robot_appearance_randomization'] = self.randomization_kwargs['robot_appearance_randomization']
+        model_kwargs['finger_collisions'] = self.randomization_kwargs['finger_collisions']
 
         model_kwargs['train_camera_fovy'] = (self.camera_config['fovy_range'][0] + self.camera_config['fovy_range'][1])/2
         

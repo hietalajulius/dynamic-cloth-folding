@@ -205,6 +205,7 @@ def argsparser():
     parser.add_argument('--lookat_randomization', default=1, type=int)
     parser.add_argument('--dynamics_randomization', default=0, type=int)
     parser.add_argument('--blur_randomization', default=1, type=int)
+    parser.add_argument('--finger_collisions', default=1, type=int)
 
 
     # sim2real
@@ -320,6 +321,7 @@ def get_variant(args):
             lookat_randomization=bool(args.lookat_randomization),
             dynamics_randomization=bool(args.dynamics_randomization),
             blur_randomization=bool(args.lights_randomization),
+            finger_collisions=bool(args.finger_collisions)
         ),
         robot_observation=args.robot_observation,
         control_frequency=args.control_frequency,

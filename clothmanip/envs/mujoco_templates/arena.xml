@@ -71,13 +71,13 @@
 
         <geom name="ground" pos="0 0 0" size="5 5 10" type="plane" contype="1" conaffinity="1" material="wall_real_material"  />
 
-        <body name="tabletop" pos="0.5 0 0">
-            <geom name="la_tabla_col" type="box" pos="0 0 0" size="0.2 0.3 0.11" group="0" />
+        <body name="tabletop" pos="0.3 0 0">
+            <geom name="la_tabla_col" type="box" pos="0 0 0" size="0.4 0.3 0.104" group="0" />
             <!--<geom name="measuring_small_stick" type="box" pos="0.2 0.13844214 0.19553383" size="0.02 0.02 0.053" group="1" contype="0" conaffinity="0"/> -->
             {% if texture_randomization %}
-                <geom name="la_tabla_vis" type="box" material="table_material" pos="0 0 0" size="0.2 0.3 0.12" group="1" />
+                <geom name="la_tabla_vis" type="box" material="table_material" pos="0 0 0" size="0.4 0.3 0.11" group="1" />
             {% else %}
-                <geom name="la_tabla_vis" type="box" material="table_real_material" pos="0 0 0" size="0.2 0.3 0.12" group="1" contype="0" conaffinity="0" />
+                <geom name="la_tabla_vis" type="box" material="table_real_material" pos="0 0 0" size="0.4 0.3 0.11" group="1" contype="0" conaffinity="0" />
             {% endif %}
         </body>
 
@@ -181,8 +181,7 @@
                                                         <geom name="hand_visual" quat="0.707107 0 0 0.707107" type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="hand_vis"/>
                                                     {% endif %}
                                                     <geom name="hand_collision" quat="0.707107 0 0 0.707107" type="mesh" rgba="0 0 0.5 1" mesh="hand"/>
-                                                    <geom name="grip_geom" size="0.0025" pos="0 0 0.16" group="0" contype="0" conaffinity="0" rgba="1 0 0 0.5"/>
-                                                    <geom name="stopper_geom" size="0.0025" pos="0 0 0.13" group="0" rgba="1 0 0 0.5"/>
+                                                    <geom name="grip_geom" size="0.0025" pos="0 0 0.17" group="0" contype="0" conaffinity="0" rgba="1 0 0 0.5"/>
                                                     <site name="ft_frame" pos="0 0 0" size="0.01" group="1" rgba="1 0 0 1"/>
                                                     <site name="grip_site" pos="0 0 0.10377" size="0.0025" group="1" rgba="1 0 0 0.5"/>
                                                     <body name="leftfinger" pos="0 0 0.063" quat="0.707107 0 0 0.707107">
@@ -191,7 +190,9 @@
                                                         {% else %}
                                                             <geom name="finger1_visual" type="mesh" contype="0" conaffinity="0" group="1" rgba="0.499 0.499 0.499 1" mesh="finger_plastic"/>
                                                         {% endif %}
-                                                        <!--<geom name="finger1_collision"  type="mesh" contype="0" conaffinity="0" condim="4" rgba="0 0 0.5 1" mesh="finger_plastic"/> -->
+                                                        {% if finger_collisions %}
+                                                        <geom name="finger1_collision"  type="mesh" contype="0"  condim="4" rgba="0 0 0.5 1" mesh="finger_plastic"/>
+                                                        {% endif %}
                                                     </body>
                                                     <body name="rightfinger" pos="0 0 0.063" quat="0.707107 0 0 0.707107">
                                                         {% if robot_appearance_randomization %}
@@ -199,7 +200,9 @@
                                                         {% else %}
                                                             <geom name="finger2_visual" quat="0 0 0 1" type="mesh" contype="0" conaffinity="0" group="1" rgba="0.499 0.499 0.499 1" mesh="finger_plastic"/>
                                                         {% endif %}
-                                                        <!--<geom name="finger2_collision" quat="0 0 0 1" type="mesh" contype="0" conaffinity="0" condim="4" rgba="0 0 0.5 1" mesh="finger_plastic"/> -->
+                                                        {% if finger_collisions %}
+                                                        <geom name="finger2_collision" quat="0 0 0 1" type="mesh" contype="0"  condim="4" rgba="0 0 0.5 1" mesh="finger_plastic"/>
+                                                        {% endif %}
                                                     </body>
                                                 </body>
                                             </body>
