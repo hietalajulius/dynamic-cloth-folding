@@ -50,7 +50,8 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
 
     while True:
         print("Collector: waiting for fresh policy")
-        if new_policy_event.wait():
+        if new_policy_event.is_set():
+            new_policy_event.clear()
             state_dict = policy_weights_queue.get()
             local_state_dict = copy.deepcopy(state_dict)
             del state_dict
@@ -72,7 +73,6 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
         paths_available_event.set()
         print("Collector: gave new paths")
 
-        new_policy_event.clear()
 
         num_collected_steps.value = expl_path_collector._num_steps_total
 
