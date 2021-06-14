@@ -43,20 +43,27 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
     print("I have a batch", batch.keys(), batch["images"].shape)
     batch = np_to_pytorch_batch_explicit_device(batch, device)
     batch_queue.put(batch)
-
+    takes_too_long1= 0
+    takes_too_long_2 = 0
     while True:
-        if batch_processed_event.is_set():
+        if batch_processed_event.is_set() or (takes_too_long_2 > 1000):
             batch_processed_event.clear()
             batch = replay_buffer.random_batch(
                 variant['algorithm_kwargs']['batch_size'])
             batch = np_to_pytorch_batch_explicit_device(batch, device)
             batch_queue.put(batch)
+            takes_too_long_2 = 0
+        else:
+            takes_too_long_2 += 1
 
-            if paths_available_event.is_set():
-                paths = path_queue.get()
-                copied_paths = copy.deepcopy(paths)
-                del paths
-                replay_buffer.add_paths(copied_paths)
-                paths_available_event.clear()
+        if paths_available_event.is_set() or (takes_too_long_1 > 1000):
+            paths = path_queue.get()
+            copied_paths = copy.deepcopy(paths)
+            del paths
+            replay_buffer.add_paths(copied_paths)
+            paths_available_event.clear()
+            takes_too_long_1 = 0
+        else:
+            takes_too_long_1 += 1
         
         buffer_memory_usage.value = process.memory_info().rss/10E9
