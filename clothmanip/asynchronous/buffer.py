@@ -30,6 +30,7 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
     )
     replay_buffer.set_task_reward_function(task_reward_function)
 
+    print("Buffer process waiting for paths")
     paths_available_event.wait()
     paths = path_queue.get()
     copied_paths = copy.deepcopy(paths)

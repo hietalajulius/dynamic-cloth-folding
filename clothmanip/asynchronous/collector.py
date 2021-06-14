@@ -21,6 +21,7 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
     env_fns = [make_env for _ in range(variant['num_processes'])]
     vec_env = SubprocVecEnv(env_fns)
 
+    print("Collector waiting for policy")
     new_policy_event.wait()
 
     policy = TanhScriptPolicy(
@@ -58,6 +59,7 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
             collector_memory_usage.value = process.memory_info().rss/10E9
 
         # Keep collecting paths even without new policy
+        print("Collecting paths")
         paths = expl_path_collector.collect_new_paths(
             variant['algorithm_kwargs']['max_path_length'],
             steps_per_rollout,
