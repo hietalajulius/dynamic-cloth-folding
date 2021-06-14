@@ -46,6 +46,7 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
 
     while True:
         if batch_processed_event.is_set():
+            batch_processed_event.clear()
             batch = replay_buffer.random_batch(
                 variant['algorithm_kwargs']['batch_size'])
             batch = np_to_pytorch_batch_explicit_device(batch, device)
