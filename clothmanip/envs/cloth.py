@@ -103,6 +103,9 @@ class ClothEnv(object):
         self.max_success_steps = 20
         self.frame_stack = deque([], maxlen = self.frame_stack_size)
 
+        self.limits_min = [-0.35, -0.35, 0.0]
+        self.limits_max = [0.05, 0.05, 0.4] 
+
         self.single_goal_dim = 3
         self.timestep = timestep
         self.control_frequency = control_frequency
@@ -364,7 +367,10 @@ class ClothEnv(object):
             image_obs_substep_idx = np.clip(image_obs_substep_idx, 0, self.substeps-1)
 
         cosine_distance = compute_cosine_distance(self.previous_raw_action, action)
-        self.desired_pos_step_W += action
+
+        previous_desired_pos_step_W = self.desired_pos_step_W.copy()
+        desired_pos_step_W = previous_desired_pos_step_W + action
+        self.desired_pos_step_W = np.clip(desired_pos_step_W, self.min_absolute_W, self.max_absolute_W)
 
         for i in range(int(self.substeps)):
             for j in range(int(self.between_steps)):
@@ -521,6 +527,8 @@ class ClothEnv(object):
             self.desired_pos_step_W = p.copy()
         if self.initial_ee_p_W is None:
             self.initial_ee_p_W = p.copy()
+            self.min_absolute_W = self.initial_ee_p_W + self.limits_min
+            self.max_absolute_W = self.initial_ee_p_W + self.limits_max
 
     
     def get_trajectory_log_entry(self):

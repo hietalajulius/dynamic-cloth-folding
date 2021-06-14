@@ -204,7 +204,7 @@ def argsparser():
     parser.add_argument('--camera_randomization', default=1, type=int)
     parser.add_argument('--lookat_randomization', default=1, type=int)
     parser.add_argument('--dynamics_randomization', default=0, type=int)
-    parser.add_argument('--blur_randomization', default=0, type=int)
+    parser.add_argument('--blur_randomization', default=1, type=int)
 
 
     # sim2real
