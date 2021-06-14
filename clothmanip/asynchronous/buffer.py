@@ -52,9 +52,11 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
             batch = np_to_pytorch_batch_explicit_device(batch, device)
             batch_queue.put(batch)
 
-        paths = path_queue.get()
-        copied_paths = copy.deepcopy(paths)
-        del paths
-        replay_buffer.add_paths(copied_paths)
+            if paths_available_event.is_set():
+                paths = path_queue.get()
+                copied_paths = copy.deepcopy(paths)
+                del paths
+                replay_buffer.add_paths(copied_paths)
+                paths_available_event.clear()
         
         buffer_memory_usage.value = process.memory_info().rss/10E9
