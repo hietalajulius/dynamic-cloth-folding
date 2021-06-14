@@ -69,6 +69,7 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
 
         path_queue.put(paths)
         paths_available_event.set()
+        print("Gave new paths")
 
         new_policy_event.clear()
 
