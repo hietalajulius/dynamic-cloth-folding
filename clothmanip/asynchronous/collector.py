@@ -49,6 +49,7 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
         variant['num_processes']
 
     while True:
+        print("Collector: waiting for fresh policy")
         if new_policy_event.wait():
             state_dict = policy_weights_queue.get()
             local_state_dict = copy.deepcopy(state_dict)
@@ -59,7 +60,7 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
             collector_memory_usage.value = process.memory_info().rss/10E9
 
         # Keep collecting paths even without new policy
-        print("Collecting paths")
+        print("Collector: collecting paths")
         paths = expl_path_collector.collect_new_paths(
             variant['algorithm_kwargs']['max_path_length'],
             steps_per_rollout,
@@ -69,7 +70,7 @@ def collector(variant, path_queue, policy_weights_queue, paths_available_event, 
 
         path_queue.put(paths)
         paths_available_event.set()
-        print("Gave new paths")
+        print("Collector: gave new paths")
 
         new_policy_event.clear()
 
