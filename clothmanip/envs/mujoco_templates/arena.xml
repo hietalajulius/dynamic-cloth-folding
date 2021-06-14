@@ -106,9 +106,7 @@
 
     {% if lights_randomization %}
         <light name="foo" diffuse=".8 .8 .8" dir="0 -.15 -1" directional="true" pos="0.1 0.1 0.1" specular="0.3 0.3 0.3" castshadow="true"/>
-        <light name="boo" diffuse=".8 .8 .8" dir="0 -.15 -1" directional="true" pos="-0.5 -0.5 0.5" specular="0.3 0.3 0.3" castshadow="true"/>
-        <light name="foo1" diffuse=".8 .8 .8" dir="0 -.15 -1" directional="true" pos="0.1 0.1 0.1" specular="0.3 0.3 0.3" castshadow="true"/>
-        <light name="boo1" diffuse=".8 .8 .8" dir="0 -.15 -1" directional="true" pos="-0.5 -0.5 0.5" specular="0.3 0.3 0.3" castshadow="true"/>
+        <light name="boo" diffuse=".8 .8 .8" dir="0 -.15 -1" directional="true" pos="-0.5 -0.5 0.5" specular="0.3 0.3 0.3" castshadow="false"/>
     {% endif %}
 
 
