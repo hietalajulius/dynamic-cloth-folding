@@ -102,7 +102,7 @@ CAMERA_ARGS = {
 }
 
 BLUR_ARGS = {
-    'kernel_size_range': (1,4)
+    'kernel_size_range': (1,3)
     #TODO: add hue changes here
 }
 
