@@ -362,15 +362,14 @@ class ClothEnv(object):
 
     def step(self, action):
         raw_action = action.copy()
-        self.previous_raw_action = raw_action
-
         action = raw_action*self.output_max
         if self.pixels:
             image_obs_substep_idx_mean = self.image_obs_noise_mean * (self.substeps-1)
             image_obs_substep_idx = int(np.random.normal(image_obs_substep_idx_mean, self.image_obs_noise_std))
             image_obs_substep_idx = np.clip(image_obs_substep_idx, 0, self.substeps-1)
 
-        cosine_distance = compute_cosine_distance(self.previous_raw_action, action)
+        cosine_distance = compute_cosine_distance(self.previous_raw_action, raw_action)
+        self.previous_raw_action = raw_action
 
         previous_desired_pos_step_W = self.desired_pos_step_W.copy()
         desired_pos_step_W = previous_desired_pos_step_W + action
