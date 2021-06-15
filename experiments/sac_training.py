@@ -30,6 +30,8 @@ from rlkit.samplers.eval_suite.real_corner_prediction_test import RealCornerPred
 
 from rlkit.samplers.eval_suite.base import EvalTestSuite
 
+import tracemalloc
+
 
 torch.cuda.empty_cache()
 
@@ -207,6 +209,7 @@ def experiment(variant):
 
 
 if __name__ == "__main__":
+    tracemalloc.start()
     args = argsparser()
     variant, arg_str = get_variant(args)
 
