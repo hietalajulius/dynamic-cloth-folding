@@ -17,6 +17,7 @@ import copy
 from clothmanip.utils import mujoco_model_kwargs
 from shutil import copyfile
 import psutil
+import gc
 
 
 def compute_cosine_distance(vec1, vec2):
@@ -296,6 +297,8 @@ class ClothEnv(object):
             del self.sim 
         self.mjpy_model = mujoco_py.load_model_from_xml(xml)
         del xml
+
+        gc.collect()
         self.sim = mujoco_py.MjSim(self.mjpy_model)
         self.setup_viewer()
         utils.remove_distance_welds(self.sim)

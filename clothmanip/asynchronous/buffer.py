@@ -46,7 +46,7 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
     takes_too_long_1= 0
     takes_too_long_2 = 0
     while True:
-        if batch_processed_event.is_set() or (takes_too_long_2 > 1000):
+        if batch_processed_event.is_set() or (takes_too_long_2 > 100000):
             batch_processed_event.clear()
             batch = replay_buffer.random_batch(
                 variant['algorithm_kwargs']['batch_size'])
@@ -57,7 +57,7 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
             print("Takes 2", takes_too_long_2)
             takes_too_long_2 += 1
 
-        if paths_available_event.is_set() or (takes_too_long_1 > 1000):
+        if paths_available_event.is_set() or (takes_too_long_1 > 100000):
             paths = path_queue.get()
             copied_paths = copy.deepcopy(paths)
             del paths
