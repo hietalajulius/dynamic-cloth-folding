@@ -54,6 +54,7 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
             batch_queue.put(batch)
             takes_too_long_2 = 0
         else:
+            print("Takes 2", takes_too_long_2)
             takes_too_long_2 += 1
 
         if paths_available_event.is_set() or (takes_too_long_1 > 1000):
@@ -64,6 +65,7 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
             paths_available_event.clear()
             takes_too_long_1 = 0
         else:
+            print("Takes 1", takes_too_long_1)
             takes_too_long_1 += 1
         
         buffer_memory_usage.value = process.memory_info().rss/10E9
