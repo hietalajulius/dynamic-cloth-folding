@@ -285,7 +285,7 @@ class ClothEnv(object):
                 cam_scale = 0.4
             des_cam_pos = des_cam_look_pos + cam_scale * (np.array([-0.0, -0.312,  0.455])-des_cam_look_pos)
         cam_id = self.sim.model.camera_name2id(self.train_camera)
-        #print("desired camera position", des_cam_pos)
+        print("desired camera position", des_cam_pos)
         self.mjpy_model.cam_pos[cam_id] = des_cam_pos
         self.sim.data.set_mocap_pos("lookatbody", des_cam_look_pos)
 
@@ -362,7 +362,7 @@ class ClothEnv(object):
 
     def step(self, action):
         raw_action = action.copy()
-        self.previous_delta_vector = raw_action
+        self.previous_raw_action = raw_action
 
         action = raw_action*self.output_max
         if self.pixels:
@@ -686,6 +686,7 @@ class ClothEnv(object):
             goal[i*self.single_goal_dim: (i+1) *
                  self.single_goal_dim] = target_pos + offset - self.relative_origin
 
+        print("Goal", goal)
         return goal.copy()
 
 

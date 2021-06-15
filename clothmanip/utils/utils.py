@@ -218,7 +218,7 @@ def argsparser():
     parser.add_argument('--image_obs_noise_mean', type=float, default=1.0)
     parser.add_argument('--image_obs_noise_std', type=float, default=0.0)
 
-    parser.add_argument('--camera_type', choices=["up", "side"], default="up")
+    parser.add_argument('--camera_type', choices=["up", "side"], default="side")
     parser.add_argument('--camera_config', choices=["small", "large"], default="small")
     parser.add_argument('--cloth_type', choices=["bath", "kitchen", "wipe"], required=True)
     parser.add_argument('--robot_observation', choices=["all", "joints", "ee", "ctrl", "none"], default="all")
