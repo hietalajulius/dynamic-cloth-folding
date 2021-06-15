@@ -43,7 +43,7 @@ def buffer(variant, batch_queue, path_queue, batch_processed_event, paths_availa
     print("I have a batch", batch.keys(), batch["images"].shape)
     batch = np_to_pytorch_batch_explicit_device(batch, device)
     batch_queue.put(batch)
-    takes_too_long1= 0
+    takes_too_long_1= 0
     takes_too_long_2 = 0
     while True:
         if batch_processed_event.is_set() or (takes_too_long_2 > 1000):
