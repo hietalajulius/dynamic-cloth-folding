@@ -235,6 +235,7 @@ class ClothEnv(object):
         model_kwargs['finger_collisions'] = self.randomization_kwargs['finger_collisions']
 
         model_kwargs['train_camera_fovy'] = (self.camera_config['fovy_range'][0] + self.camera_config['fovy_range'][1])/2
+        model_kwargs['num_lights'] = 0
         
         #Appearance
         appearance_choices = mujoco_model_kwargs.appearance_kwarg_choices
@@ -248,6 +249,8 @@ class ClothEnv(object):
         #Camera fovy
         if self.randomization_kwargs['camera_randomization']:
             model_kwargs['train_camera_fovy'] = np.random.uniform(self.camera_config['fovy_range'][0], self.camera_config['fovy_range'][1])
+            #model_kwargs['num_lights'] = np.random.randint(0, 4)
+            #TODO Fig out number of ligths
         
         return model_kwargs, model_numerical_values
 
@@ -285,7 +288,7 @@ class ClothEnv(object):
                 cam_scale = 0.4
             des_cam_pos = des_cam_look_pos + cam_scale * (np.array([-0.0, -0.312,  0.455])-des_cam_look_pos)
         cam_id = self.sim.model.camera_name2id(self.train_camera)
-        print("desired camera position", des_cam_pos)
+        #print("desired camera position", des_cam_pos)
         self.mjpy_model.cam_pos[cam_id] = des_cam_pos
         self.sim.data.set_mocap_pos("lookatbody", des_cam_look_pos)
 
@@ -685,7 +688,7 @@ class ClothEnv(object):
             goal[i*self.single_goal_dim: (i+1) *
                  self.single_goal_dim] = target_pos + offset - self.relative_origin
 
-        print("Goal", goal)
+        #print("Goal", goal)
         return goal.copy()
 
 
@@ -730,6 +733,13 @@ class ClothEnv(object):
             image_obs = self.get_image_obs()
             for _ in range(self.frame_stack_size):
                 self.frame_stack.append(image_obs)
+
+        q_off = self.initial_qpos - self.get_joint_positions()
+
+        q_ok = np.allclose(self.initial_qpos, self.get_joint_positions(), rtol=0.01, atol=0.01)
+
+        if not q_ok:
+            print("Q values not ok", self.initial_qpos - self.get_joint_positions())
                 
         return self.get_obs()
 
