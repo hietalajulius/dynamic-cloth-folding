@@ -100,7 +100,7 @@ def experiment(variant):
     success_rate_test = SuccessRateTest(eval_env, eval_policy, 'regular', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
     blank_images_test = BlankImagesTest(eval_env, eval_policy, 'blank', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
                                         
-    eval_test_suite = EvalTestSuite([real_corner_prediction_test, success_rate_test, blank_images_test], variant['save_folder'])
+    eval_test_suite = EvalTestSuite([success_rate_test, blank_images_test, real_corner_prediction_test], variant['save_folder'])
 
 
     demo_path_collector = None

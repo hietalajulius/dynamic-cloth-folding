@@ -118,6 +118,8 @@ class ClothEnv(object):
 
         if camera_type == "up":
             self.train_camera = "train_camera_up"
+        elif camera_type == "front":
+            self.train_camera = "train_camera_front"
         else:
             self.train_camera = "train_camera_side"
         self.eval_camera = "eval_camera"
@@ -281,6 +283,8 @@ class ClothEnv(object):
         if self.train_camera == "train_camera_up":
             cam_scale = 1
             des_cam_pos = des_cam_look_pos + cam_scale * (np.array([0.52536418, -0.60,  1.03])-des_cam_look_pos)
+        elif self.train_camera == "train_camera_front":
+            des_cam_pos = np.array([0.5, -0.8, 0.69])
         else:
             if self.camera_config['type'] == "small":
                 cam_scale = 1.6

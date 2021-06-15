@@ -123,6 +123,7 @@
         <camera fovy="{{train_camera_fovy}}" mode="targetbody" target="lookatbody" name="train_camera_up" pos="0.52536418 -0.60  1.03"/>
         <!--<camera fovy="46" mode="targetbody" target="lookatbody" name="train_camera_side" pos="-0.0 -0.312  0.455"/> -->
         <camera fovy="{{train_camera_fovy}}" mode="targetbody" target="lookatbody" name="train_camera_side" pos="-0.0 -0.312  0.455"/> 
+        <camera fovy="{{train_camera_fovy}}" mode="targetbody" target="lookatbody" name="train_camera_front" pos="0.5 -0.8  0.69"/> 
 
         <camera mode="targetbodycom" target="tabletop" name="eval_camera" pos="-0.45 -1 1"/>
         <!--cloth view -->
