@@ -243,5 +243,4 @@ if __name__ == "__main__":
         print ("Successfully created the directory %s" % variant['save_folder'])
 
     print("Profiling with cProfile")
-    #cProfile.run('experiment(variant)', f"{profiling_path}/profmain.prof")
-    experiment(variant)
+    cProfile.run('experiment(variant)', f"{profiling_path}/profmain.prof")
