@@ -65,6 +65,18 @@ appearance_kwarg_ranges = dict(
     table_texture_repeat_x = (1,100),
     table_texture_repeat_y = (1,100),
 
+    floor_texture_width = (1,1000),
+    floor_texture_height = (1,1000),
+    floor_texture_random = (0,1),
+    floor_texture_r_1 = (0,0.9),
+    floor_texture_g_1 = (0,0.9),
+    floor_texture_b_1 = (0,0.9),
+    floor_texture_r_2 = (0,0.9),
+    floor_texture_g_2 = (0,0.9),
+    floor_texture_b_2 = (0,0.9),
+    floor_texture_repeat_x = (1,100),
+    floor_texture_repeat_y = (1,100),
+
     robot1_texture_width = (1,1000),
     robot1_texture_height = (1,1000),
     robot1_texture_random = (0,1),
@@ -96,6 +108,9 @@ appearance_kwarg_choices = dict(
 
     table_texture_builtin = ["gradient", "checker", "flat"],
     table_texture_mark = ["none", "edge", "cross", "random"],
+
+    floor_texture_builtin = ["gradient", "checker", "flat"],
+    floor_texture_mark = ["none", "edge", "cross", "random"],
 
     robot1_texture_builtin = ["gradient", "checker", "flat"],
     robot1_texture_mark = ["none", "edge", "cross", "random"],

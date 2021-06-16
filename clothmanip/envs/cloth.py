@@ -231,13 +231,14 @@ class ClothEnv(object):
 
         #General
         model_kwargs['timestep'] = self.timestep
-        model_kwargs['texture_randomization'] = self.randomization_kwargs['texture_randomization']
+        model_kwargs['cloth_texture_randomization'] = self.randomization_kwargs['cloth_texture_randomization']
+        model_kwargs['background_texture_randomization'] = self.randomization_kwargs['background_texture_randomization']
         model_kwargs['lights_randomization'] = self.randomization_kwargs['lights_randomization']
         model_kwargs['robot_appearance_randomization'] = self.randomization_kwargs['robot_appearance_randomization']
         model_kwargs['finger_collisions'] = self.randomization_kwargs['finger_collisions']
 
         model_kwargs['train_camera_fovy'] = (self.camera_config['fovy_range'][0] + self.camera_config['fovy_range'][1])/2
-        model_kwargs['num_lights'] = 0
+        model_kwargs['num_lights'] = 2
         
         #Appearance
         appearance_choices = mujoco_model_kwargs.appearance_kwarg_choices
@@ -622,6 +623,14 @@ class ClothEnv(object):
         width_end = width_start + self.image_size[0]
         image_obs = image_obs[height_start:height_end, width_start:width_end, :]
         image_obs = cv2.cvtColor(image_obs, cv2.COLOR_BGR2GRAY)
+
+        blur_kernel_size = np.random.randint(1,4)
+        image_obs = cv2.blur(image_obs,(blur_kernel_size, blur_kernel_size))
+
+        gaussian_noise = np.zeros((self.image_size[0], self.image_size[1]),dtype=np.uint8)
+        cv2.randn(gaussian_noise, 128, 20)
+        gaussian_noise = (gaussian_noise*0.5).astype(np.uint8)
+        image_obs = cv2.add(image_obs,gaussian_noise)
 
         if not depth_obs is None:
             return np.array([(image_obs / 255).flatten(), depth_obs.flatten()]).flatten()

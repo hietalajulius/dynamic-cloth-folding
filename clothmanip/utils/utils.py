@@ -96,18 +96,14 @@ CAMERA_ARGS = {
     'randomize_position': True,
     'randomize_rotation': True,
     'randomize_fovy': False,
-    'position_perturbation_size': 0.1,
-    'rotation_perturbation_size': 0.1,
+    'position_perturbation_size': 0.2,
+    'rotation_perturbation_size': 0.2,
     'fovy_perturbation_size': 0.0,
 }
 
-BLUR_ARGS = {
-    'kernel_size_range': (1,3)
-    #TODO: add hue changes here
-}
 
 LOOKAT_ARGS = {
-    'radius' : 0.02
+    'radius' : 0.03
 }
 
 def get_randomized_env(env, variant):
@@ -116,7 +112,6 @@ def get_randomized_env(env, variant):
                 env,
                 xml_randomization_kwargs=r,
                 lookat_randomization_args=LOOKAT_ARGS,
-                blur_randomization_args=BLUR_ARGS,
                 randomize_on_reset=True,
                 randomize_camera=r['camera_randomization'],
                 randomize_every_n_steps=0,
@@ -199,7 +194,8 @@ def argsparser():
     parser.add_argument('--max_path_length', default=50, type=int)
 
     parser.add_argument('--lights_randomization', default=1, type=int)
-    parser.add_argument('--texture_randomization', default=0, type=int)
+    parser.add_argument('--cloth_texture_randomization', default=0, type=int)
+    parser.add_argument('--background_texture_randomization', default=1, type=int)
     parser.add_argument('--robot_appearance_randomization', default=1, type=int)
     parser.add_argument('--camera_randomization', default=1, type=int)
     parser.add_argument('--lookat_randomization', default=1, type=int)
@@ -315,7 +311,8 @@ def get_variant(args):
         camera_config=camera_config,
         randomization_kwargs=dict(
             lights_randomization=bool(args.lights_randomization),
-            texture_randomization=bool(args.texture_randomization),
+            background_texture_randomization=bool(args.background_texture_randomization),
+            cloth_texture_randomization=bool(args.cloth_texture_randomization),
             robot_appearance_randomization=bool(args.robot_appearance_randomization),
             camera_randomization=bool(args.camera_randomization),
             lookat_randomization=bool(args.lookat_randomization),

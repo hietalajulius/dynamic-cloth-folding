@@ -43,8 +43,8 @@
         <texture name="table_real_texture" type="cube" file="textures/table.png" />
         <material name="table_real_material" texture="table_real_texture"/>
 
-        <texture name="wall_real_texture" type="2d" file="textures/wall.png" />
-        <material name="wall_real_material" texture="wall_real_texture"/>
+        <texture name="floor_real_texture" type="2d" file="textures/wall.png" />
+        <material name="floor_real_material" texture="floor_real_texture"/>
 
 
         <texture name="white_borders" type="2d" file="textures/white_borders.png"/>
@@ -58,6 +58,11 @@
         <texture width="{{table_texture_width}}" height="{{table_texture_height}}" name="table_texture" type="cube" random="{{table_texture_random}}" rgb1="{{table_texture_r_1}} {{table_texture_g_1}} {{table_texture_b_1}}" rgb2="{{table_texture_r_2}} {{table_texture_g_2}} {{table_texture_b_2}}" builtin="{{table_texture_builtin}}" mark="{{table_texture_mark}}" />
         <material texrepeat="{{table_texture_repeat_x}} {{table_texture_repeat_y}}" name="table_material" texture="table_texture" />
 
+        <texture width="{{floor_texture_width}}" height="{{floor_texture_height}}" name="floor_texture" type="2d" random="{{floor_texture_random}}" rgb1="{{floor_texture_r_1}} {{floor_texture_g_1}} {{floor_texture_b_1}}" rgb2="{{floor_texture_r_2}} {{floor_texture_g_2}} {{floor_texture_b_2}}" builtin="{{floor_texture_builtin}}" mark="{{floor_texture_mark}}" />
+        <material texrepeat="{{floor_texture_repeat_x}} {{floor_texture_repeat_y}}" name="floor_material" texture="floor_texture" />
+
+
+
         <texture width="{{robot1_texture_width}}" height="{{robot1_texture_height}}" name="robot1_texture" type="2d" random="{{robot1_texture_random}}" rgb1="{{robot1_texture_r_1}} {{robot1_texture_g_1}} {{robot1_texture_b_1}}" rgb2="{{robot1_texture_r_2}} {{robot1_texture_g_2}} {{robot1_texture_b_2}}" builtin="{{robot1_texture_builtin}}" mark="{{robot1_texture_mark}}" />
         <material texrepeat="{{robot1_texture_repeat_x}} {{robot1_texture_repeat_y}}" name="robot1_material" texture="robot1_texture" />
 
@@ -69,12 +74,16 @@
     </asset>
     <worldbody>
 
-        <geom name="ground" pos="0 0 0" size="5 5 10" type="plane" contype="1" conaffinity="1" material="wall_real_material"  />
+        {% if background_texture_randomization %}
+            <geom name="ground" pos="0 0 0" size="5 5 10" type="plane" contype="1" conaffinity="1" material="floor_real_material"  />
+        {% else %}
+            <geom name="ground" pos="0 0 0" size="5 5 10" type="plane" contype="1" conaffinity="1" material="floor_real_material"  />
+        {% endif %}
 
         <body name="tabletop" pos="0.4 0 0">
             <geom name="la_tabla_col" type="box" pos="0 0 0" size="0.3 0.3 0.104" group="0" />
             <!--<geom name="measuring_small_stick" type="box" pos="0.2 0.13844214 0.19553383" size="0.02 0.02 0.053" group="1" contype="0" conaffinity="0"/> -->
-            {% if texture_randomization %}
+            {% if background_texture_randomization %}
                 <geom name="la_tabla_vis" type="box" material="table_material" pos="0 0 0" size="0.3 0.3 0.11" group="1" />
             {% else %}
                 <geom name="la_tabla_vis" type="box" material="table_real_material" pos="0 0 0" size="0.3 0.3 0.11" group="1" contype="0" conaffinity="0" />
@@ -91,7 +100,7 @@
                     <tendon solimpfix="{{tendon_shear_solimp_low}} {{tendon_shear_solimp_high}} {{tendon_shear_solimp_width}}" solreffix="{{tendon_shear_solref_timeconst}} {{tendon_shear_solref_dampratio}}" width="0.001" kind="shear" />
                     <tendon solimpfix="{{tendon_main_solimp_low}} {{tendon_main_solimp_high}} {{tendon_main_solimp_width}}" solreffix="{{tendon_main_solref_timeconst}} {{tendon_main_solref_dampratio}}" kind="main" />
                    
-                    {% if texture_randomization %}
+                    {% if cloth_texture_randomization %}
                         <skin material="cloth_material" texcoord="true" inflate="0.001" subgrid="3"/>
                     {% else %}
                         <skin material="bath_real_material" texcoord="true" inflate="0.001" subgrid="3"/>
