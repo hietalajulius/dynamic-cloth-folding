@@ -179,6 +179,7 @@ def argsparser():
     parser.add_argument('--fc_normalization_type', type=str, default='none')
     parser.add_argument('--pool_type', type=str, default='none')
     parser.add_argument('--discount', type=float, default=0.99)
+    parser.add_argument('--dropout_prob', type=float, default=0.0)
 
     # Replay buffer
     # HER 0.8 from paper
@@ -359,6 +360,8 @@ def get_variant(args):
             paddings=[0, 0, 0, 0],
             hidden_sizes_aux=[256, 8],
             hidden_sizes_main=[256, 256, 256, 256],
+            input_dropout_prob=args.dropout_prob,
+            dropout_probs=[args.dropout_prob, args.dropout_prob, args.dropout_prob, args.dropout_prob],
             init_w=1e-4,
             conv_normalization_type=args.conv_normalization_type,
             fc_normalization_type=args.fc_normalization_type,
