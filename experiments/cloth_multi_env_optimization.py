@@ -11,12 +11,13 @@ from gym.logger import set_level
 import cv2
 import os
 import shutil
-
+from clothmanip.utils.utils import get_variant, argsparser, get_randomized_env, dump_commit_hashes, get_keys_and_dims
 set_level(50)
 
 def get_env_fn(variant, output_folder):
     def env_fn():
-        return NormalizedBoxEnv(ClothEnv(**variant['env_kwargs'], save_folder=output_folder, has_viewer=True, initial_xml_dump=True))
+        env = NormalizedBoxEnv(ClothEnv(**variant['env_kwargs'], save_folder=output_folder, has_viewer=True))
+        return env
 
     return env_fn
 
@@ -57,26 +58,26 @@ default_model_kwargs = dict(
 )
 
 model_kwarg_ranges = dict(
-    joint_solimp_low = (0.98,0.9999),
-    joint_solimp_high = (0.98,0.9999),
+    joint_solimp_low = (0.99,0.9999),
+    joint_solimp_high = (0.99,0.9999),
     joint_solimp_width = (0.01, 0.03),
     joint_solref_timeconst  = (0.01, 0.05),
     joint_solref_dampratio = (0.98, 1.01555555555556),
 
-    tendon_shear_solimp_low = (0.98,0.9999),
-    tendon_shear_solimp_high = (0.98,0.9999),
+    tendon_shear_solimp_low = (0.99,0.9999),
+    tendon_shear_solimp_high = (0.99,0.9999),
     tendon_shear_solimp_width = (0.01, 0.03),
     tendon_shear_solref_timeconst  = (0.01, 0.05),
     tendon_shear_solref_dampratio = (0.98, 1.01555555555556),
 
-    tendon_main_solimp_low = (0.98,0.9999),
-    tendon_main_solimp_high = (0.98,0.9999),
+    tendon_main_solimp_low = (0.99,0.9999),
+    tendon_main_solimp_high = (0.99,0.9999),
     tendon_main_solimp_width = (0.01, 0.03),
     tendon_main_solref_timeconst  = (0.01, 0.05),
     tendon_main_solref_dampratio = (0.98, 1.01555555555556),
 
-    geom_solimp_low = (0.98,0.9999),
-    geom_solimp_high = (0.98,0.9999),
+    geom_solimp_low = (0.99,0.9999),
+    geom_solimp_high = (0.99,0.9999),
     geom_solimp_width = (0.01, 0.03),
     geom_solref_timeconst  = (0.01, 0.05),
     geom_solref_dampratio = (0.98, 1.01555555555556),
@@ -107,13 +108,14 @@ def rollout(model_kwargs_list, variant, input_folder, output_folder_paths):
 
     for model_kwargs in model_kwargs_list:
         fresh_variant = copy.deepcopy(variant)
-        fresh_variant["env_kwargs"]["mujoco_model_kwargs"] = model_kwargs
+        fresh_variant["env_kwargs"]["override_model_kwargs"] = model_kwargs
+        fresh_variant["env_kwargs"]["cloth_type"] = "override"
         variants_list.append(fresh_variant)
 
     env_fns = [get_env_fn(variants_list[i], output_folder_paths[i]) for i in range(num_trajs)]
     vec_env = SubprocVecEnv(env_fns)
 
-    deltas =  np.genfromtxt(f"{input_folder}/executable_deltas.csv", delimiter=',')
+    deltas =  np.genfromtxt(f"{input_folder}/executable_raw_actions.csv", delimiter=',')
     ee_positions = [[] for _ in range(num_trajs)]
     all_images = [[] for _ in range(num_trajs)]
     vec_env.reset()
@@ -149,7 +151,7 @@ def rollout(model_kwargs_list, variant, input_folder, output_folder_paths):
     return got_dones, smallest_reached_goals, reached_goals
 
 
-def main(variant, input_folder, output_folder):
+def main(variant, folder):
     num_trajs = variant['num_processes']
     stats_df = pd.DataFrame()
     ranges = list(model_kwarg_ranges.values())
@@ -165,13 +167,12 @@ def main(variant, input_folder, output_folder):
                 high = ranges[idx][1]
                 kwargs[key] = np.random.uniform(low, high)
             kwargs['cone_type'] = np.random.choice(["pyramidal", "elliptic"])
-            kwargs['timestep'] = variant["env_kwargs"]["mujoco_model_kwargs"]["timestep"]
             kwargs['domain_randomization'] = True
             model_kwarg_list.append(kwargs)
 
-        output_folder_paths = [output_folder + f"/param_optimization/{tests*num_trajs+i}" for i in range(num_trajs)]
+        output_folder_paths = [folder + f"/param_optimization/{tests*num_trajs+i}" for i in range(num_trajs)]
 
-        got_dones, smallest_reached_goals, reached_goals_at_end = rollout(model_kwarg_list, variant, input_folder, output_folder_paths)
+        got_dones, smallest_reached_goals, reached_goals_at_end = rollout(model_kwarg_list, variant, folder, output_folder_paths)
 
 
         for model_kwargs, got_done, smallest_reached_goal, reached_goal_at_end in zip(model_kwarg_list, got_dones, smallest_reached_goals, reached_goals_at_end):
@@ -184,23 +185,22 @@ def main(variant, input_folder, output_folder):
                     settings, ignore_index=True)
 
         for i, smallest_reached_goal in enumerate(smallest_reached_goals):
-            if smallest_reached_goal > 0.05:
+            if smallest_reached_goal > 0.5:
                 shutil.rmtree(output_folder_paths[i])
 
-        stats_df.to_csv(f"{output_folder}/cloth_optimization_stats.csv")
+        stats_df.to_csv(f"{folder}/cloth_optimization_stats.csv")
         tests += 1
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Parser")
-    parser.add_argument('input_folder', type=str)
-    parser.add_argument('output_folder', type=str)
+    parser.add_argument('folder', type=str)
 
     args = parser.parse_args()
 
 
-    with open(f"{args.input_folder}/params.json")as json_file:
+    with open(f"{args.folder}/params.json")as json_file:
         variant = json.load(json_file)
 
     with mujoco_py.ignore_mujoco_warnings():
-        main(variant, args.input_folder, args.output_folder)
+        main(variant, args.folder)

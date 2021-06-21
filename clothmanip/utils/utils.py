@@ -202,7 +202,10 @@ def argsparser():
     parser.add_argument('--lookat_randomization', default=1, type=int)
     parser.add_argument('--dynamics_randomization', default=0, type=int)
     parser.add_argument('--blur_randomization', default=1, type=int)
-    parser.add_argument('--finger_collisions', default=1, type=int)
+    parser.add_argument('--noise_randomization', default=1, type=int)
+    parser.add_argument('--finger_collisions', default=0, type=int)
+    parser.add_argument('--num_cloth_geoms', default=9, type=int)
+    parser.add_argument('--cloth_size', default=0.2, type=float)
 
 
     # sim2real
@@ -228,7 +231,6 @@ def argsparser():
     parser.add_argument('--task', type=str, required=True)
     parser.add_argument('--image_training', default=0, type=int, required=True)
     parser.add_argument('--image_size', type=int, default=100)
-    parser.add_argument('--depth_frames', type=int, default=0)
     parser.add_argument('--frame_stack_size', type=int, default=1)
     parser.add_argument('--sparse_dense', type=int, default=0)
     parser.add_argument('--goal_noise', type=float, default=0.01)
@@ -250,6 +252,7 @@ def get_variant(args):
 
     utils_dir = Path(os.path.abspath(__file__))
     demo_path = os.path.join(utils_dir.parent.parent.parent.absolute(), "experiments", f'executable_deltas_{args.task.split("_")[0]}_{args.cloth_type}.csv')
+    print("demo path", demo_path)
     
     variant = dict(
         algorithm="SAC",
@@ -318,15 +321,17 @@ def get_variant(args):
             camera_randomization=bool(args.camera_randomization),
             lookat_randomization=bool(args.lookat_randomization),
             dynamics_randomization=bool(args.dynamics_randomization),
-            blur_randomization=bool(args.lights_randomization),
-            finger_collisions=bool(args.finger_collisions)
+            blur_randomization=bool(args.blur_randomization),
+            noise_randomization=bool(args.noise_randomization),
+            finger_collisions=bool(args.finger_collisions),
+            num_cloth_geoms=args.num_cloth_geoms,
+            cloth_size=args.cloth_size,
         ),
         robot_observation=args.robot_observation,
         control_frequency=args.control_frequency,
         ctrl_filter=args.filter,
         kp=args.kp,
         frame_stack_size=args.frame_stack_size,
-        depth_frames=bool(args.depth_frames),
         damping_ratio=args.damping_ratio,
         action_norm_penalty_coef=args.action_norm_penalty_coef,
         ate_penalty_coef=args.ate_penalty_coef,
@@ -338,7 +343,7 @@ def get_variant(args):
         output_max=args.output_max,
         max_episode_steps=int(args.max_path_length),
         sparse_dense=bool(args.sparse_dense),
-        constraints=task_definitions.constraints[args.task],
+        constraints=task_definitions.constraints[args.task](0, int((args.num_cloth_geoms-1)/2), args.num_cloth_geoms-1),
         pixels=bool(args.image_training),
         goal_noise_range=(0.0, args.goal_noise),
         num_eval_rollouts=args.num_eval_rollouts,
@@ -353,7 +358,7 @@ def get_variant(args):
         variant['policy_kwargs'] = dict(
             input_width=args.image_size,
             input_height=args.image_size,
-            input_channels=args.frame_stack_size*(1+int(args.depth_frames)),
+            input_channels=args.frame_stack_size,
             kernel_sizes=[3, 3, 3, 3],
             n_channels=[32, 32, 32, 32],
             strides=[2, 2, 2, 2],

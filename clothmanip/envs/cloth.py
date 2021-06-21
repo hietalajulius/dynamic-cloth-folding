@@ -18,6 +18,8 @@ from clothmanip.utils import mujoco_model_kwargs
 from shutil import copyfile
 import psutil
 import gc
+from xml.dom import minidom
+from mujoco_py.utils import remove_empty_lines
 
 
 def compute_cosine_distance(vec1, vec2):
@@ -41,7 +43,6 @@ class ClothEnv(object):
         goal_noise_range,
         pixels,
         image_size,
-        depth_frames,
         frame_stack_size,
         output_max,
         constant_goal,
@@ -65,8 +66,10 @@ class ClothEnv(object):
         camera_config,
         image_obs_noise_mean=1,
         image_obs_noise_std=0,
-        has_viewer=False
+        has_viewer=False,
+        override_model_kwargs=None,
     ):  
+        self.override_model_kwargs = override_model_kwargs
         self.process = psutil.Process(os.getpid())
         self.randomization_kwargs = randomization_kwargs       
         file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -90,7 +93,6 @@ class ClothEnv(object):
         self.constraints = constraints
         self.goal_noise_range = goal_noise_range
         self.pixels = pixels
-        self.depth_frames = depth_frames
         self.frame_stack_size = frame_stack_size
         self.image_size = (image_size, image_size)
         self.constant_goal = constant_goal
@@ -135,15 +137,21 @@ class ClothEnv(object):
         #self.initial_qpos = np.array([0.114367, 0.575019, 0.0550664, -1.60919, -0.079246, 2.23369, -1.56064])
         #self.initial_des_pos = np.array([0.692898, 0.107481, 0.194496])
 
+        min_corner = 0
+        max_corner = self.randomization_kwargs['num_cloth_geoms'] -1
+        self.max_corner_name = f"B{max_corner}_{max_corner}"
+        mid = int(max_corner / 2)
+        self.corner_index_mapping = {f"S{min_corner}_{max_corner}" : 0, f"S{max_corner}_{max_corner}": 1, f"S{min_corner}_{min_corner}": 2, f"S{max_corner}_{min_corner}": 3}
         self.cloth_site_names = []
-        for i in [0, 4, 8]:
-            for j in [0, 4, 8]:
+        self.corner_site_names = []
+        self.corner_indices = []
+
+        for i in [min_corner, mid, max_corner]:
+            for j in [min_corner, mid, max_corner]:
                 self.cloth_site_names.append(f"S{i}_{j}")
-        self.corner_index_mapping = {"S0_8" : 0, "S8_8": 1, "S0_0": 2, "S8_0": 3}
-        self.corner_indices = [] #TODO: fix ghetto
-        for site in self.cloth_site_names:
-            if not "4" in site:
-                self.corner_indices.append(self.corner_index_mapping[site])
+                if (i in [max_corner, min_corner]) and (j in [max_corner, min_corner]):
+                    self.corner_indices.append(self.corner_index_mapping[f"S{i}_{j}"])
+                    self.corner_site_names.append(f"S{i}_{j}")
 
         self.ee_site_name = 'grip_site'
         self.joints = ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"]
@@ -228,6 +236,8 @@ class ClothEnv(object):
             model_kwargs = wipe
         elif self.cloth_type == "kitchen":
             model_kwargs = kitchen
+        elif self.cloth_type == "override":
+            model_kwargs = self.override_model_kwargs
 
         #General
         model_kwargs['timestep'] = self.timestep
@@ -238,7 +248,13 @@ class ClothEnv(object):
         model_kwargs['finger_collisions'] = self.randomization_kwargs['finger_collisions']
 
         model_kwargs['train_camera_fovy'] = (self.camera_config['fovy_range'][0] + self.camera_config['fovy_range'][1])/2
-        model_kwargs['num_lights'] = 2
+        model_kwargs['num_lights'] = 1
+
+        model_kwargs['num_cloth_geoms'] = self.randomization_kwargs['num_cloth_geoms']
+        model_kwargs['geom_spacing'] = (self.randomization_kwargs['cloth_size'] - 2*model_kwargs['geom_size']) / (self.randomization_kwargs['num_cloth_geoms'] - 1)
+        model_kwargs['offset'] = (self.randomization_kwargs['num_cloth_geoms']-1)/2 * model_kwargs['geom_spacing']
+
+
         
         #Appearance
         appearance_choices = mujoco_model_kwargs.appearance_kwarg_choices
@@ -252,15 +268,14 @@ class ClothEnv(object):
         #Camera fovy
         if self.randomization_kwargs['camera_randomization']:
             model_kwargs['train_camera_fovy'] = np.random.uniform(self.camera_config['fovy_range'][0], self.camera_config['fovy_range'][1])
-            #model_kwargs['num_lights'] = np.random.randint(0, 4)
-            #TODO Fig out number of ligths
+        if self.randomization_kwargs['lights_randomization']:
+            model_kwargs['num_lights'] = 2
         
         return model_kwargs, model_numerical_values
 
     def setup_viewer(self):
         if self.has_viewer:
             if not self.viewer is None:
-                #print_refs(self.viewer)
                 del self.viewer
             self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, device_id=-1)
             self.viewer.vopt.geomgroup[0] = 0
@@ -297,19 +312,46 @@ class ClothEnv(object):
         self.mjpy_model.cam_pos[cam_id] = des_cam_pos
         self.sim.data.set_mocap_pos("lookatbody", des_cam_look_pos)
 
+    def add_mocap_to_xml(self, xml):
+        dom = minidom.parseString(xml)
+        for subelement in dom.getElementsByTagName("body"):
+            if subelement.getAttribute("name") == self.max_corner_name:
+                subelement.setAttribute("mocap", "true")
+                for child_node in subelement.childNodes:
+                    if child_node.nodeType == 1:
+                        if child_node.tagName == "joint":
+                            subelement.removeChild(child_node)
+
+        return remove_empty_lines(dom.toprettyxml(indent=" " * 4))
+                
+                        
+        
+
+
     def setup_initial_state_and_sim(self, model_kwargs):
-        xml = self.template_renderer.render_template("arena.xml", **model_kwargs)
         if not self.mjpy_model is None:
             del self.mjpy_model
         if not self.sim is None:
-            del self.sim 
-        self.mjpy_model = mujoco_py.load_model_from_xml(xml)
-        del xml
+            del self.sim
+        temp_xml_1 = self.template_renderer.render_template("arena.xml", **model_kwargs)
+        temp_model = mujoco_py.load_model_from_xml(temp_xml_1)
+        temp_xml_2 = copy.deepcopy(temp_model.get_xml())
+        del temp_model
+        del temp_xml_1
+        
+        temp_xml_2 = self.add_mocap_to_xml(temp_xml_2)
+
+        self.mjpy_model = mujoco_py.load_model_from_xml(temp_xml_2)
+        del temp_xml_2
+
 
         gc.collect()
         self.sim = mujoco_py.MjSim(self.mjpy_model)
         self.setup_viewer()
-        utils.remove_distance_welds(self.sim)
+
+        body_id = self.sim.model.body_name2id(self.max_corner_name)
+        self.ee_mocap_id = self.sim.model.body_mocapid[body_id]
+        #utils.remove_distance_welds(self.sim)
 
         self.joint_indexes = [self.sim.model.joint_name2id(joint) for joint in self.joints]
         self.joint_pos_addr = [self.sim.model.get_joint_qpos_addr(joint) for joint in self.joints]
@@ -362,6 +404,8 @@ class ClothEnv(object):
         return torques
 
     def step_env(self):
+        self.sim.data.mocap_pos[self.ee_mocap_id][:] = self.sim.data.get_geom_xpos("grip_geom")
+
         mujoco_py.functions.mj_step1(self.sim.model, self.sim.data)
         self.update_osc_values()
         tau = self.run_controller()
@@ -391,9 +435,7 @@ class ClothEnv(object):
                 image_obs = self.get_image_obs()
                 self.frame_stack.append(image_obs)
                 flattened_corners, corner_indices = self.post_action_image_capture()
-
         obs = self.get_obs()
-        
         reward, done, info = self.post_action(obs, raw_action, cosine_distance)
         info['corner_positions'] = flattened_corners
         info['corner_indices'] = corner_indices
@@ -606,13 +648,7 @@ class ClothEnv(object):
         width = self.camera_config['width']
         height = self.camera_config['height']
         self.viewer.render(width, height, camera_id)
-        depth_obs = None
-        if self.depth_frames:
-            image_obs, depth_obs = copy.deepcopy(self.viewer.read_pixels(width, height, depth=True))
-            depth_obs = depth_obs[::-1, :]
-            depth_obs = cv2.normalize(depth_obs, None, alpha = 0, beta = 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        else:
-            image_obs = copy.deepcopy(self.viewer.read_pixels(width, height, depth=False))
+        image_obs = copy.deepcopy(self.viewer.read_pixels(width, height, depth=False))
 
         image_obs = image_obs[::-1, :, :]
 
@@ -624,18 +660,17 @@ class ClothEnv(object):
         image_obs = image_obs[height_start:height_end, width_start:width_end, :]
         image_obs = cv2.cvtColor(image_obs, cv2.COLOR_BGR2GRAY)
 
-        blur_kernel_size = np.random.randint(1,4)
-        image_obs = cv2.blur(image_obs,(blur_kernel_size, blur_kernel_size))
+        if self.randomization_kwargs['blur_randomization']:
+            blur_kernel_size = np.random.randint(1,4)
+            image_obs = cv2.blur(image_obs,(blur_kernel_size, blur_kernel_size))
 
-        gaussian_noise = np.zeros((self.image_size[0], self.image_size[1]),dtype=np.uint8)
-        cv2.randn(gaussian_noise, 128, 20)
-        gaussian_noise = (gaussian_noise*0.5).astype(np.uint8)
-        image_obs = cv2.add(image_obs,gaussian_noise)
+        if self.randomization_kwargs['noise_randomization']:
+            gaussian_noise = np.zeros((self.image_size[0], self.image_size[1]),dtype=np.uint8)
+            cv2.randn(gaussian_noise, 128, 20)
+            gaussian_noise = (gaussian_noise*0.5).astype(np.uint8)
+            image_obs = cv2.add(image_obs,gaussian_noise)
 
-        if not depth_obs is None:
-            return np.array([(image_obs / 255).flatten(), depth_obs.flatten()]).flatten()
-        else:
-            return (image_obs / 255).flatten()
+        return (image_obs / 255).flatten().copy()
 
 
     def get_obs(self):
@@ -747,28 +782,26 @@ class ClothEnv(object):
             for _ in range(self.frame_stack_size):
                 self.frame_stack.append(image_obs)
 
-        q_off = self.initial_qpos - self.get_joint_positions()
 
         q_ok = np.allclose(self.initial_qpos, self.get_joint_positions(), rtol=0.01, atol=0.01)
 
         if not q_ok:
             print("Q values not ok", self.initial_qpos - self.get_joint_positions())
-                
+        #print("EE", self.get_ee_position_W(), self.sim.data.get_body_xpos("B8_8"))
         return self.get_obs()
 
     def get_corner_image_positions(self, w, h, camera_matrix, camera_transformation):
         corners = []
         corner_indices = []
         cloth_positions = self.get_cloth_position_W()
-        for site in self.cloth_site_names:
-            if not "4" in site:
-                corner_in_image = np.ones(4)
-                corner_in_image[:3] = cloth_positions[site]
-                corner = (camera_matrix @ camera_transformation) @ corner_in_image
-                u_c, v_c, _ = corner/corner[2]
-                corner = [w-u_c, v_c]
-                corners.append(corner)
-                corner_indices.append(self.corner_index_mapping[site])
+        for site in self.corner_site_names:
+            corner_in_image = np.ones(4)
+            corner_in_image[:3] = cloth_positions[site]
+            corner = (camera_matrix @ camera_transformation) @ corner_in_image
+            u_c, v_c, _ = corner/corner[2]
+            corner = [w-u_c, v_c]
+            corners.append(corner)
+            corner_indices.append(self.corner_index_mapping[site])
         return corners, corner_indices
 
     def get_edge_image_positions(self, w, h, camera_matrix, camera_transformation):
