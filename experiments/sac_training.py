@@ -97,10 +97,15 @@ def experiment(variant):
     eval_policy = MakeDeterministic(policy)
 
     real_corner_prediction_test = RealCornerPredictionTest(eval_env, eval_policy, 'real_corner_error', ['corner_error'], 1, variant=variant)
-    success_rate_test = SuccessRateTest(eval_env, eval_policy, 'regular', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
+    bath_variant = copy.deepcopy(variant)
+    bath_variant['cloth_type'] = "bath"
+    bath_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'bath_regular', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=bath_variant)
+    kitchen_variant = copy.deepcopy(variant)
+    kitchen_variant['cloth_type'] = "kitchen"
+    kitchen_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'kitchen_regular', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=kitchen_variant)
     blank_images_test = BlankImagesTest(eval_env, eval_policy, 'blank', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
                                         
-    eval_test_suite = EvalTestSuite([success_rate_test, blank_images_test, real_corner_prediction_test], variant['save_folder'])
+    eval_test_suite = EvalTestSuite([bath_success_rate_test, kitchen_success_rate_test, blank_images_test, real_corner_prediction_test], variant['save_folder'])
 
 
     demo_path_collector = None
