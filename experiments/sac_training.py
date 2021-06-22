@@ -15,7 +15,7 @@ import torch
 import cProfile
 from rlkit.envs.wrappers import SubprocVecEnv
 from gym.logger import set_level
-from clothmanip.utils.utils import get_variant, argsparser, get_randomized_env, dump_commit_hashes, get_keys_and_dims
+from clothmanip.utils.utils import get_variant, argsparser, get_randomized_env, dump_commit_hashes, get_keys_and_dims, dump_goal
 import copy
 from clothmanip.utils import reward_calculation
 import numpy as np
@@ -42,6 +42,15 @@ def experiment(variant):
     env = ClothEnv(**variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'])
     env = NormalizedBoxEnv(env)
     eval_env = get_randomized_env(env, variant)
+
+    constant_goal_variant = copy.deepcopy(variant)
+    constant_goal_variant['env_kwargs']['constant_goal'] = True
+    constant_goal_env = ClothEnv(**constant_goal_variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'])
+    goal = constant_goal_env.goal.copy()
+    dump_goal(variant['save_folder'], goal)
+    del constant_goal_env
+    del constant_goal_variant
+
 
     keys, dims = get_keys_and_dims(variant, eval_env)
     image_training = variant['image_training']

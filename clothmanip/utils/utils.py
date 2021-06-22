@@ -74,6 +74,10 @@ def dump_commit_hashes(save_folder):
 
     with open(f"{save_folder}/commit_hashes.json", "w") as outfile:
             json.dump(commit_hashes, outfile)
+
+def dump_goal(save_folder, goal):
+    np.savetxt(f"{save_folder}/goal.txt", goal, delimiter=",", fmt='%f')
+
     
 
 LIGHTING_ARGS = {
