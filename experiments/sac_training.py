@@ -258,3 +258,15 @@ if __name__ == "__main__":
 
     print("Profiling with cProfile")
     cProfile.run('experiment(variant)', f"{profiling_path}/profmain.prof")
+    '''
+    print("profiling with torch prof")
+    with torch.profiler.profile(
+            activities=[
+                torch.profiler.ProfilerActivity.CPU,
+                torch.profiler.ProfilerActivity.CUDA,
+            ]
+        ) as p:
+        experiment(variant)
+    print(p.key_averages().table(
+    sort_by="self_cuda_time_total", row_limit=-1))
+    '''

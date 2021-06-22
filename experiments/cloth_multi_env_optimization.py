@@ -12,6 +12,7 @@ import cv2
 import os
 import shutil
 from clothmanip.utils.utils import get_variant, argsparser, get_randomized_env, dump_commit_hashes, get_keys_and_dims
+from clothmanip.utils import task_definitions
 set_level(50)
 
 def get_env_fn(variant, output_folder):
@@ -20,6 +21,21 @@ def get_env_fn(variant, output_folder):
         return env
 
     return env_fn
+
+default_randomization_kwargs = dict(
+    lights_randomization=False,
+    background_texture_randomization=False,
+    cloth_texture_randomization=False,
+    robot_appearance_randomization=False,
+    camera_randomization=False,
+    lookat_randomization=False,
+    dynamics_randomization=False,
+    blur_randomization=False,
+    noise_randomization=False,
+    finger_collisions=False,
+    num_cloth_geoms=9,
+    cloth_size=0.2,
+)
 
 default_model_kwargs = dict(
         joint_solimp_low = 0.986633333333333,
@@ -46,13 +62,6 @@ default_model_kwargs = dict(
         geom_solref_timeconst  = 0.005,
         geom_solref_dampratio = 1.01555555555556,
 
-        grasp_solimp_low = 0.99,
-        grasp_solimp_high = 0.99,
-        grasp_solimp_width = 0.01,
-        grasp_solref_timeconst  = 0.01,
-        grasp_solref_dampratio = 1,
-
-        geom_size = 0.011,
         friction = 0.05,
         impratio = 20
 )
@@ -82,18 +91,11 @@ model_kwarg_ranges = dict(
     geom_solref_timeconst  = (0.01, 0.05),
     geom_solref_dampratio = (0.98, 1.01555555555556),
 
-    grasp_solimp_low = (0.99,0.9999),
-    grasp_solimp_high = (0.99,0.9999),
-    grasp_solimp_width = (0.01, 0.02),
-    grasp_solref_timeconst  = (0.01, 0.02),
-    grasp_solref_dampratio = (0.98, 1.01555555555556),
-
-    geom_size = (0.008, 0.011),
     friction = (0.01, 10),
     impratio = (1, 40)
 )
 
-def rollout(model_kwargs_list, variant, input_folder, output_folder_paths):
+def rollout(model_kwargs_list, randomization_kwarg_list, variant, input_folder, output_folder_paths):
     num_trajs = len(model_kwargs_list)
     variants_list = []
     for output_folder in output_folder_paths:
@@ -106,14 +108,20 @@ def rollout(model_kwargs_list, variant, input_folder, output_folder_paths):
         except:
             print("folders exist already")
 
-    for model_kwargs in model_kwargs_list:
+    task = "sideways_3cm"
+    for model_kwargs, randomization_kwargs in zip(model_kwargs_list, randomization_kwarg_list):
         fresh_variant = copy.deepcopy(variant)
         fresh_variant["env_kwargs"]["override_model_kwargs"] = model_kwargs
+        fresh_variant["env_kwargs"]["randomization_kwargs"] = randomization_kwargs
         fresh_variant["env_kwargs"]["cloth_type"] = "override"
+        fresh_variant["env_kwargs"]["output_max"] = 1.0
+        num_geoms = randomization_kwargs['num_cloth_geoms']
+        fresh_variant["env_kwargs"]["constraints"] = task_definitions.constraints[task](0, int((num_geoms -1)/2), num_geoms -1)
         variants_list.append(fresh_variant)
 
     env_fns = [get_env_fn(variants_list[i], output_folder_paths[i]) for i in range(num_trajs)]
     vec_env = SubprocVecEnv(env_fns)
+
 
     deltas =  np.genfromtxt(f"{input_folder}/executable_raw_actions.csv", delimiter=',')
     ee_positions = [[] for _ in range(num_trajs)]
@@ -122,8 +130,8 @@ def rollout(model_kwargs_list, variant, input_folder, output_folder_paths):
     smallest_reached_goals = np.ones(num_trajs)*np.inf
     got_dones = np.zeros(num_trajs)
     for delta in deltas:
-        actions = np.array([delta for _ in range(num_trajs)])*1.2/variant["env_kwargs"]["output_max"]
-        observations, rewards, dones, infos = vec_env.step(actions)
+        actions = np.array([delta for _ in range(num_trajs)])
+        observations, rewards, dones, infos = vec_env.step(actions[:,:3])
         reached_goals = np.array([np.linalg.norm(observations['achieved_goal'][i]-observations['desired_goal'][i]) for i in range(num_trajs)])
         got_dones[dones] = True
         smallest_reached_goals = np.min([smallest_reached_goals, reached_goals], axis=0)
@@ -159,9 +167,14 @@ def main(variant, folder):
     while True:
         print("Test", tests)
         model_kwarg_list = []
+        randomization_kwarg_list = []
         
         for _ in range(num_trajs):
             kwargs = copy.deepcopy(default_model_kwargs)
+            rand_kwargs = copy.deepcopy(default_randomization_kwargs)
+            rand_kwargs['num_cloth_geoms'] = np.random.choice([5,7,9,11,15])
+            max_size = rand_kwargs['cloth_size'] / (2*rand_kwargs['num_cloth_geoms'])
+            kwargs['geom_size'] = np.random.uniform(0.001, max_size)
             for idx, key in enumerate(default_model_kwargs.keys()):
                 low = ranges[idx][0]
                 high = ranges[idx][1]
@@ -169,17 +182,19 @@ def main(variant, folder):
             kwargs['cone_type'] = np.random.choice(["pyramidal", "elliptic"])
             kwargs['domain_randomization'] = True
             model_kwarg_list.append(kwargs)
+            randomization_kwarg_list.append(rand_kwargs)
 
         output_folder_paths = [folder + f"/param_optimization/{tests*num_trajs+i}" for i in range(num_trajs)]
 
-        got_dones, smallest_reached_goals, reached_goals_at_end = rollout(model_kwarg_list, variant, folder, output_folder_paths)
+        got_dones, smallest_reached_goals, reached_goals_at_end = rollout(model_kwarg_list, randomization_kwarg_list, variant, folder, output_folder_paths)
 
 
-        for model_kwargs, got_done, smallest_reached_goal, reached_goal_at_end in zip(model_kwarg_list, got_dones, smallest_reached_goals, reached_goals_at_end):
+        for model_kwargs, rand_kwargs, got_done, smallest_reached_goal, reached_goal_at_end in zip(model_kwarg_list, randomization_kwarg_list, got_dones, smallest_reached_goals, reached_goals_at_end):
             settings = dict(got_done=got_done,
                             a_smallest_reached_goal=smallest_reached_goal,
                             a_reached_goal_at_end=reached_goal_at_end,
-                            **model_kwargs
+                            **model_kwargs,
+                            **rand_kwargs
                             )
             stats_df = stats_df.append(
                     settings, ignore_index=True)
