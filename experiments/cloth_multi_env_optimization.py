@@ -200,7 +200,7 @@ def main(variant, folder):
                     settings, ignore_index=True)
 
         for i, smallest_reached_goal in enumerate(smallest_reached_goals):
-            if smallest_reached_goal > 0.5:
+            if smallest_reached_goal > 0.05:
                 shutil.rmtree(output_folder_paths[i])
 
         stats_df.to_csv(f"{folder}/cloth_optimization_stats.csv")
