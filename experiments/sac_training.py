@@ -27,6 +27,7 @@ import json
 from rlkit.samplers.eval_suite.success_rate_test import SuccessRateTest
 from rlkit.samplers.eval_suite.blank_images_test import BlankImagesTest
 from rlkit.samplers.eval_suite.real_corner_prediction_test import RealCornerPredictionTest
+from rlkit.samplers.eval_suite.dump_real_images_test import DumpRealCornerPredictions
 
 from rlkit.samplers.eval_suite.base import EvalTestSuite
 
@@ -106,27 +107,23 @@ def experiment(variant):
     eval_policy = MakeDeterministic(policy)
 
     real_corner_prediction_test = RealCornerPredictionTest(eval_env, eval_policy, 'real_corner_error', ['corner_error'], 1, variant=variant)
-    bath_variant = copy.deepcopy(variant)
-    bath_variant['cloth_type'] = "bath"
-    bath_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'bath_regular', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=bath_variant)
-    kitchen_variant = copy.deepcopy(variant)
-    kitchen_variant['cloth_type'] = "kitchen"
-    kitchen_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'kitchen_regular', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=kitchen_variant)
+    real_corners_dump = DumpRealCornerPredictions(eval_env, eval_policy, 'real_corner_dump', [], 1, variant=variant)
+    wipe_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'wipe', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
+    kitchen_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'kitchen', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
     blank_images_test = BlankImagesTest(eval_env, eval_policy, 'blank', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
                                         
-    eval_test_suite = EvalTestSuite([bath_success_rate_test, kitchen_success_rate_test, blank_images_test, real_corner_prediction_test], variant['save_folder'])
+    eval_test_suite = EvalTestSuite([real_corners_dump, real_corner_prediction_test, blank_images_test, wipe_success_rate_test, kitchen_success_rate_test], variant['save_folder'])
 
 
     demo_path_collector = None
-    if variant['use_demos']:
+    if variant['num_pre_demos'] > 0:
         demo_path_collector = KeyPathCollector(
             eval_env,
             policy,
-            use_demos=True,
-            demo_coef=variant['demo_coef'],
-            demo_path=variant['demo_path'],
             observation_key=keys['path_collector_observation_key'],
             desired_goal_key=keys['desired_goal_key'],
+            demo_paths=variant['demo_paths'],
+            num_pre_demos=variant['num_pre_demos'],
             **variant['path_collector_kwargs']
         )
 
@@ -139,23 +136,33 @@ def experiment(variant):
     env_fns = [make_env for _ in range(variant['num_processes'])]
     vec_env = SubprocVecEnv(env_fns)
 
+
     expl_path_collector = VectorizedKeyPathCollector(
         vec_env,
         policy,
-        output_max=variant["env_kwargs"]["output_max"],
-        demo_coef=variant['demo_coef'],
         processes=variant['num_processes'],
         observation_key=keys['path_collector_observation_key'],
         desired_goal_key=keys['desired_goal_key'],
-        use_demos=variant['use_demos'],
-        demo_path=variant['demo_path'],
         num_demoers=variant['num_demoers'],
+        demo_paths=variant['demo_paths'],
+        demo_divider=variant['env_kwargs']['output_max'],
         **variant['path_collector_kwargs'],
     )
 
+    '''
+    FOR DEBUG, REMEMBER TO REMOVE try/except from domain rand wrapper
+    expl_path_collector = KeyPathCollector(
+        eval_env,
+        policy,
+        observation_key=keys['path_collector_observation_key'],
+        desired_goal_key=keys['desired_goal_key'],
+        **variant['path_collector_kwargs'],
+    )
+    '''
+
 
     task_reward_function = reward_calculation.get_task_reward_function(
-        variant['env_kwargs']['constraints'], 3, variant['env_kwargs']['sparse_dense'], variant['env_kwargs']['success_reward'], variant['env_kwargs']['fail_reward'], variant['env_kwargs']['extra_reward'])
+        variant['env_kwargs']['constraint_distances'], 3, variant['env_kwargs']['sparse_dense'], variant['env_kwargs']['success_reward'], variant['env_kwargs']['fail_reward'], variant['env_kwargs']['extra_reward'])
     ob_spaces = copy.deepcopy(eval_env.observation_space.spaces)
     action_space = copy.deepcopy(eval_env.action_space)
     replay_buffer = FutureObsDictRelabelingBuffer(
@@ -208,7 +215,7 @@ def experiment(variant):
         evaluation_env=eval_env,
         exploration_data_collector=expl_path_collector,
         demo_data_collector=demo_path_collector,
-        num_demos=variant['num_demos'],
+        num_demos=variant['num_pre_demos'],
         replay_buffer=replay_buffer,
         save_folder=variant['save_folder'],
         **variant['algorithm_kwargs']
@@ -234,8 +241,7 @@ if __name__ == "__main__":
         print("Training with CPU")
 
     logger_path = args.title + "-run-" + str(args.run)
-    setup_logger(logger_path, variant=variant,
-                 log_tabular_only=variant['log_tabular_only'])
+    setup_logger(logger_path, variant=variant,log_tabular_only=True)
 
     variant['save_folder'] = f"./trainings/{logger._prefixes[0]}".strip()
 

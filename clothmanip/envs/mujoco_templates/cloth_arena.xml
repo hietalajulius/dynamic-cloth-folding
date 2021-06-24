@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mujoco>
+    <compiler strippath="true" meshdir="{{ template_dir }}/meshes" texturedir="{{ template_dir }}/textures" inertiafromgeom= "true" angle="radian" inertiagrouprange="0 0"/>
+    <option timestep="{{ timestep }}" impratio="{{ impratio }}" cone="{{ cone_type }}" />
+    <size nconmax="5000" njmax="5000"/>
+    <visual>
+        <headlight ambient="0.4 0.4 0.4" diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2" />
+    </visual>
+    <asset>
+        <texture name="texplane" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2" width="512" height="512"/>
+        <texture name="texplane2" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2" width="512" height="512"/>
+        <texture name="texplane3" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2" width="512" height="512"/>
+        <material name="floorplane" reflectance="0.01" shininess="0.0" specular="0.0" texrepeat="2 2" texture="texplane" texuniform="true"/>
+        <material name="floorplane2" reflectance="0.01" shininess="0.0" specular="0.0" texrepeat="2 2" texture="texplane2" texuniform="true"/>
+        <material name="floorplane3" reflectance="0.01" shininess="0.0" specular="0.0" texrepeat="2 2" texture="texplane2" texuniform="true"/>
+        <mesh name="link0" file="meshes/link0.stl" />
+        <mesh name="link1" file="meshes/link1.stl" />
+        <mesh name="link2" file="meshes/link2.stl" />
+        <mesh name="link3" file="meshes/link3.stl" />
+        <mesh name="link4" file="meshes/link4.stl" />
+        <mesh name="link5" file="meshes/link5.stl" />
+        <mesh name="link6" file="meshes/link6.stl" />
+        <mesh name="link7" file="meshes/link7.stl" />
+        <mesh name="link0_vis" file="meshes/link0_vis.stl" />
+        <mesh name="link1_vis" file="meshes/link1_vis.stl" />
+        <mesh name="link2_vis" file="meshes/link2_vis.stl" />
+        <mesh name="link3_vis" file="meshes/link3_vis.stl" />
+        <mesh name="link4_vis" file="meshes/link4_vis.stl" />
+        <mesh name="link5_vis" file="meshes/link5_vis.stl" />
+        <mesh name="link6_vis" file="meshes/link6_vis.stl" />
+        <mesh name="link7_vis" file="meshes/link7_vis.stl" />
+        <mesh name="finger_plastic" file="meshes/3dprinted_finger.stl" />
+        <mesh name="hand" file="meshes/hand.stl" />
+        <mesh name="hand_vis" file="meshes/hand_vis.stl" />
+        <mesh name="finger" file="meshes/finger.stl" />
+        <mesh name="finger_vis" file="meshes/finger_vis.stl" />
+        <mesh name="finger_vis2" file="meshes/finger_longer.stl" />
+
+
+        <texture name="bath_real_texture" type="2d" file="textures/cloth.png" />
+        <material name="bath_real_material" texture="bath_real_texture"/>
+
+        <texture name="table_real_texture" type="cube" file="textures/table.png" />
+        <material name="table_real_material" texture="table_real_texture"/>
+
+        <texture name="floor_real_texture" type="2d" file="textures/wall.png" />
+        <material name="floor_real_material" texture="floor_real_texture"/>
+
+
+        <texture name="white_borders" type="2d" file="textures/white_borders.png"/>
+        <material name="white_borders" texture="white_borders"/>
+
+
+
+        <texture width="{{cloth_texture_width}}" height="{{cloth_texture_height}}" name="cloth_texture" type="2d" random="{{cloth_texture_random}}" rgb1="{{cloth_texture_r_1}} {{cloth_texture_g_1}} {{cloth_texture_b_1}}" rgb2="{{cloth_texture_r_2}} {{cloth_texture_g_2}} {{cloth_texture_b_2}}" builtin="{{cloth_texture_builtin}}" mark="{{cloth_texture_mark}}" />
+        <material texrepeat="{{cloth_texture_repeat_x}} {{cloth_texture_repeat_y}}" name="cloth_material" texture="cloth_texture" />
+
+        <texture width="{{table_texture_width}}" height="{{table_texture_height}}" name="table_texture" type="cube" random="{{table_texture_random}}" rgb1="{{table_texture_r_1}} {{table_texture_g_1}} {{table_texture_b_1}}" rgb2="{{table_texture_r_2}} {{table_texture_g_2}} {{table_texture_b_2}}" builtin="{{table_texture_builtin}}" mark="{{table_texture_mark}}" />
+        <material texrepeat="{{table_texture_repeat_x}} {{table_texture_repeat_y}}" name="table_material" texture="table_texture" />
+
+        <texture width="{{floor_texture_width}}" height="{{floor_texture_height}}" name="floor_texture" type="2d" random="{{floor_texture_random}}" rgb1="{{floor_texture_r_1}} {{floor_texture_g_1}} {{floor_texture_b_1}}" rgb2="{{floor_texture_r_2}} {{floor_texture_g_2}} {{floor_texture_b_2}}" builtin="{{floor_texture_builtin}}" mark="{{floor_texture_mark}}" />
+        <material texrepeat="{{floor_texture_repeat_x}} {{floor_texture_repeat_y}}" name="floor_material" texture="floor_texture" />
+
+
+
+        <texture width="{{robot1_texture_width}}" height="{{robot1_texture_height}}" name="robot1_texture" type="2d" random="{{robot1_texture_random}}" rgb1="{{robot1_texture_r_1}} {{robot1_texture_g_1}} {{robot1_texture_b_1}}" rgb2="{{robot1_texture_r_2}} {{robot1_texture_g_2}} {{robot1_texture_b_2}}" builtin="{{robot1_texture_builtin}}" mark="{{robot1_texture_mark}}" />
+        <material texrepeat="{{robot1_texture_repeat_x}} {{robot1_texture_repeat_y}}" name="robot1_material" texture="robot1_texture" />
+
+        <texture width="{{robot2_texture_width}}" height="{{robot2_texture_height}}" name="robot2_texture" type="2d" random="{{robot2_texture_random}}" rgb1="{{robot2_texture_r_1}} {{robot2_texture_g_1}} {{robot2_texture_b_1}}" rgb2="{{robot2_texture_r_2}} {{robot2_texture_g_2}} {{robot2_texture_b_2}}" builtin="{{robot2_texture_builtin}}" mark="{{robot2_texture_mark}}" />
+        <material texrepeat="{{robot2_texture_repeat_x}} {{robot2_texture_repeat_y}}" name="robot2_material" texture="robot2_texture" />
+
+
+
+    </asset>
+    <worldbody>
+
+        {% if background_texture_randomization %}
+            <geom name="ground" pos="0 0 0" size="5 5 10" type="plane" contype="1" conaffinity="1" material="floor_real_material"  />
+        {% else %}
+            <geom name="ground" pos="0 0 0" size="5 5 10" type="plane" contype="1" conaffinity="1" material="floor_real_material"  />
+        {% endif %}
+
+        <composite type="grid" count="3 3 1" spacing="0.1"  >
+            <joint kind="main" solimpfix="{{joint_solimp_low}} {{joint_solimp_high}} {{joint_solimp_width}}" solreffix="{{joint_solref_timeconst}} {{joint_solref_dampratio}}" />
+            <tendon solimpfix="{{tendon_shear_solimp_low}} {{tendon_shear_solimp_high}} {{tendon_shear_solimp_width}}" solreffix="{{tendon_shear_solref_timeconst}} {{tendon_shear_solref_dampratio}}" width="0.001" kind="shear" />
+            <tendon solimpfix="{{tendon_main_solimp_low}} {{tendon_main_solimp_high}} {{tendon_main_solimp_width}}" solreffix="{{tendon_main_solref_timeconst}} {{tendon_main_solref_dampratio}}" kind="main" />
+            
+            {% if cloth_texture_randomization %}
+                <skin material="cloth_material" texcoord="true" inflate="0.001" subgrid="3"/>
+            {% else %}
+                <skin material="bath_real_material" texcoord="true" inflate="0.001" subgrid="3"/>
+            {% endif %}
+            
+            <geom group="0" type="sphere" size="0.001" rgba="0 0 1 0.8" friction='{{ friction }} {{ friction }} {{ friction }}' solimp="{{geom_solimp_low}} {{geom_solimp_high}} {{geom_solimp_width}}" solref="{{geom_solref_timeconst}} {{geom_solref_dampratio}}" condim='4' />
+        </composite>
+
+        <body mocap="true" name="lookatbody" pos="0 0 0" />
+
+        {% for i in range(num_lights) %}
+            <light name="light_{{ i }}" diffuse="{{ light_diffuse[i] }}" dir="{{ light_dir[i] }}" directional="{{ light_directional[i] }}" pos="{{ light_pos[i] }}" specular="{{ light_specular[i] }}" castshadow="{{ light_castshadow[i] }}"/>
+        {% endfor %}
+
+        {% for j in range(num_cameras) %}
+            <camera fovy="{{ camera_fovy[j] }}" mode="targetbody" target="lookatbody" name="camera_{{ j }}" pos="{{camera_pos[j]}}"/>
+        {% endfor %}
+        
+        <!--
+        <body mocap="true" name="robot0:mocap" pos="0.00078214 -0.0042735   0.20663855">
+            <geom group="1" name="mocap" conaffinity="0" contype="0" pos="0  0  0" rgba="0 0 1 1" size="0.005 0.005 0.005" type="box"></geom>
+        </body> -->
+    </worldbody>
+
+
+    
+
+</mujoco>

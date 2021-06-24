@@ -155,6 +155,7 @@ BATH_MODEL_KWARGS = dict(
     friction = 0.05,
     impratio = 20,
     cone_type = "pyramidal",
+    num_cloth_geoms = 9
 )
 
 KITCHEN_MODEL_KWARGS = dict(
@@ -192,6 +193,7 @@ KITCHEN_MODEL_KWARGS = dict(
     friction=0.21836990104336332,
     impratio=8.040602647960528,
     geom_size=0.009953227930746909,
+    num_cloth_geoms=9
 )
 
 WIPE_MODEL_KWARGS = dict(
@@ -229,4 +231,5 @@ WIPE_MODEL_KWARGS = dict(
     friction=0.5998064320505643,
     geom_size=0.009239293092755695,
     impratio=22.647202738935732,
+    num_cloth_geoms=9
 )
