@@ -100,8 +100,8 @@ CAMERA_ARGS = {
     'randomize_position': True,
     'randomize_rotation': True,
     'randomize_fovy': True,
-    'position_perturbation_size': 0.5,
-    'rotation_perturbation_size': 0.5,
+    'position_perturbation_size': 0.25,
+    'rotation_perturbation_size': 0.25,
     'fovy_perturbation_size': 0.15,
 }
 
@@ -133,6 +133,7 @@ def argsparser():
 
     # Train
     parser.add_argument('--pretrained_cnn', default=0, type=int)
+    parser.add_argument('--pretrained_vision_model_path', type=str)
     parser.add_argument('--train_steps', default=1000, type=int)
     parser.add_argument('--num_epochs', default=1000, type=int)
     parser.add_argument('--save_policy_every_epoch', default=1, type=int)
@@ -157,7 +158,7 @@ def argsparser():
     parser.add_argument('--lights_randomization', default=1, type=int)
     parser.add_argument('--materials_randomization', default=1, type=int)
     parser.add_argument('--camera_position_randomization', default=1, type=int)
-    parser.add_argument('--lookat_position_randomization_radius', default=0.05, type=float)
+    parser.add_argument('--lookat_position_randomization_radius', default=0.03, type=float)
     parser.add_argument('--lookat_position_randomization', default=1, type=int)
     parser.add_argument('--albumentations_randomization', default=1, type=int)
 
@@ -222,7 +223,8 @@ def get_variant(args):
         algorithm_kwargs=dict(),
         num_pre_demos=args.num_pre_demos,
         num_demoers=args.num_demoers,
-        demo_paths=[]
+        demo_paths=[],
+        pretrained_vision_model_path=args.pretrained_vision_model_path
     )
     utils_dir = os.path.dirname(os.path.abspath(__file__))
     envs_dir = os.path.join(utils_dir, "..", "envs")

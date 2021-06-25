@@ -189,12 +189,20 @@ class ClothEnv(object):
 
     def get_model_kwargs_for_cloth_type(self, cloth_type):
         file_dir = os.path.dirname(os.path.abspath(__file__))
-        model_path = os.path.join(file_dir, f"{cloth_type}_data", "cloth_optimization_stats_cleaned.csv")
+        model_path = os.path.join(file_dir, f"{cloth_type}_data", "cloth_optimization_stats_examine.csv")
         df = pd.read_csv(model_path)
         choice = np.random.randint(0, df.shape[0] -1)
         model_kwargs_row = df.iloc[choice]
         model_kwargs = {}
-        for col in df:
+        for col in mujoco_model_kwargs.BATH_MODEL_KWARGS.keys(): #ALERT: ONLY USED FOR CORRECT KEYS FROM DF
+            '''
+            if col == "cone_type":
+                print("Cone type", model_kwargs_row[col])
+
+            if col == "num_cloth_geoms":
+                print("Num geoms", model_kwargs_row[col])
+            '''
+
             model_kwargs[col] = model_kwargs_row[col]
         return model_kwargs
 
@@ -254,6 +262,7 @@ class ClothEnv(object):
         min_corner = 0
         max_corner = model_kwargs['num_cloth_geoms'] -1
         self.max_corner_name = f"B{max_corner}_{max_corner}"
+        self.mid_corner_index = int((model_kwargs['num_cloth_geoms'] -1)/2)
         mid = int(max_corner / 2)
         self.corner_index_mapping = {"0": f"S{min_corner}_{max_corner}", "1": f"S{max_corner}_{max_corner}", "2": f"S{min_corner}_{min_corner}", "3": f"S{max_corner}_{min_corner}"}
         self.cloth_site_names = []
@@ -294,7 +303,7 @@ class ClothEnv(object):
             lookat_offset[0] += np.random.uniform(-radius, radius)
             lookat_offset[1] += np.random.uniform(-radius, radius)
 
-        des_cam_look_pos = self.sim.data.get_body_xpos("lookatreference").copy() + lookat_offset
+        des_cam_look_pos = self.sim.data.get_body_xpos(f"B{self.mid_corner_index}_{self.mid_corner_index}").copy() + lookat_offset
         self.sim.data.set_mocap_pos("lookatbody", des_cam_look_pos)
 
     def add_mocap_to_xml(self, xml):
@@ -651,7 +660,7 @@ class ClothEnv(object):
             image_obs = cv2.cvtColor(image_obs, cv2.COLOR_BGR2GRAY)
 
         #cv2.imshow("env", image_obs)
-        #cv2.waitKey(1)
+        #cv2.waitKey(100)
 
         return (image_obs / 255).flatten().copy()
 
@@ -672,16 +681,12 @@ class ClothEnv(object):
         desired_pos_ctrl_I = self.desired_pos_ctrl_W - self.relative_origin
 
 
-        if self.robot_observation == "all":
-            robot_observation = np.concatenate([self.get_ee_position_I(), self.get_joint_positions(), self.get_ee_velocity(), self.get_joint_velocities(), desired_pos_ctrl_I])
-        elif self.robot_observation == "joint":
-            robot_observation = np.concatenate([self.get_joint_positions(), self.get_joint_velocities(), desired_pos_ctrl_I])
-        elif self.robot_observation == "ee":
+        if self.robot_observation == "ee":
             robot_observation = np.concatenate([self.get_ee_position_I(), self.get_ee_velocity(), desired_pos_ctrl_I])
         elif self.robot_observation == "ctrl":
-            robot_observation = self.previous_raw_action
+            robot_observation = np.concatenate([self.previous_raw_action, np.zeros(6)])
         elif self.robot_observation == "none":
-            robot_observation = np.zeros(1)
+            robot_observation = np.zeros(9)
 
 
         full_observation = {
@@ -743,8 +748,9 @@ class ClothEnv(object):
         self.sim.set_state(self.initial_state)
         self.sim.data.qfrc_applied[self.joint_vel_addr] = self.initial_qfrc_applied
         self.sim.data.qfrc_bias[self.joint_vel_addr] = self.initial_qfrc_bias
-        self.sim.forward()
+        self.sim.forward() #BODY POSITIONS CORRECT
         self.reset_camera()
+        self.sim.forward() #CAMERA CHANGES CORRECT
         self.reset_osc_values()
         self.update_osc_values()
 

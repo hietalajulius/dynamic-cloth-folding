@@ -25,12 +25,6 @@ model_kwarg_ranges = dict(
     geom_solref_timeconst  = (0.01, 0.05),
     geom_solref_dampratio = (0.98, 1.01555555555556),
 
-    grasp_solimp_low = (0.99,0.9999),
-    grasp_solimp_high = (0.99,0.9999),
-    grasp_solimp_width = (0.01, 0.02),
-    grasp_solref_timeconst  = (0.01, 0.02),
-    grasp_solref_dampratio = (0.98, 1.01555555555556),
-
     geom_size = (0.008, 0.011),
     friction = (0.01, 10),
     impratio = (1, 40)
@@ -145,12 +139,6 @@ BATH_MODEL_KWARGS = dict(
     geom_solref_timeconst  = 0.005,
     geom_solref_dampratio = 1.01555555555556,
 
-    grasp_solimp_low = 0.99,
-    grasp_solimp_high = 0.99,
-    grasp_solimp_width = 0.01,
-    grasp_solref_timeconst  = 0.01,
-    grasp_solref_dampratio = 1,
-
     geom_size = 0.011,
     friction = 0.05,
     impratio = 20,
@@ -164,12 +152,6 @@ KITCHEN_MODEL_KWARGS = dict(
     geom_solimp_width=0.021690055982696063,
     geom_solref_dampratio=0.9811052070384793,
     geom_solref_timeconst=0.016690819023561253,
-
-    grasp_solimp_high=0.9919910681148176,
-    grasp_solimp_low=0.9988754968893396,
-    grasp_solimp_width=0.017343662941659885,
-    grasp_solref_dampratio=1.0079078957741223,
-    grasp_solref_timeconst=0.01394900122154112,
 
     joint_solimp_high=0.9844183148525444,
     joint_solimp_low=0.9963514403005972,
@@ -202,12 +184,6 @@ WIPE_MODEL_KWARGS = dict(
     geom_solimp_width=0.02264159172959327,
     geom_solref_dampratio=1.0109986493745688,
     geom_solref_timeconst=0.01034687833940208,
-
-    grasp_solimp_high=0.994092995467093,
-    grasp_solimp_low=0.9953859136739436,
-    grasp_solimp_width=0.011539638652437229,
-    grasp_solref_dampratio=1.0112437489275294,
-    grasp_solref_timeconst=0.012827152841842491,
     
     joint_solimp_high=0.9924012012473988,
     joint_solimp_low=0.9950214140325514,

@@ -108,7 +108,6 @@
         </composite>
 
         <body mocap="true" name="lookatbody" pos="0.49476399 0.00668401 0.13310541" />
-        <body name="lookatreference" pos="0.49476399 0.00668401 0.13310541" />
 
 
     {% if lights_randomization %}

@@ -96,6 +96,14 @@ def experiment(variant):
                 aux_output_size=8,
                 **variant['policy_kwargs'],
             )
+            #TODO FIX
+            '''
+            if variant['pretrained_vision_model_path'] is not None:
+                loaded_model = torch.jit.load(variant['pretrained_vision_model_path'] )
+                state_dict = loaded_model.state_dict()
+                policy.load_state_dict(state_dict)
+            '''
+
     else:
         policy = TanhGaussianPolicy(
             obs_dim=dims['policy_obs_dim'],
@@ -136,7 +144,7 @@ def experiment(variant):
     env_fns = [make_env for _ in range(variant['num_processes'])]
     vec_env = SubprocVecEnv(env_fns)
 
-
+    
     expl_path_collector = VectorizedKeyPathCollector(
         vec_env,
         policy,
@@ -150,7 +158,8 @@ def experiment(variant):
     )
 
     '''
-    FOR DEBUG, REMEMBER TO REMOVE try/except from domain rand wrapper
+    #FOR DEBUG, REMEMBER TO REMOVE try/except from domain rand wrapper
+
     expl_path_collector = KeyPathCollector(
         eval_env,
         policy,
@@ -227,6 +236,7 @@ def experiment(variant):
 
     vec_env.close()
     print("Closed subprocesses")
+    return
 
 
 if __name__ == "__main__":
@@ -264,15 +274,3 @@ if __name__ == "__main__":
 
     print("Profiling with cProfile")
     cProfile.run('experiment(variant)', f"{profiling_path}/profmain.prof")
-    '''
-    print("profiling with torch prof")
-    with torch.profiler.profile(
-            activities=[
-                torch.profiler.ProfilerActivity.CPU,
-                torch.profiler.ProfilerActivity.CUDA,
-            ]
-        ) as p:
-        experiment(variant)
-    print(p.key_averages().table(
-    sort_by="self_cuda_time_total", row_limit=-1))
-    '''
