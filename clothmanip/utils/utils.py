@@ -114,7 +114,7 @@ def get_randomized_env(env, variant):
                 xml_randomization_kwargs=r,
                 randomize_on_reset=True,
                 randomize_camera=True,
-                randomize_every_n_steps=1,
+                randomize_every_n_steps=0,
                 randomize_color=False,
                 camera_randomization_args=CAMERA_ARGS,
                 randomize_lighting=True,
