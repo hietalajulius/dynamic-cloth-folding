@@ -118,7 +118,7 @@ class MujocoDataset(Dataset):
         self.frame_stack_size = frame_stack_size
         image_files = []
         files = os.listdir(self.folder)
-        for file in sorted(files[:10]):
+        for file in sorted(files):
             ext_split = file.split(".")
             if ext_split[-1] == "png": #TODO: BUGGY
                 file_split = ext_split[0].split("_")
