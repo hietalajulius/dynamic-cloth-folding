@@ -35,7 +35,6 @@ import cv2
 import albumentations as A
 
 def main(variant):
-    demos = np.genfromtxt(variant['demo_path'], delimiter=',')
     variant['output_max'] = 1
 
     def make_env():
@@ -47,28 +46,30 @@ def main(variant):
     env_fns = [make_env for _ in range(variant['num_processes'])]
     vec_env = SubprocVecEnv(env_fns)
     zero_action = np.zeros((variant['num_processes'], 3))
-    total_saved = 0
+    rollouts = 0
     while True:
+        demos = np.genfromtxt(np.random.choice(variant['demo_paths']), delimiter=',')
         vec_env.reset()
-        for action in demos:
+        
+        for i, action in enumerate(demos):
             #print("\n")
             zero_action[:] = action
             #print(zero_action)
 
-            o, _, _, i = vec_env.step(zero_action)
-
+            o, _, _, info = vec_env.step(zero_action)
             #print("Img", o['image'], i)
             images = o['image']
 
-            for idx, image in enumerate(images):
-                c = i[idx]['corner_positions']
+            for j, image in enumerate(images):
+                c = info[j]['corner_positions']
                 #print("image",image.shape)
                 reshaped_image = image.reshape((100,100,1)).astype('float32')
                # print("reshapes image", reshaped_image.shape, reshaped_image)
-                corner_pos_str = f"{c[0]}_{c[1]}_{c[2]}_{c[3]}_{c[4]}_{c[5]}_{c[6]}_{c[7]}_"
+                corner_pos_str = f"{c[0]}_{c[1]}_{c[2]}_{c[3]}_{c[4]}_{c[5]}_{c[6]}_{c[7]}"
 
-                cv2.imwrite(f"{variant['folder']}/{total_saved}_{corner_pos_str}.png", reshaped_image*255)
-                total_saved += 1
+                cv2.imwrite(f"{variant['folder']}/{rollouts}_{i}_{j}_{corner_pos_str}.png", reshaped_image*255)
+
+            rollouts += 1
             
             ###DEBUG
             '''
