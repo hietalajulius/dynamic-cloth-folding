@@ -126,9 +126,9 @@
         <!-- front view -->
         <camera mode="fixed" name="frontview" pos="0.35 -0.1 0.25" quat="0.56 0.43 0.43 0.56"/>
 
-        <camera fovy="{{train_camera_fovy}}" mode="targetbody" target="lookatbody" name="up" pos="0.52536418 -0.60  1.03"/>
-        <camera fovy="{{train_camera_fovy}}" mode="targetbody" target="lookatbody" name="side" pos="-0.0 -0.312  0.455"/> 
-        <camera fovy="{{train_camera_fovy}}" mode="targetbody" target="lookatbody" name="front" pos="0.5 -0.8  0.69"/> 
+        <camera fovy="{{train_camera_fovy}}" mode="targetbody" target="lookatbody" name="up" pos="0.5 -0.7  1.1"/>
+        <camera fovy="{{train_camera_fovy}}" mode="targetbody" target="lookatbody" name="side" pos="-0.4 -0.7  0.65"/> 
+        <camera fovy="{{train_camera_fovy}}" mode="targetbody" target="lookatbody" name="front" pos="0.5 -1.0  0.75"/> 
 
         <camera mode="targetbodycom" target="tabletop" name="eval_camera" pos="-0.45 -1 1"/>
         <!--cloth view -->

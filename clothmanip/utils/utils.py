@@ -100,9 +100,9 @@ CAMERA_ARGS = {
     'randomize_position': True,
     'randomize_rotation': True,
     'randomize_fovy': True,
-    'position_perturbation_size': 0.25,
-    'rotation_perturbation_size': 0.25,
-    'fovy_perturbation_size': 0.15,
+    'position_perturbation_size': 0.2,
+    'rotation_perturbation_size': 0.75,
+    'fovy_perturbation_size': 0.05,
 }
 
 
@@ -114,7 +114,7 @@ def get_randomized_env(env, variant):
                 xml_randomization_kwargs=r,
                 randomize_on_reset=True,
                 randomize_camera=True,
-                randomize_every_n_steps=0,
+                randomize_every_n_steps=1,
                 randomize_color=False,
                 camera_randomization_args=CAMERA_ARGS,
                 randomize_lighting=True,
@@ -143,6 +143,7 @@ def argsparser():
     parser.add_argument('--num_eval_rollouts', type=int, default=20)
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--discount', type=float, default=0.99)
+    parser.add_argument('--corner_prediction_loss_coef', type=float, default=0.001)
 
     # Replay buffer
     # HER 0.8 from paper
@@ -175,7 +176,7 @@ def argsparser():
     parser.add_argument('--image_obs_noise_mean', type=float, default=1.0)
     parser.add_argument('--image_obs_noise_std', type=float, default=0.0)
 
-    parser.add_argument('--robot_observation', choices=["all", "joints", "ee", "ctrl", "none"], default="ee")
+    parser.add_argument('--robot_observation', choices=["ee", "ctrl", "none"], default="ee")
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
     parser.add_argument('--output_max', type=float, default=0.03)
@@ -216,6 +217,7 @@ def get_variant(args):
             qf_lr=3E-4,
             reward_scale=1,
             use_automatic_entropy_tuning=True,
+            corner_prediction_loss_coef=args.corner_prediction_loss_coef
         ),
         path_collector_kwargs=dict(),
         policy_kwargs=dict(),

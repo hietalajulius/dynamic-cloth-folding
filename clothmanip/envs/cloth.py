@@ -304,6 +304,7 @@ class ClothEnv(object):
             lookat_offset[1] += np.random.uniform(-radius, radius)
 
         des_cam_look_pos = self.sim.data.get_body_xpos(f"B{self.mid_corner_index}_{self.mid_corner_index}").copy() + lookat_offset
+        print("Lookat des", des_cam_look_pos)
         self.sim.data.set_mocap_pos("lookatbody", des_cam_look_pos)
 
     def add_mocap_to_xml(self, xml):
@@ -687,6 +688,8 @@ class ClothEnv(object):
             robot_observation = np.concatenate([self.previous_raw_action, np.zeros(6)])
         elif self.robot_observation == "none":
             robot_observation = np.zeros(9)
+
+        print("RB shapr", self.robot_observation,  robot_observation.shape)
 
 
         full_observation = {

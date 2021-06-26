@@ -37,7 +37,7 @@ def validate(val_loader, model, criterion, epoch, device, folder):
             eval_loss += loss.item()
 
             if save_images:
-                image = images[0].cpu().numpy().reshape((-1,100,100))[-1]*255
+                image = images[0].cpu().numpy()[:10000].reshape((-1,100,100))[-1]*255
                 corners = outputs[0].cpu().numpy()
                 for aux_idx in range(int(corners.shape[0]/2)):
                     aux_u = int(corners[aux_idx*2]*100)
@@ -116,7 +116,7 @@ class CornerDataset(Dataset):
 
         images = np.array([image for image in frame_stack], dtype=np.float32).flatten()
 
-        return torch.from_numpy(images), torch.from_numpy(corners_array)
+        return torch.cat((torch.from_numpy(images), torch.zeros(27))), torch.from_numpy(corners_array)
 
 
 def main(folder):

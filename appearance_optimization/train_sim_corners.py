@@ -57,7 +57,7 @@ class MujocoDataset(Dataset):
         corners_array = np.array(corners, dtype=np.float32)
         image_array = image.flatten().astype("float32")/255.0
 
-        return torch.from_numpy(image_array), torch.from_numpy(corners_array)
+        return torch.cat((torch.from_numpy(image_array), torch.zeros(27))), torch.from_numpy(corners_array)
 
 
 def main(folder):
@@ -87,6 +87,7 @@ def main(folder):
                         [32, 32, 32, 32],
                         [2, 2, 2, 2],
                         [0, 0, 0, 0],
+                        added_fc_input_size=27,
                         aux_output_size=8,
                         hidden_sizes_aux=[256, 8],
                         hidden_sizes_main=[256, 256, 256, 256],
@@ -125,7 +126,7 @@ def main(folder):
 
             if save_images and i == 0:
                 for image_idx, (image_to_save, image_to_save_corners) in enumerate(zip(images, outputs.detach())):
-                    image_detach = image_to_save.cpu().numpy().reshape((-1,100,100))[-1]*255
+                    image_detach = image_to_save.cpu().numpy()[:10000].reshape((-1,100,100))[-1]*255
                     image_corners = image_to_save_corners.cpu().numpy()
                     for aux_idx in range(int(image_corners.shape[0]/2)):
                         aux_u = int(image_corners[aux_idx*2]*100)
