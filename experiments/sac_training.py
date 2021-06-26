@@ -96,13 +96,15 @@ def experiment(variant):
                 aux_output_size=8,
                 **variant['policy_kwargs'],
             )
-            #TODO FIX
-            '''
+          
             if variant['pretrained_vision_model_path'] is not None:
                 loaded_model = torch.jit.load(variant['pretrained_vision_model_path'] )
                 state_dict = loaded_model.state_dict()
                 policy.load_state_dict(state_dict)
-            '''
+                print("Loaded pretrained model")
+            else:
+                print("Fresh model")
+        
 
     else:
         policy = TanhGaussianPolicy(
