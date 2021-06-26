@@ -114,6 +114,8 @@ def experiment(variant):
             **variant['policy_kwargs']
         )
 
+    policy.to(torch.half)
+
     eval_policy = MakeDeterministic(policy)
 
     real_corner_prediction_test = RealCornerPredictionTest(eval_env, eval_policy, 'real_corner_error', ['corner_error'], 1, variant=variant)
@@ -123,19 +125,6 @@ def experiment(variant):
     blank_images_test = BlankImagesTest(eval_env, eval_policy, 'blank', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
                                         
     eval_test_suite = EvalTestSuite([real_corners_dump, real_corner_prediction_test, blank_images_test, wipe_success_rate_test, kitchen_success_rate_test], variant['save_folder'])
-
-
-    demo_path_collector = None
-    if variant['num_pre_demos'] > 0:
-        demo_path_collector = KeyPathCollector(
-            eval_env,
-            policy,
-            observation_key=keys['path_collector_observation_key'],
-            desired_goal_key=keys['desired_goal_key'],
-            demo_paths=variant['demo_paths'],
-            num_pre_demos=variant['num_pre_demos'],
-            **variant['path_collector_kwargs']
-        )
 
     def make_env():
         env = ClothEnv(**variant['env_kwargs'], save_folder=variant['save_folder'], has_viewer=variant['image_training'])
@@ -153,7 +142,6 @@ def experiment(variant):
         processes=variant['num_processes'],
         observation_key=keys['path_collector_observation_key'],
         desired_goal_key=keys['desired_goal_key'],
-        num_demoers=variant['num_demoers'],
         demo_paths=variant['demo_paths'],
         demo_divider=variant['env_kwargs']['output_max'],
         **variant['path_collector_kwargs'],
@@ -225,8 +213,9 @@ def experiment(variant):
         exploration_env=eval_env,
         evaluation_env=eval_env,
         exploration_data_collector=expl_path_collector,
-        demo_data_collector=demo_path_collector,
-        num_demos=variant['num_pre_demos'],
+        num_demoers=variant['num_demoers'],
+        num_pre_demoers=variant['num_processes'],
+        num_pre_demos=variant['num_pre_demos'],
         replay_buffer=replay_buffer,
         save_folder=variant['save_folder'],
         **variant['algorithm_kwargs']
