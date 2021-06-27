@@ -114,8 +114,6 @@ def experiment(variant):
             **variant['policy_kwargs']
         )
 
-    policy.to(torch.half)
-
     eval_policy = MakeDeterministic(policy)
 
     real_corner_prediction_test = RealCornerPredictionTest(eval_env, eval_policy, 'real_corner_error', ['corner_error'], 1, variant=variant)
