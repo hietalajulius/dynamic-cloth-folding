@@ -33,6 +33,7 @@ from rlkit.samplers.eval_suite.base import EvalTestSuite
 import tracemalloc
 import cv2
 import albumentations as A
+import pandas as pd
 
 def main(variant):
     variant['output_max'] = 1
@@ -46,41 +47,52 @@ def main(variant):
     env_fns = [make_env for _ in range(variant['num_processes'])]
     vec_env = SubprocVecEnv(env_fns)
     zero_action = np.zeros((variant['num_processes'], 3))
+    files_df = pd.DataFrame()
+    num_proc = variant['num_processes']
+    demos = np.genfromtxt(np.random.choice(variant['demo_paths']), delimiter=',')
+    demo_len = demos.shape[0]
+    print("DEMO LEN", demo_len)
     rollouts = 0
     while True:
-        demos = np.genfromtxt(np.random.choice(variant['demo_paths']), delimiter=',')
         vec_env.reset()
         
         for i, action in enumerate(demos):
-            #print("\n")
             zero_action[:] = action
-            #print(zero_action)
 
             o, _, _, info = vec_env.step(zero_action)
-            #print("Img", o['image'], i)
             images = o['image']
 
             for j, image in enumerate(images):
                 c = info[j]['corner_positions']
-                #print("image",image.shape)
                 reshaped_image = image.reshape((100,100,1)).astype('float32')
-               # print("reshapes image", reshaped_image.shape, reshaped_image)
                 corner_pos_str = f"{c[0]}_{c[1]}_{c[2]}_{c[3]}_{c[4]}_{c[5]}_{c[6]}_{c[7]}"
 
-                cv2.imwrite(f"{variant['folder']}/{rollouts}_{i}_{j}_{corner_pos_str}.png", reshaped_image*255)
+                file_name = f"{variant['folder']}/{rollouts}_{i}_{j}_{corner_pos_str}.png"
 
-            rollouts += 1
+                cv2.imwrite(file_name, reshaped_image*255)
+
+                if i == 0:
+                    previous_idx = rollouts*num_proc*demo_len + i*num_proc + j
+                else:
+                    previous_idx = rollouts*num_proc*demo_len + (i-1)*num_proc + j
+
+                row = dict(previous=int(previous_idx), file=file_name)
+
+                files_df = files_df.append(row, ignore_index=True)
+
+        rollouts += 1
+        files_df.to_csv(f"{variant['folder']}/cloth_optimization_stats.csv")
             
-            ###DEBUG
-            '''
-            corn = i[-1]['corner_positions']
-            for corn_idx in range(int(corn.shape[0]/2)):
-                aux_u = int(corn[corn_idx*2]*100)
-                aux_v = int(corn[corn_idx*2+1]*100)
-                cv2.circle(gray_image, (aux_u, aux_v), 2, (0, 255, 0), -1)
-            cv2.imshow("env", gray_image)
-            cv2.waitKey(100)
-            '''
+        ###DEBUG
+        '''
+        corn = i[-1]['corner_positions']
+        for corn_idx in range(int(corn.shape[0]/2)):
+            aux_u = int(corn[corn_idx*2]*100)
+            aux_v = int(corn[corn_idx*2+1]*100)
+            cv2.circle(gray_image, (aux_u, aux_v), 2, (0, 255, 0), -1)
+        cv2.imshow("env", gray_image)
+        cv2.waitKey(100)
+        '''
         
 
 
