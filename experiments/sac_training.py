@@ -40,6 +40,8 @@ torch.cuda.empty_cache()
 set_level(50)
 
 def experiment(variant):
+    tracemalloc.start()
+
     env = ClothEnv(**variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'])
     env = NormalizedBoxEnv(env)
     eval_env = get_randomized_env(env, variant)
@@ -121,8 +123,11 @@ def experiment(variant):
     wipe_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'wipe', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
     kitchen_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'kitchen', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
     blank_images_test = BlankImagesTest(eval_env, eval_policy, 'blank', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
-                                        
-    eval_test_suite = EvalTestSuite([real_corners_dump, real_corner_prediction_test, blank_images_test, wipe_success_rate_test, kitchen_success_rate_test], variant['save_folder'])
+
+    if variant['use_eval_suite']:                                  
+        eval_test_suite = EvalTestSuite([real_corners_dump, real_corner_prediction_test, blank_images_test, wipe_success_rate_test, kitchen_success_rate_test], variant['save_folder'])
+    else:
+        eval_test_suite = EvalTestSuite([], variant['save_folder'])
 
     def make_env():
         env = ClothEnv(**variant['env_kwargs'], save_folder=variant['save_folder'], has_viewer=variant['image_training'])
@@ -229,7 +234,6 @@ def experiment(variant):
 
 
 if __name__ == "__main__":
-    tracemalloc.start()
     args = argsparser()
     variant, arg_str = get_variant(args)
 

@@ -141,6 +141,7 @@ def argsparser():
     parser.add_argument('--num_cycles', default=20, type=int)
     parser.add_argument('--min_expl_steps', type=int, default=0)
     parser.add_argument('--num_eval_rollouts', type=int, default=20)
+    parser.add_argument('--use_eval_suite', type=int, default=1)
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--discount', type=float, default=0.99)
     parser.add_argument('--corner_prediction_loss_coef', type=float, default=0.001)
@@ -243,6 +244,7 @@ def get_variant(args):
     variant['pretrained_cnn'] = bool(args.pretrained_cnn)
 
     variant['num_eval_rollouts'] = args.num_eval_rollouts
+    variant['use_eval_suite'] =bool(args.use_eval_suite)
 
     variant['algorithm_kwargs'] = dict(
         num_epochs=args.num_epochs,
