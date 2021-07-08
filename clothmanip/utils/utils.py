@@ -185,6 +185,7 @@ def argsparser():
     parser.add_argument('--kp', type=float, default=1000.0)
     parser.add_argument('--constant_goal', type=int, default=1)
     parser.add_argument('--task', type=str, required=True)
+    parser.add_argument('--success_distance', type=float, default=0.05)
     parser.add_argument('--image_training', default=0, type=int, required=True)
     parser.add_argument('--image_size', type=int, default=100)
     parser.add_argument('--frame_stack_size', type=int, default=1)
@@ -267,12 +268,13 @@ def get_variant(args):
     else:
         camera_config = dict(type="large", fovy_range=(57,59), height=480, width=848)
     
-    dummy_constraints = task_definitions.constraints[args.task](0, 4, 8)
+    dummy_constraints = task_definitions.constraints[args.task](0, 4, 8, args.success_distance)
     constraint_distances = [c['distance'] for c in dummy_constraints]
         
     variant['env_kwargs'] = dict(
         timestep=args.timestep,
         task=args.task,
+        success_distance=args.success_distance,
         image_size=args.image_size,
         randomization_kwargs=dict(
             lights_randomization=bool(args.lights_randomization),

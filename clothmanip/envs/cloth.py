@@ -44,6 +44,7 @@ class ClothEnv(object):
         sparse_dense,
         constraint_distances,
         task,
+        success_distance,
         goal_noise_range,
         pixels,
         image_size,
@@ -78,6 +79,7 @@ class ClothEnv(object):
             ]
         )
         self.task = task
+        self.success_distance = success_distance
         self.constraint_distances = constraint_distances
         self.process = psutil.Process(os.getpid())
         self.randomization_kwargs = randomization_kwargs       
@@ -271,7 +273,7 @@ class ClothEnv(object):
             for j in [min_corner, mid, max_corner]:
                 self.cloth_site_names.append(f"S{i}_{j}")
 
-        self.constraints = task_definitions.constraints[self.task](0, int((model_kwargs['num_cloth_geoms']-1)/2), model_kwargs['num_cloth_geoms']-1)
+        self.constraints = task_definitions.constraints[self.task](0, int((model_kwargs['num_cloth_geoms']-1)/2), model_kwargs['num_cloth_geoms']-1, self.success_distance)
         
         return model_kwargs, model_numerical_values
 

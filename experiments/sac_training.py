@@ -40,8 +40,6 @@ torch.cuda.empty_cache()
 set_level(50)
 
 def experiment(variant):
-    tracemalloc.start()
-
     env = ClothEnv(**variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'])
     env = NormalizedBoxEnv(env)
     eval_env = get_randomized_env(env, variant)
@@ -173,6 +171,7 @@ def experiment(variant):
         observation_key=keys['observation_key'],
         desired_goal_key=keys['desired_goal_key'],
         achieved_goal_key=keys['achieved_goal_key'],
+        max_path_length=variant['algorithm_kwargs']['max_path_length'],
         **variant['replay_buffer_kwargs']
     )
     replay_buffer.set_task_reward_function(task_reward_function)
