@@ -117,13 +117,13 @@ def experiment(variant):
     eval_policy = MakeDeterministic(policy)
 
     real_corner_prediction_test = RealCornerPredictionTest(eval_env, eval_policy, 'real_corner_error', ['corner_error'], 1, variant=variant)
-    real_corners_dump = DumpRealCornerPredictions(eval_env, eval_policy, 'real_corner_dump', [], 1, variant=variant)
+    #real_corners_dump = DumpRealCornerPredictions(eval_env, eval_policy, 'real_corner_dump', [], 1, variant=variant)
     wipe_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'wipe', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
-    kitchen_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'kitchen', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
+    #kitchen_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'kitchen', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
     blank_images_test = BlankImagesTest(eval_env, eval_policy, 'blank', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
 
     if variant['use_eval_suite']:                                  
-        eval_test_suite = EvalTestSuite([real_corners_dump, real_corner_prediction_test, blank_images_test, wipe_success_rate_test, kitchen_success_rate_test], variant['save_folder'])
+        eval_test_suite = EvalTestSuite([real_corner_prediction_test, blank_images_test, wipe_success_rate_test], variant['save_folder'])
     else:
         eval_test_suite = EvalTestSuite([], variant['save_folder'])
 
