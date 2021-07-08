@@ -171,7 +171,6 @@ def experiment(variant):
         observation_key=keys['observation_key'],
         desired_goal_key=keys['desired_goal_key'],
         achieved_goal_key=keys['achieved_goal_key'],
-        max_path_length=variant['algorithm_kwargs']['max_path_length'],
         **variant['replay_buffer_kwargs']
     )
     replay_buffer.set_task_reward_function(task_reward_function)
