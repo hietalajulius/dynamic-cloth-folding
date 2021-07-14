@@ -193,34 +193,22 @@ class ClothEnv(object):
         file_dir = os.path.dirname(os.path.abspath(__file__))
         model_path = os.path.join(file_dir, f"{cloth_type}_data", "cloth_optimization_stats_examine.csv")
         df = pd.read_csv(model_path)
-        choice = np.random.randint(0, df.shape[0] -1)
-        model_kwargs_row = df.iloc[choice]
         model_kwargs = {}
+
+        if not self.randomization_kwargs['dynamics_randomization']:
+            rownum = 14804 #16603
+            model_kwargs_row = df[df["Unnamed: 0"] == rownum].iloc[0]
+        else:
+            choice = np.random.randint(0, df.shape[0] -1)
+            model_kwargs_row = df.iloc[choice]
+
         for col in mujoco_model_kwargs.BATH_MODEL_KWARGS.keys(): #ALERT: ONLY USED FOR CORRECT KEYS FROM DF
-            '''
-            if col == "cone_type":
-                print("Cone type", model_kwargs_row[col])
-
-            if col == "num_cloth_geoms":
-                print("Num geoms", model_kwargs_row[col])
-            '''
-
             model_kwargs[col] = model_kwargs_row[col]
         return model_kwargs
 
 
     def build_xml_kwargs_and_numerical_values(self):
-        self.current_cloth_type = self.randomization_kwargs['cloth_type']
-        if self.randomization_kwargs['cloth_type'] == "bath":
-            model_kwargs = mujoco_model_kwargs.BATH_MODEL_KWARGS
-        elif self.randomization_kwargs['cloth_type'] == "kitchen":
-            model_kwargs = self.get_model_kwargs_for_cloth_type("kitchen") 
-        elif self.randomization_kwargs['cloth_type'] == "wipe":
-            model_kwargs = self.get_model_kwargs_for_cloth_type("wipe")
-        else:
-            cloth_type = np.random.choice(["wipe", "kitchen"])
-            self.current_cloth_type = cloth_type
-            model_kwargs = self.get_model_kwargs_for_cloth_type(cloth_type)
+        model_kwargs = self.get_model_kwargs_for_cloth_type("wipe")
 
         model_numerical_values = []
         for key in model_kwargs.keys():
@@ -230,11 +218,11 @@ class ClothEnv(object):
 
         model_kwargs['floor_material_name'] = "floor_real_material"
         model_kwargs['table_material_name'] = "table_real_material"
-        model_kwargs['cloth_material_name'] = f"{self.current_cloth_type}_real_material"
+        model_kwargs['cloth_material_name'] = f"wipe_real_material"
         if self.randomization_kwargs['materials_randomization']:
             model_kwargs['floor_material_name'] = np.random.choice(["floor_real_material", "floor_material"])
             model_kwargs['table_material_name'] = np.random.choice(["table_real_material", "table_material"])
-            model_kwargs['cloth_material_name'] = np.random.choice([f"{self.current_cloth_type}_real_material", f"{self.current_cloth_type}_2_real_material", "cloth_material"])
+            model_kwargs['cloth_material_name'] = np.random.choice([f"wipe_real_material", f"wipe_2_real_material", "cloth_material"])
 
 
 

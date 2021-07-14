@@ -113,11 +113,11 @@ def get_randomized_env(env, variant):
                 env,
                 xml_randomization_kwargs=r,
                 randomize_on_reset=True,
-                randomize_camera=True,
+                randomize_camera=r['lights_randomization'],
                 randomize_every_n_steps=0,
                 randomize_color=False,
                 camera_randomization_args=CAMERA_ARGS,
-                randomize_lighting=True,
+                randomize_lighting=r['camera_position_randomization'],
                 lighting_randomization_args=LIGHTING_ARGS
                 )
 
@@ -167,7 +167,6 @@ def argsparser():
     parser.add_argument('--dynamics_randomization', default=0, type=int)
     parser.add_argument('--camera_type', choices=["up", "side", "front", "all"], default="all")
     parser.add_argument('--camera_config', choices=["small", "large"], default="small")
-    parser.add_argument('--cloth_type', choices=["bath", "kitchen", "wipe", "alter"], required=True)
     parser.add_argument('--cloth_size', default=0.2, type=float)
 
     # Env
@@ -232,11 +231,8 @@ def get_variant(args):
     )
     utils_dir = os.path.dirname(os.path.abspath(__file__))
     envs_dir = os.path.join(utils_dir, "..", "envs")
-    if args.cloth_type == "alter":
-        variant['demo_paths'].append(os.path.join(envs_dir, "kitchen_data", "executable_raw_actions.csv"))
-        variant['demo_paths'].append(os.path.join(envs_dir, "wipe_data", "executable_raw_actions.csv"))
-    else:
-        variant['demo_paths'].append(os.path.join(envs_dir, f"{args.cloth_type}_data", "executable_raw_actions.csv"))
+ 
+    variant['demo_paths'].append(os.path.join(envs_dir, f"wipe_data", "executable_raw_actions.csv"))
         
     variant['random_seed'] = args.seed
     variant['image_training'] = bool(args.image_training)
@@ -285,7 +281,6 @@ def get_variant(args):
             dynamics_randomization=bool(args.dynamics_randomization),
             albumentations_randomization=bool(args.albumentations_randomization),
             cloth_size=args.cloth_size,
-            cloth_type=args.cloth_type,
             camera_type=args.camera_type,
             camera_config=camera_config,
         ),
