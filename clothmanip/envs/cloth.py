@@ -58,13 +58,15 @@ class ClothEnv(object):
         damping_ratio,
         control_frequency,
         ctrl_filter,
-        max_episode_steps,
         ate_penalty_coef,
         action_norm_penalty_coef,
         cosine_penalty_coef,
         save_folder,
         randomization_kwargs,
         robot_observation,
+        max_success_steps,
+        traj_pred_terminate,
+        traj_bound_terminate,
         image_obs_noise_mean=1,
         image_obs_noise_std=0,
         has_viewer=False
@@ -106,12 +108,13 @@ class ClothEnv(object):
         self.image_size = (image_size, image_size)
         self.constant_goal = constant_goal
         self.has_viewer = has_viewer
-        self.max_episode_steps = max_episode_steps
         self.image_obs_noise_mean = image_obs_noise_mean
         self.image_obs_noise_std = image_obs_noise_std
         self.robot_observation = robot_observation
 
-        self.max_success_steps = 5
+        self.max_success_steps = max_success_steps
+        self.traj_pred_terminate = traj_pred_terminate
+        self.traj_bound_terminate = traj_bound_terminate
         self.frame_stack = deque([], maxlen = self.frame_stack_size)
 
         self.limits_min = [-0.35, -0.35, 0.0]
@@ -138,6 +141,8 @@ class ClothEnv(object):
         self.mjpy_model = None
         self.sim = None
         self.viewer = None
+
+        self.out_of_bounds = False
 
         model_kwargs, model_numerical_values = self.build_xml_kwargs_and_numerical_values()
         self.mujoco_model_numerical_values = model_numerical_values
@@ -394,9 +399,18 @@ class ClothEnv(object):
         self.sim.data.qfrc_applied[self.joint_vel_addr] = self.sim.data.qfrc_bias[self.joint_vel_addr] + tau
         mujoco_py.functions.mj_step2(self.sim.model, self.sim.data)
 
-    def step(self, action):
+    def step(self, action, aux_output=None):
+        predict_done = False
+        if aux_output is not None:
+            predict_done = aux_output[-1] > 0.5 and self.traj_pred_terminate
+
+
         raw_action = action.copy()
         action = raw_action*self.output_max
+
+        
+        if predict_done or self.out_of_bounds:
+            action = np.zeros(3)
         
         if self.pixels:
             image_obs_substep_idx_mean = self.image_obs_noise_mean * (self.substeps-1)
@@ -418,7 +432,11 @@ class ClothEnv(object):
                 image_obs = self.get_image_obs()
                 self.frame_stack.append(image_obs)
                 flattened_corners = self.post_action_image_capture()
-        obs = self.get_obs()
+
+        if self.get_ee_position_I()[2] < -0.01 and self.traj_bound_terminate:
+                self.out_of_bounds = True
+
+        obs = self.get_obs(predict_done)
         reward, done, info = self.post_action(obs, raw_action, cosine_distance)
         info['corner_positions'] = flattened_corners
 
@@ -438,6 +456,16 @@ class ClothEnv(object):
         flattened_corners = np.array(flattened_corners)
 
         return flattened_corners
+
+    def get_corner_constraint_distances(self):
+        inv_corner_index_mapping = {v: k for k, v in self.corner_index_mapping.items()}
+        distances = dict()
+        for contraint in self.constraints:
+            if contraint['origin'] in inv_corner_index_mapping.keys():
+                origin_pos = self.sim.data.get_site_xpos(contraint['origin']).copy()
+                target_pos = self.sim.data.get_site_xpos(contraint['target']).copy()
+                distances[inv_corner_index_mapping[contraint['origin']]] = np.linalg.norm(origin_pos-target_pos)
+        return distances
 
 
         
@@ -485,6 +513,11 @@ class ClothEnv(object):
                 "control_penalty": control_penalty,
                 "env_memory_usage": env_memory_usage
                 }
+                
+        constraint_distances = self.get_corner_constraint_distances()
+
+        for key in constraint_distances.keys():
+            info[f"corner_{key}"] = constraint_distances[key]
 
         done = False
         self.episode_success_steps += int(is_success)
@@ -649,18 +682,33 @@ class ClothEnv(object):
         else:
             image_obs = cv2.cvtColor(image_obs, cv2.COLOR_BGR2GRAY)
 
-        #cv2.imshow("env", image_obs)
-        #cv2.waitKey(100)
+        '''
+        self.viewer.render(1000, 1000, camera_id)
+        image_obs_large = copy.deepcopy(self.viewer.read_pixels(1000, 1000, depth=False))
+        image_obs_large = image_obs_large[::-1, :, :]
+        cv2.imshow("env", image_obs_large)
+        cv2.waitKey(100)
+        del self.viewer._markers[:]
+        '''
 
         return (image_obs / 255).flatten().copy()
 
 
-    def get_obs(self):
+    def get_obs(self, predict_done=False):
         achieved_goal_I = np.zeros(self.single_goal_dim*len(self.constraints))
         for i, constraint in enumerate(self.constraints):
             origin = constraint['origin']
+            '''
+            self.viewer.add_marker(size=np.array(
+            [.001, .001, .001]), pos=self.sim.data.get_site_xpos(constraint['origin']).copy(),label=f"a_{i}")
+            
+            self.viewer.add_marker(size=np.array(
+            [.001, .001, .001]), pos=self.goal[i*self.single_goal_dim:(i+1)*self.single_goal_dim].copy() + self.relative_origin, label=f"d_{i}")
+            '''
+
             achieved_goal_I[i*self.single_goal_dim:(i+1)*self.single_goal_dim] = self.sim.data.get_site_xpos(
                 origin).copy() - self.relative_origin
+
 
         cloth_position = np.array(list(self.get_cloth_position_I().values()))
         cloth_velocity = np.array(list(self.get_cloth_velocity(
@@ -671,12 +719,14 @@ class ClothEnv(object):
         desired_pos_ctrl_I = self.desired_pos_ctrl_W - self.relative_origin
 
 
+
+
         if self.robot_observation == "ee":
-            robot_observation = np.concatenate([self.get_ee_position_I(), self.get_ee_velocity(), desired_pos_ctrl_I])
+            robot_observation = np.concatenate([self.get_ee_position_I(), self.get_ee_velocity(), desired_pos_ctrl_I, np.array([int(predict_done)]), np.array([int(self.out_of_bounds)])])
         elif self.robot_observation == "ctrl":
-            robot_observation = np.concatenate([self.previous_raw_action, np.zeros(6)])
+            robot_observation = np.concatenate([self.previous_raw_action, np.array([int(predict_done)]), np.array([int(self.out_of_bounds)]), np.zeros(6)])
         elif self.robot_observation == "none":
-            robot_observation = np.zeros(9)
+            robot_observation = np.concatenate([np.array([int(predict_done)]), np.array([int(self.out_of_bounds)]), np.zeros(9)])
 
         full_observation = {
             'observation': cloth_observation.copy(),
@@ -742,6 +792,8 @@ class ClothEnv(object):
         self.sim.forward() #CAMERA CHANGES CORRECT
         self.reset_osc_values()
         self.update_osc_values()
+
+        self.out_of_bounds = False
 
         
         self.relative_origin = self.get_ee_position_W()
@@ -834,7 +886,7 @@ class ClothEnv(object):
             cv2.circle(data, (u, v), point_size, (0, 0, 255), -1)
         #print("\n")
         if not aux_output is None:
-            for aux_idx in range(int(aux_output.flatten().shape[0]/2)):
+            for aux_idx in range(4):
                 aux_u = int(aux_output.flatten()[aux_idx*2]*width)
                 aux_v = int(aux_output.flatten()[aux_idx*2+1]*height)
                 cv2.circle(data, (aux_u, aux_v), point_size, (0, 255, 0), -1)
@@ -844,8 +896,8 @@ class ClothEnv(object):
 
 
     def capture_images(self, aux_output=None):
-        w_eval, h_eval = 1000, 1000
-        w_corners, h_corners = 1000, 1000
+        w_eval, h_eval = 500, 500
+        w_corners, h_corners = 500, 500
         w_cnn, h_cnn = self.image_size
         w_cnn_full, h_cnn_full = self.randomization_kwargs['camera_config']['width'], self.randomization_kwargs['camera_config']['height']
 

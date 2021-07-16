@@ -145,6 +145,7 @@ def argsparser():
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--discount', type=float, default=0.99)
     parser.add_argument('--corner_prediction_loss_coef', type=float, default=0.001)
+    parser.add_argument('--terminal_prediction_loss_coef', type=float, default=0.001)
 
     # Replay buffer
     # HER 0.8 from paper
@@ -155,7 +156,8 @@ def argsparser():
 
 
     # Collection
-    parser.add_argument('--max_path_length', default=50, type=int)
+    parser.add_argument('--max_path_length', default=25, type=int)
+    parser.add_argument('--max_success_steps', default=3,type=int)
 
     parser.add_argument('--lights_randomization', default=1, type=int)
     parser.add_argument('--materials_randomization', default=1, type=int)
@@ -176,6 +178,8 @@ def argsparser():
     parser.add_argument('--image_obs_noise_mean', type=float, default=1.0)
     parser.add_argument('--image_obs_noise_std', type=float, default=0.0)
 
+    parser.add_argument('--traj_pred_terminate', default=0, type=int)
+    parser.add_argument('--traj_bound_terminate', default=0, type=int)
     parser.add_argument('--robot_observation', choices=["ee", "ctrl", "none"], default="ee")
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
@@ -218,7 +222,8 @@ def get_variant(args):
             qf_lr=3E-4,
             reward_scale=1,
             use_automatic_entropy_tuning=True,
-            corner_prediction_loss_coef=args.corner_prediction_loss_coef
+            corner_prediction_loss_coef=args.corner_prediction_loss_coef,
+            terminal_prediction_loss_coef=args.terminal_prediction_loss_coef
         ),
         path_collector_kwargs=dict(),
         policy_kwargs=dict(),
@@ -272,6 +277,8 @@ def get_variant(args):
         task=args.task,
         success_distance=args.success_distance,
         image_size=args.image_size,
+        traj_pred_terminate=bool(args.traj_pred_terminate),
+        traj_bound_terminate=bool(args.traj_bound_terminate),
         randomization_kwargs=dict(
             lights_randomization=bool(args.lights_randomization),
             materials_randomization=bool(args.materials_randomization),
@@ -298,7 +305,7 @@ def get_variant(args):
         extra_reward=args.extra_reward,
         constant_goal=bool(args.constant_goal),
         output_max=args.output_max,
-        max_episode_steps=int(args.max_path_length),
+        max_success_steps=int(args.max_success_steps),
         sparse_dense=bool(args.sparse_dense),
         constraint_distances=constraint_distances,
         pixels=bool(args.image_training),

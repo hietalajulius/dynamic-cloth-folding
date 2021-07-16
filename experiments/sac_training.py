@@ -86,14 +86,14 @@ def experiment(variant):
             policy = CustomTanhScriptPolicy(
                 output_size=dims['action_dim'],
                 added_fc_input_size=dims['added_fc_input_size'],
-                aux_output_size=8,
+                aux_output_size=9,
                 **variant['policy_kwargs'],
             )
         else:
             policy = TanhScriptPolicy(
                 output_size=dims['action_dim'],
                 added_fc_input_size=dims['added_fc_input_size'],
-                aux_output_size=8,
+                aux_output_size=9,
                 **variant['policy_kwargs'],
             )
           
@@ -118,7 +118,7 @@ def experiment(variant):
 
     real_corner_prediction_test = RealCornerPredictionTest(eval_env, eval_policy, 'real_corner_error', ['corner_error'], 1, variant=variant)
     #real_corners_dump = DumpRealCornerPredictions(eval_env, eval_policy, 'real_corner_dump', [], 1, variant=variant)
-    wipe_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'wipe', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
+    wipe_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'wipe', ['success_rate', 'corner_distance', 'corner_0', 'corner_1', 'corner_2', 'corner_3'], variant['num_eval_rollouts'] , variant=variant)
     #kitchen_success_rate_test = SuccessRateTest(eval_env, eval_policy, 'kitchen', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
     blank_images_test = BlankImagesTest(eval_env, eval_policy, 'blank', ['success_rate', 'corner_distance'], variant['num_eval_rollouts'] , variant=variant)
 
@@ -195,14 +195,14 @@ def experiment(variant):
             script_policy = CustomScriptPolicy(
                 output_size=dims['action_dim'],
                 added_fc_input_size=dims['added_fc_input_size'],
-                aux_output_size=8,
+                aux_output_size=9,
                 **variant['policy_kwargs'],
             )
         else:
             script_policy = ScriptPolicy(
                         output_size=dims['action_dim'],
                         added_fc_input_size=dims['added_fc_input_size'],
-                        aux_output_size=8,
+                        aux_output_size=9,
                         **variant['policy_kwargs'],
                     )
         
