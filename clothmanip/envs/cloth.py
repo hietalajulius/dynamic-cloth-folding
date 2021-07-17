@@ -460,10 +460,10 @@ class ClothEnv(object):
     def get_corner_constraint_distances(self):
         inv_corner_index_mapping = {v: k for k, v in self.corner_index_mapping.items()}
         distances = dict()
-        for contraint in self.constraints:
+        for i, contraint in enumerate(self.constraints):
             if contraint['origin'] in inv_corner_index_mapping.keys():
                 origin_pos = self.sim.data.get_site_xpos(contraint['origin']).copy()
-                target_pos = self.sim.data.get_site_xpos(contraint['target']).copy()
+                target_pos = self.goal[i*self.single_goal_dim:(i+1)*self.single_goal_dim]
                 distances[inv_corner_index_mapping[contraint['origin']]] = np.linalg.norm(origin_pos-target_pos)
         return distances
 
