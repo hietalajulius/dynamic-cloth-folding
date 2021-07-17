@@ -165,8 +165,8 @@ def argsparser():
     parser.add_argument('--lookat_position_randomization_radius', default=0.03, type=float)
     parser.add_argument('--lookat_position_randomization', default=1, type=int)
     parser.add_argument('--albumentations_randomization', default=1, type=int)
+    parser.add_argument('--dynamics_randomization', default=1, type=int)
 
-    parser.add_argument('--dynamics_randomization', default=0, type=int)
     parser.add_argument('--camera_type', choices=["up", "side", "front", "all"], default="side")
     parser.add_argument('--camera_config', choices=["small", "large"], default="small")
     parser.add_argument('--cloth_size', default=0.2, type=float)
