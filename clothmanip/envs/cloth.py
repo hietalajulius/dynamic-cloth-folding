@@ -521,7 +521,7 @@ class ClothEnv(object):
 
         done = False
         self.episode_success_steps += int(is_success)
-        if self.episode_success_steps >= self.max_success_steps:
+        if self.episode_success_steps >= self.max_success_steps or self.out_of_bounds:
             done = True
 
         return reward, done, info
