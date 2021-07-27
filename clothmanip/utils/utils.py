@@ -137,7 +137,7 @@ def argsparser():
     parser.add_argument('--train_steps', default=1000, type=int)
     parser.add_argument('--num_epochs', default=1000, type=int)
     parser.add_argument('--save_policy_every_epoch', default=1, type=int)
-    parser.add_argument('--save_images_every_epoch', default=5, type=int)
+    parser.add_argument('--save_images_every_epoch', default=10, type=int)
     parser.add_argument('--num_cycles', default=20, type=int)
     parser.add_argument('--min_expl_steps', type=int, default=0)
     parser.add_argument('--num_eval_rollouts', type=int, default=20)
