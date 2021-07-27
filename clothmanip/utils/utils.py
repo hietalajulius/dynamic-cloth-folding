@@ -146,6 +146,8 @@ def argsparser():
     parser.add_argument('--discount', type=float, default=0.99)
     parser.add_argument('--corner_prediction_loss_coef', type=float, default=0.001)
     parser.add_argument('--terminal_prediction_loss_coef', type=float, default=0.001)
+    parser.add_argument('--fc_layer_size', type=int, default=256)
+    parser.add_argument('--fc_layer_depth', type=int, default=4)
 
     # Replay buffer
     # HER 0.8 from paper
@@ -213,7 +215,8 @@ def get_variant(args):
     variant = dict(
         algorithm="SAC",
         folder=args.folder,
-        layer_size=256,
+        fc_layer_size=args.fc_layer_size,
+        fc_layer_depth=args.fc_layer_depth,
         trainer_kwargs=dict(
             discount=args.discount,
             soft_target_tau=5e-3,

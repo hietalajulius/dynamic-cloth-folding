@@ -57,27 +57,27 @@ def experiment(variant):
     image_training = variant['image_training']
     
 
-    M = variant['layer_size']
+    M = variant['fc_layer_size']
 
     qf1 = ConcatMlp(
         input_size=dims['value_input_size'],
         output_size=1,
-        hidden_sizes=[M, M],
+        hidden_sizes=[M for _ in range(variant['fc_layer_depth'])],
     )
     qf2 = ConcatMlp(
         input_size=dims['value_input_size'],
         output_size=1,
-        hidden_sizes=[M, M],
+        hidden_sizes=[M for _ in range(variant['fc_layer_depth'])],
     )
     target_qf1 = ConcatMlp(
         input_size=dims['value_input_size'],
         output_size=1,
-        hidden_sizes=[M, M],
+        hidden_sizes=[M for _ in range(variant['fc_layer_depth'])],
     )
     target_qf2 = ConcatMlp(
         input_size=dims['value_input_size'],
         output_size=1,
-        hidden_sizes=[M, M],
+        hidden_sizes=[M for _ in range(variant['fc_layer_depth'])],
     )
 
     #TODO: combine own script policy with pretrained structs
