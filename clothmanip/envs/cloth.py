@@ -471,8 +471,7 @@ class ClothEnv(object):
 
         done = False
 
-        if constraint_distances["1"] < self.success_distance:
-            print("EE within success distance", self.episode_ee_close_steps)
+        if constraint_distances["1"] < self.success_distance:s)
             self.episode_ee_close_steps += 1
         else:
             self.episode_ee_close_steps = 0
