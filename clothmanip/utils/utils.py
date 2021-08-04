@@ -126,8 +126,8 @@ def argsparser():
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--discount', type=float, default=0.99)
     parser.add_argument('--corner_prediction_loss_coef', type=float, default=0.001)
-    parser.add_argument('--fc_layer_size', type=int, default=256)
-    parser.add_argument('--fc_layer_depth', type=int, default=4)
+    parser.add_argument('--fc_layer_size', type=int, default=512)
+    parser.add_argument('--fc_layer_depth', type=int, default=5)
 
     # Replay buffer
     # HER 0.8 from paper
