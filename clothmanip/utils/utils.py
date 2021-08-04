@@ -139,7 +139,7 @@ def argsparser():
 
     # Collection
     parser.add_argument('--max_path_length', default=25, type=int)
-    parser.add_argument('--max_close_steps', default=3,type=int)
+    parser.add_argument('--max_close_steps', default=5,type=int)
 
     parser.add_argument('--lights_randomization', default=1, type=int)
     parser.add_argument('--materials_randomization', default=1, type=int)
@@ -154,26 +154,23 @@ def argsparser():
     parser.add_argument('--cloth_size', default=0.2, type=float)
 
     # Env
-    parser.add_argument('--ate_penalty_coef', type=float, default=0)
-    parser.add_argument('--action_norm_penalty_coef', type=float, default=0)
-    parser.add_argument('--cosine_penalty_coef', type=float, default=0)
-    parser.add_argument('--image_obs_noise_mean', type=float, default=1.0)
-    parser.add_argument('--image_obs_noise_std', type=float, default=0.0)
+    parser.add_argument('--image_obs_noise_mean', type=float, default=0.5)
+    parser.add_argument('--image_obs_noise_std', type=float, default=0.5)
 
-    parser.add_argument('--smallest_key', choices=["corner_0_distance", "corner_sum_distance"], default="corner_0_distance")
+    parser.add_argument('--smallest_key', choices=["corner_0_distance", "corner_sum_distance"], default="corner_sum_distance")
     parser.add_argument('--robot_observation', choices=["ee", "ctrl", "none"], default="ctrl")
     parser.add_argument('--filter', type=float, default=0.03)
     parser.add_argument('--output_max', type=float, default=0.03)
     parser.add_argument('--damping_ratio', type=float, default=1)
     parser.add_argument('--kp', type=float, default=1000.0)
-    parser.add_argument('--constant_goal', type=int, default=1)
+    parser.add_argument('--constant_goal', type=int, default=0)
     parser.add_argument('--task', type=str, default="sideways")
     parser.add_argument('--success_distance', type=float, default=0.05)
     parser.add_argument('--image_training', default=1, type=int)
     parser.add_argument('--image_size', type=int, default=100)
     parser.add_argument('--frame_stack_size', type=int, default=1)
-    parser.add_argument('--sparse_dense', type=int, default=0)
-    parser.add_argument('--goal_noise', type=float, default=0.01)
+    parser.add_argument('--sparse_dense', type=int, default=1)
+    parser.add_argument('--goal_noise', type=float, default=0.03)
     parser.add_argument('--success_reward', type=int, default=0)
     parser.add_argument('--fail_reward', type=int, default=-1)
     parser.add_argument('--extra_reward', type=int, default=1)
