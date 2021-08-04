@@ -58,9 +58,6 @@ class ClothEnv(object):
         damping_ratio,
         control_frequency,
         ctrl_filter,
-        ate_penalty_coef,
-        action_norm_penalty_coef,
-        cosine_penalty_coef,
         save_folder,
         randomization_kwargs,
         robot_observation,
@@ -91,9 +88,6 @@ class ClothEnv(object):
         copyfile(source, destination)
         self.template_renderer = TemplateRenderer(save_folder)
         self.save_folder = save_folder
-        self.ate_penalty_coef = ate_penalty_coef
-        self.action_norm_penalty_coef = action_norm_penalty_coef
-        self.cosine_penalty_coef = cosine_penalty_coef
         self.filter = ctrl_filter
         self.kp = kp
         self.damping_ratio = damping_ratio
