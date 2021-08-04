@@ -433,7 +433,7 @@ class ClothEnv(object):
 
     def get_corner_constraint_distances(self):
         inv_corner_index_mapping = {v: k for k, v in self.corner_index_mapping.items()}
-        distances = dict()
+        distances = {"0": 0, "1": 0, "2": 0, "3": 0}
         for i, contraint in enumerate(self.constraints):
             if contraint['origin'] in inv_corner_index_mapping.keys():
                 origin_pos = self.sim.data.get_site_xpos(contraint['origin']).copy() - self.relative_origin
