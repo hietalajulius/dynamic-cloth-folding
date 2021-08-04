@@ -1,21 +1,9 @@
-import tracemalloc
-import linecache
 import argparse
 from clothmanip.utils import task_definitions
 import os
-from rlkit.envs.wrappers import NormalizedBoxEnv
 import numpy as np
-import cv2
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import time
-import mujoco_py
 from robosuite.wrappers import DomainRandomizationWrapper
-
-from scipy import spatial
 import sys
-from clothmanip.utils import mujoco_model_kwargs
-from pathlib import Path
 from git import Repo
 import json
 
@@ -27,14 +15,9 @@ def get_keys_and_dims(variant, env):
     value_input_size = obs_dim + action_dim + goal_dim
     added_fc_input_size = goal_dim
 
-    if 'model_params' in env.observation_space.spaces:
-        model_params_dim = env.observation_space.spaces['model_params'].low.size
-        value_input_size += model_params_dim
-
     if 'robot_observation' in env.observation_space.spaces:
         robot_obs_dim = env.observation_space.spaces['robot_observation'].low.size
         policy_obs_dim += robot_obs_dim
-        value_input_size += robot_obs_dim
         added_fc_input_size += robot_obs_dim
 
     image_training = variant['image_training']
@@ -132,8 +115,6 @@ def argsparser():
     parser.add_argument('--folder', type=str)
 
     # Train
-    parser.add_argument('--pretrained_cnn', default=0, type=int)
-    parser.add_argument('--pretrained_vision_model_path', type=str)
     parser.add_argument('--train_steps', default=1000, type=int)
     parser.add_argument('--num_epochs', default=1000, type=int)
     parser.add_argument('--save_policy_every_epoch', default=1, type=int)
@@ -145,7 +126,6 @@ def argsparser():
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--discount', type=float, default=0.99)
     parser.add_argument('--corner_prediction_loss_coef', type=float, default=0.001)
-    parser.add_argument('--terminal_prediction_loss_coef', type=float, default=0.001)
     parser.add_argument('--fc_layer_size', type=int, default=256)
     parser.add_argument('--fc_layer_depth', type=int, default=4)
 
@@ -159,7 +139,7 @@ def argsparser():
 
     # Collection
     parser.add_argument('--max_path_length', default=25, type=int)
-    parser.add_argument('--max_success_steps', default=3,type=int)
+    parser.add_argument('--max_close_steps', default=3,type=int)
 
     parser.add_argument('--lights_randomization', default=1, type=int)
     parser.add_argument('--materials_randomization', default=1, type=int)
@@ -180,25 +160,23 @@ def argsparser():
     parser.add_argument('--image_obs_noise_mean', type=float, default=1.0)
     parser.add_argument('--image_obs_noise_std', type=float, default=0.0)
 
-    parser.add_argument('--traj_pred_terminate', default=0, type=int)
-    parser.add_argument('--traj_bound_terminate', default=0, type=int)
+    parser.add_argument('--smallest_key', choices=["corner_0_distance", "corner_sum_distance"], default="corner_0_distance")
     parser.add_argument('--robot_observation', choices=["ee", "ctrl", "none"], default="ctrl")
-    parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--filter', type=float, default=0.03)
     parser.add_argument('--output_max', type=float, default=0.03)
     parser.add_argument('--damping_ratio', type=float, default=1)
     parser.add_argument('--kp', type=float, default=1000.0)
     parser.add_argument('--constant_goal', type=int, default=1)
-    parser.add_argument('--task', type=str, required=True)
+    parser.add_argument('--task', type=str, default="sideways")
     parser.add_argument('--success_distance', type=float, default=0.05)
-    parser.add_argument('--image_training', default=0, type=int, required=True)
+    parser.add_argument('--image_training', default=1, type=int)
     parser.add_argument('--image_size', type=int, default=100)
     parser.add_argument('--frame_stack_size', type=int, default=1)
     parser.add_argument('--sparse_dense', type=int, default=0)
     parser.add_argument('--goal_noise', type=float, default=0.01)
-    parser.add_argument('--success_reward', type=int, required=True)
-    parser.add_argument('--fail_reward', type=int, required=True)
-    parser.add_argument('--extra_reward', type=int, required=True)
+    parser.add_argument('--success_reward', type=int, default=0)
+    parser.add_argument('--fail_reward', type=int, default=-1)
+    parser.add_argument('--extra_reward', type=int, default=1)
     parser.add_argument('--timestep', type=float, default=0.01)
     parser.add_argument('--control_frequency', type=int, default=10)
 
@@ -225,8 +203,7 @@ def get_variant(args):
             qf_lr=3E-4,
             reward_scale=1,
             use_automatic_entropy_tuning=True,
-            corner_prediction_loss_coef=args.corner_prediction_loss_coef,
-            terminal_prediction_loss_coef=args.terminal_prediction_loss_coef
+            corner_prediction_loss_coef=args.corner_prediction_loss_coef
         ),
         path_collector_kwargs=dict(),
         policy_kwargs=dict(),
@@ -234,19 +211,17 @@ def get_variant(args):
         algorithm_kwargs=dict(),
         num_pre_demos=args.num_pre_demos,
         num_demoers=args.num_demoers,
-        demo_paths=[],
-        pretrained_vision_model_path=args.pretrained_vision_model_path
+        demo_paths=[]
     )
     utils_dir = os.path.dirname(os.path.abspath(__file__))
     envs_dir = os.path.join(utils_dir, "..", "envs")
  
-    variant['demo_paths'].append(os.path.join(envs_dir, f"wipe_data", "executable_raw_actions.csv"))
+    variant['demo_paths'].append(os.path.join(envs_dir, f"cloth_data", "scaled_executable_raw_actions.csv"))
         
-    variant['random_seed'] = args.seed
+    variant['random_seed'] = args.run
     variant['image_training'] = bool(args.image_training)
     variant['num_processes'] = int(args.num_processes)
     variant['save_images_every_epoch'] = args.save_images_every_epoch
-    variant['pretrained_cnn'] = bool(args.pretrained_cnn)
 
     variant['num_eval_rollouts'] = args.num_eval_rollouts
     variant['use_eval_suite'] =bool(args.use_eval_suite)
@@ -278,10 +253,9 @@ def get_variant(args):
     variant['env_kwargs'] = dict(
         timestep=args.timestep,
         task=args.task,
+        smallest_key=args.smallest_key,
         success_distance=args.success_distance,
         image_size=args.image_size,
-        traj_pred_terminate=bool(args.traj_pred_terminate),
-        traj_bound_terminate=bool(args.traj_bound_terminate),
         randomization_kwargs=dict(
             lights_randomization=bool(args.lights_randomization),
             materials_randomization=bool(args.materials_randomization),
@@ -308,7 +282,7 @@ def get_variant(args):
         extra_reward=args.extra_reward,
         constant_goal=bool(args.constant_goal),
         output_max=args.output_max,
-        max_success_steps=int(args.max_success_steps),
+        max_close_steps=int(args.max_close_steps),
         sparse_dense=bool(args.sparse_dense),
         constraint_distances=constraint_distances,
         pixels=bool(args.image_training),
@@ -336,12 +310,10 @@ def get_variant(args):
         variant['path_collector_kwargs']['additional_keys'] = [
             'robot_observation']
         variant['replay_buffer_kwargs']['internal_keys'] = [
-            'image', 'model_params', 'robot_observation']
+            'image', 'robot_observation']
 
     else:
-        variant['path_collector_kwargs']['additional_keys'] = [
-            'robot_observation']
-        variant['replay_buffer_kwargs']['internal_keys'] = [
-            'model_params', 'robot_observation']
+        variant['path_collector_kwargs']['additional_keys'] = []
+        variant['replay_buffer_kwargs']['internal_keys'] = []
 
     return variant, arg_str
