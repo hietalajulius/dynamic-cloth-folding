@@ -35,17 +35,12 @@ def experiment(variant):
 
     eval_env_variant = copy.deepcopy(variant)
     eval_env_variant['env_kwargs']['randomization_kwargs']['dynamics_randomization'] = False
+    eval_env_variant['env_kwargs']['constant_goal'] = True
     eval_env = ClothEnv(**eval_env_variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'])
     eval_env = NormalizedBoxEnv(eval_env)
     eval_env = get_randomized_env(eval_env, eval_env_variant)
-
-    constant_goal_variant = copy.deepcopy(variant)
-    constant_goal_variant['env_kwargs']['constant_goal'] = True
-    constant_goal_env = ClothEnv(**constant_goal_variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'])
-    goal = constant_goal_env.goal.copy()
+    goal = eval_env.goal.copy()
     dump_goal(variant['save_folder'], goal)
-    del constant_goal_env
-    del constant_goal_variant
 
 
     keys, dims = get_keys_and_dims(variant, eval_env)

@@ -146,7 +146,7 @@ class ClothEnv(object):
                                            1, shape=(3,), dtype='float32')
 
         self.relative_origin = self.get_ee_position_W()
-        self.goal = self.sample_goal_I()
+        self.goal, self.goal_noise = self.sample_goal_I()
         
         self.reset_camera()
         if self.pixels:
@@ -563,7 +563,8 @@ class ClothEnv(object):
             'ee_position_I': self.get_ee_position_I(),
             'raw_action': self.previous_raw_action,
             'substeps': self.substeps,
-            'timestep': self.timestep
+            'timestep': self.timestep,
+            'goal_noise': self.goal_noise
         }
         return entry
 
@@ -714,7 +715,7 @@ class ClothEnv(object):
             goal[i*self.single_goal_dim: (i+1) *
                  self.single_goal_dim] = target_pos + offset - self.relative_origin
 
-        return goal.copy()
+        return goal.copy(), noise
 
 
     def reset_osc_values(self):
@@ -745,7 +746,7 @@ class ClothEnv(object):
 
         
         self.relative_origin = self.get_ee_position_W()
-        self.goal = self.sample_goal_I()
+        self.goal, self.goal_noise = self.sample_goal_I()
 
 
         if not self.viewer is None:

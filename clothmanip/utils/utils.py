@@ -138,8 +138,8 @@ def argsparser():
 
 
     # Collection
-    parser.add_argument('--max_path_length', default=25, type=int)
-    parser.add_argument('--max_close_steps', default=5,type=int)
+    parser.add_argument('--max_path_length', default=20, type=int)
+    parser.add_argument('--max_close_steps', default=10,type=int)
 
     parser.add_argument('--lights_randomization', default=1, type=int)
     parser.add_argument('--materials_randomization', default=1, type=int)
