@@ -157,7 +157,7 @@ def argsparser():
     parser.add_argument('--image_obs_noise_mean', type=float, default=0.5)
     parser.add_argument('--image_obs_noise_std', type=float, default=0.5)
 
-    parser.add_argument('--smallest_key', choices=["corner_0_distance", "corner_sum_distance"], default="corner_sum_distance")
+    parser.add_argument('--smallest_key', choices=["corner_0_distance", "corner_sum_distance"], default="corner_0_distance")
     parser.add_argument('--robot_observation', choices=["ee", "ctrl", "none"], default="ctrl")
     parser.add_argument('--filter', type=float, default=0.03)
     parser.add_argument('--output_max', type=float, default=0.03)
