@@ -638,6 +638,9 @@ class ClothEnv(object):
         else:
             image_obs = cv2.cvtColor(image_obs, cv2.COLOR_BGR2GRAY)
 
+        cv2.imshow("IMGy", image_obs)
+        cv2.waitKey(1)
+
         '''
         self.viewer.render(1000, 1000, camera_id)
         image_obs_large = copy.deepcopy(self.viewer.read_pixels(1000, 1000, depth=False))
