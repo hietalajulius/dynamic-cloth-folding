@@ -673,20 +673,22 @@ class ClothEnv(object):
 
         desired_pos_ctrl_I = self.desired_pos_ctrl_W - self.relative_origin
 
-        if self.robot_observation == "ee":
-            robot_observation = np.concatenate([self.get_ee_position_I(), self.get_ee_velocity(), desired_pos_ctrl_I])
-        elif self.robot_observation == "ctrl":
-            robot_observation = np.concatenate([self.previous_raw_action, np.zeros(6)])
-        elif self.robot_observation == "none":
-            robot_observation = np.zeros(9)
-
         full_observation = {'achieved_goal': achieved_goal_I.copy(), 'desired_goal': self.goal.copy()}
         if self.pixels:
+            if self.robot_observation == "ee":
+                robot_observation = np.concatenate([self.get_ee_position_I(), self.get_ee_velocity(), desired_pos_ctrl_I])
+            elif self.robot_observation == "ctrl":
+                robot_observation = np.concatenate([self.previous_raw_action, np.zeros(6)])
+            elif self.robot_observation == "none":
+                robot_observation = np.zeros(9)
             full_observation['image'] = np.array([image for image in self.frame_stack]).flatten()
-            full_observation['observation'] = np.concatenate([cloth_observation.copy(), np.array(self.mujoco_model_numerical_values)]).flatten()
+            if self.randomization_kwargs["dynamics_randomization"]:
+                full_observation['observation'] = np.concatenate([cloth_observation.copy(), np.array(self.mujoco_model_numerical_values)])
+            else:
+                full_observation['observation'] = cloth_observation.copy().flatten()
             full_observation['robot_observation'] = robot_observation.flatten().copy()
         else:
-            full_observation['observation'] = np.concatenate([cloth_observation.copy(), robot_observation.flatten().copy(), np.array(self.mujoco_model_numerical_values)]).flatten()
+            full_observation['observation'] = np.concatenate([cloth_observation.copy(), self.get_ee_position_I(), self.get_ee_velocity()])
 
         return full_observation
 
