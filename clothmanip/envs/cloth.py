@@ -208,16 +208,20 @@ class ClothEnv(object):
         model_kwargs['table_material_name'] = "table_real_material"
         model_kwargs['cloth_material_name'] = f"wipe_real_material"
         if self.randomization_kwargs['materials_randomization']:
-            model_kwargs['floor_material_name'] = np.random.choice(["floor_real_material", "floor_material"])
-            model_kwargs['table_material_name'] = np.random.choice(["table_real_material", "table_material"])
-            model_kwargs['cloth_material_name'] = np.random.choice(["bath_real_material", "bath_2_real_material", "kitchen_real_material", "kitchen_2_real_material", "wipe_real_material", "wipe_2_real_material", "cloth_material"])
+            #model_kwargs['floor_material_name'] = np.random.choice(["floor_real_material", "floor_material"])
+            #model_kwargs['table_material_name'] = np.random.choice(["table_real_material", "table_material"])
+            model_kwargs['floor_material_name'] = np.random.choice(["floor_real_material"])
+            model_kwargs['table_material_name'] = np.random.choice(["table_real_material"])
+            #model_kwargs['cloth_material_name'] = np.random.choice(["bath_real_material", "bath_2_real_material", "kitchen_real_material", "kitchen_2_real_material", "wipe_real_material", "wipe_2_real_material", "cloth_material"])
+            #model_kwargs['cloth_material_name'] = np.random.choice(["white_real_material", "blue_real_material", "orange_real_material"])
+            model_kwargs['cloth_material_name'] = np.random.choice(["white_real_material"])
 
 
 
         #General
         model_kwargs['timestep'] = self.timestep
         model_kwargs['lights_randomization'] = self.randomization_kwargs['lights_randomization']
-        model_kwargs['materials_randomization'] = self.randomization_kwargs['materials_randomization']
+        model_kwargs['materials_randomization'] = False # self.randomization_kwargs['materials_randomization']
         model_kwargs['train_camera_fovy'] = (self.randomization_kwargs['camera_config']['fovy_range'][0] + self.randomization_kwargs['camera_config']['fovy_range'][1])/2
         model_kwargs['num_lights'] = 1
 
@@ -821,7 +825,7 @@ class ClothEnv(object):
             data = cv2.cvtColor(data, cv2.COLOR_BGR2GRAY)
         ee = camera_matrix @ camera_transformation @ ee_in_image
         u_ee, v_ee, _ = ee/ee[2]
-        cv2.circle(data, (width-int(u_ee), int(v_ee)), point_size, (0, 0, 0), -1)
+        #cv2.circle(data, (width-int(u_ee), int(v_ee)), point_size, (0, 0, 0), -1)
 
         if mask_type == "corners":
             mask = self.get_corner_image_positions(width, height, camera_matrix, camera_transformation)
@@ -835,7 +839,7 @@ class ClothEnv(object):
             u = int(point[0])
             v = int(point[1])
             #print("{", u, ",",v,"},")
-            cv2.circle(data, (u, v), point_size, (0, 0, 255), -1)
+            cv2.circle(data, (u, v), point_size, (255, 0, 0), -1)
         #print("\n")
         if not aux_output is None:
             for aux_idx in range(4):
@@ -847,7 +851,7 @@ class ClothEnv(object):
 
 
 
-    def capture_images(self, aux_output=None):
+    def capture_images(self, aux_output=None, mask_type="corners"):
         w_eval, h_eval = 500, 500
         w_corners, h_corners = 500, 500
         w_cnn, h_cnn = self.image_size
@@ -857,11 +861,11 @@ class ClothEnv(object):
         ee_pos = self.get_ee_position_W()
         ee_in_image[:3] = ee_pos
 
-        corner_image = self.get_masked_image(self.train_camera, w_corners, h_corners, ee_in_image, aux_output, 8, greyscale=False, mask_type="corners")
-        eval_image = self.get_masked_image(self.eval_camera, w_eval, h_eval, ee_in_image, None, 4, greyscale=False, mask_type="corners")
-        cnn_color_image_full = self.get_masked_image(self.train_camera, w_cnn_full, h_cnn_full, ee_in_image, aux_output, 2, mask_type="corners")
-        cnn_color_image = self.get_masked_image(self.train_camera, w_cnn, h_cnn, ee_in_image, aux_output, 2, mask_type="corners")
-        cnn_image = self.get_masked_image(self.train_camera, w_cnn, h_cnn, ee_in_image, aux_output, 2, greyscale=True, mask_type="corners")
+        corner_image = self.get_masked_image(self.train_camera, w_corners, h_corners, ee_in_image, aux_output, 8, greyscale=False, mask_type=mask_type)
+        eval_image = self.get_masked_image(self.eval_camera, w_eval, h_eval, ee_in_image, None, 4, greyscale=False, mask_type=mask_type)
+        cnn_color_image_full = self.get_masked_image(self.train_camera, w_cnn_full, h_cnn_full, ee_in_image, aux_output, 2, mask_type=mask_type)
+        cnn_color_image = self.get_masked_image(self.train_camera, w_cnn, h_cnn, ee_in_image, aux_output, 2, mask_type=mask_type)
+        cnn_image = self.get_masked_image(self.train_camera, w_cnn, h_cnn, ee_in_image, aux_output, 2, greyscale=True, mask_type=mask_type)
 
 
         return corner_image, eval_image, cnn_color_image_full, cnn_color_image, cnn_image
