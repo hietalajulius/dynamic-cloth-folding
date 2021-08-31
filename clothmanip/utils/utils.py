@@ -83,9 +83,9 @@ CAMERA_ARGS = {
     'randomize_position': True,
     'randomize_rotation': True,
     'randomize_fovy': True,
-    'position_perturbation_size': 0.2,
-    'rotation_perturbation_size': 0.75,
-    'fovy_perturbation_size': 0.05,
+    'position_perturbation_size': 0.5, # 0.2
+    'rotation_perturbation_size': 0.9, # 0.75
+    'fovy_perturbation_size': 0.1, # 0.05
 }
 
 
@@ -96,11 +96,11 @@ def get_randomized_env(env, variant):
                 env,
                 xml_randomization_kwargs=r,
                 randomize_on_reset=True,
-                randomize_camera=r['lights_randomization'],
+                randomize_camera=r['camera_position_randomization'],
                 randomize_every_n_steps=0,
                 randomize_color=False,
                 camera_randomization_args=CAMERA_ARGS,
-                randomize_lighting=r['camera_position_randomization'],
+                randomize_lighting=r['lights_randomization'],
                 lighting_randomization_args=LIGHTING_ARGS
                 )
 
