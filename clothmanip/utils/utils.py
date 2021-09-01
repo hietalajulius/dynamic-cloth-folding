@@ -92,6 +92,10 @@ CAMERA_ARGS = {
 
 def get_randomized_env(env, variant):
     r = variant['env_kwargs']['randomization_kwargs']
+    cam_args = CAMERA_ARGS
+    cam_args['position_perturbation_size'] = r['position_perturbation_size']
+    cam_args['rotation_perturbation_size'] = r['rotation_perturbation_size']
+    cam_args['fovy_perturbation_size'] = r['fovy_perturbation_size']
     return DomainRandomizationWrapper(
                 env,
                 xml_randomization_kwargs=r,
@@ -99,7 +103,7 @@ def get_randomized_env(env, variant):
                 randomize_camera=r['camera_position_randomization'],
                 randomize_every_n_steps=0,
                 randomize_color=False,
-                camera_randomization_args=CAMERA_ARGS,
+                camera_randomization_args=cam_args,
                 randomize_lighting=r['lights_randomization'],
                 lighting_randomization_args=LIGHTING_ARGS
                 )
@@ -144,10 +148,14 @@ def argsparser():
     parser.add_argument('--lights_randomization', default=1, type=int)
     parser.add_argument('--materials_randomization', default=1, type=int)
     parser.add_argument('--camera_position_randomization', default=1, type=int)
-    parser.add_argument('--lookat_position_randomization_radius', default=0.05, type=float)
+    parser.add_argument('--lookat_position_randomization_radius', default=0.03, type=float)
     parser.add_argument('--lookat_position_randomization', default=1, type=int)
     parser.add_argument('--albumentations_randomization', default=1, type=int)
     parser.add_argument('--dynamics_randomization', default=1, type=int)
+
+    parser.add_argument('--fovy_perturbation_size', default=0.05, type=float)
+    parser.add_argument('--rotation_perturbation_size', default=0.75, type=float)
+    parser.add_argument('--position_perturbation_size', default=0.2, type=float)
 
     parser.add_argument('--camera_type', choices=["up", "side", "front", "all"], default="side")
     parser.add_argument('--camera_config', choices=["small", "large"], default="small")
@@ -264,6 +272,9 @@ def get_variant(args):
             cloth_size=args.cloth_size,
             camera_type=args.camera_type,
             camera_config=camera_config,
+            position_perturbation_size=args.position_perturbation_size,
+            rotation_perturbation_size=args.rotation_perturbation_size,
+            fovy_perturbation_size=args.fovy_perturbation_size
         ),
         robot_observation=args.robot_observation,
         control_frequency=args.control_frequency,
