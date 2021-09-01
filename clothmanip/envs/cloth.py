@@ -208,20 +208,16 @@ class ClothEnv(object):
         model_kwargs['table_material_name'] = "table_real_material"
         model_kwargs['cloth_material_name'] = f"wipe_real_material"
         if self.randomization_kwargs['materials_randomization']:
-            #model_kwargs['floor_material_name'] = np.random.choice(["floor_real_material", "floor_material"])
-            #model_kwargs['table_material_name'] = np.random.choice(["table_real_material", "table_material"])
-            model_kwargs['floor_material_name'] = np.random.choice(["floor_real_material"])
-            model_kwargs['table_material_name'] = np.random.choice(["table_real_material"])
-            #model_kwargs['cloth_material_name'] = np.random.choice(["bath_real_material", "bath_2_real_material", "kitchen_real_material", "kitchen_2_real_material", "wipe_real_material", "wipe_2_real_material", "cloth_material"])
-            #model_kwargs['cloth_material_name'] = np.random.choice(["white_real_material", "blue_real_material", "orange_real_material"])
-            model_kwargs['cloth_material_name'] = np.random.choice(["white_real_material"])
+            model_kwargs['floor_material_name'] = np.random.choice(["floor_real_material", "floor_material"])
+            model_kwargs['table_material_name'] = np.random.choice(["table_real_material", "table_material"])
+            model_kwargs['cloth_material_name'] = np.random.choice(["bath_real_material", "bath_2_real_material", "kitchen_real_material", "kitchen_2_real_material", "wipe_real_material", "wipe_2_real_material", "cloth_material", "white_real_material", "blue_real_material", "orange_real_material"])
 
 
 
         #General
         model_kwargs['timestep'] = self.timestep
         model_kwargs['lights_randomization'] = self.randomization_kwargs['lights_randomization']
-        model_kwargs['materials_randomization'] = False # self.randomization_kwargs['materials_randomization']
+        model_kwargs['materials_randomization'] = self.randomization_kwargs['materials_randomization']
         model_kwargs['train_camera_fovy'] = (self.randomization_kwargs['camera_config']['fovy_range'][0] + self.randomization_kwargs['camera_config']['fovy_range'][1])/2
         model_kwargs['num_lights'] = 1
 

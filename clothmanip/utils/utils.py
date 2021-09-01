@@ -141,12 +141,12 @@ def argsparser():
     parser.add_argument('--max_path_length', default=25, type=int)
     parser.add_argument('--max_close_steps', default=10,type=int)
 
-    parser.add_argument('--lights_randomization', default=0, type=int)
+    parser.add_argument('--lights_randomization', default=1, type=int)
     parser.add_argument('--materials_randomization', default=1, type=int)
-    parser.add_argument('--camera_position_randomization', default=0, type=int)
-    parser.add_argument('--lookat_position_randomization_radius', default=0.03, type=float)
-    parser.add_argument('--lookat_position_randomization', default=0, type=int)
-    parser.add_argument('--albumentations_randomization', default=0, type=int)
+    parser.add_argument('--camera_position_randomization', default=1, type=int)
+    parser.add_argument('--lookat_position_randomization_radius', default=0.05, type=float)
+    parser.add_argument('--lookat_position_randomization', default=1, type=int)
+    parser.add_argument('--albumentations_randomization', default=1, type=int)
     parser.add_argument('--dynamics_randomization', default=1, type=int)
 
     parser.add_argument('--camera_type', choices=["up", "side", "front", "all"], default="side")

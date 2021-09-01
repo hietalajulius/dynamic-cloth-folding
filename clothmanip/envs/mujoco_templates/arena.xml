@@ -4,7 +4,7 @@
     <option timestep="{{ timestep }}" impratio="{{ impratio }}" cone="{{ cone_type }}" />
     <size nconmax="5000" njmax="5000"/>
     <visual>
-        <headlight ambient="1 1 1" diffuse="1 1 1" specular="1 1 1" />
+        <headlight ambient="0.4 0.4 0.4" diffuse="0.6 0.6 0.6" specular="0.2 0.2 0.2" />
     </visual>
     <asset>
         <texture builtin="gradient" height="100" rgb1="1 1 1" rgb2="0 0 0" type="skybox" width="100"/>
