@@ -37,10 +37,11 @@ def experiment(variant):
     eval_env_variant['env_kwargs']['randomization_kwargs']['dynamics_randomization'] = False
     eval_env_variant['env_kwargs']['constant_goal'] = True
     eval_env = ClothEnv(**eval_env_variant['env_kwargs'], has_viewer=True, save_folder=variant['save_folder'])
-    eval_env = NormalizedBoxEnv(eval_env)
-    eval_env = get_randomized_env(eval_env, eval_env_variant)
     goal = eval_env.goal.copy()
     dump_goal(variant['save_folder'], goal)
+    eval_env.constant_goal = False
+    eval_env = NormalizedBoxEnv(eval_env)
+    eval_env = get_randomized_env(eval_env, eval_env_variant)
 
 
     keys, dims = get_keys_and_dims(variant, eval_env)
