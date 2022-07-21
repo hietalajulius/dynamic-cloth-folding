@@ -1,0 +1,9 @@
+[submodule "mujoco-py"]
+	path = submodules/mujoco-py
+	url = git@github.com:hietalajulius/mujoco-py.git
+[submodule "rlkit"]
+	path = submodules/rlkit
+	url = git@github.com:hietalajulius/rlkit.git
+[submodule "robosuite"]
+	path = submodules/robosuite
+	url = git@github.com:hietalajulius/robosuite.git

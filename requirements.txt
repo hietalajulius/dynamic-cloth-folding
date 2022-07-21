@@ -1,0 +1,11 @@
+torch
+torchvision
+python-dateutil
+opencv-python
+GitPython
+Jinja2
+psutil
+albumentations
+pandas
+gtimer
+tensorboard
