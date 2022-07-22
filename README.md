@@ -1,1 +1,1 @@
-# Dynamic Cloth Manipulation
+# Dynamic Cloth Folding
