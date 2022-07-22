@@ -1,11 +1,10 @@
 import mujoco_py
 import torch
 import gym
-from utils import general_utils, reward_calculation
+from utils import general_utils
 import copy
 import numpy as np
 from env import cloth_env
-from utils import task_definitions
 import logging
 
 from rlkit.torch import pytorch_util, networks, torch_rl_algorithm
@@ -14,7 +13,7 @@ from rlkit.torch.her.cloth import her
 from rlkit.launchers import launcher_util
 from rlkit.envs import wrappers
 
-from rlkit.samplers.eval_suite import success_rate_test, eval_suite
+from rlkit.samplers.eval_suite import success_rate_test, eval_suite, real_corner_prediction_test
 from rlkit.samplers import data_collector
 from rlkit.data_management import future_obs_dict_replay_buffer
 
@@ -27,86 +26,91 @@ logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 
 def experiment(variant):
 
-    eval_env = general_utils.get_randomized_env(wrappers.NormalizedBoxEnv(
-        cloth_env.ClothEnv(**variant['env_kwargs'], has_viewer=True)), variant['env_kwargs']['randomization_kwargs'])
+    eval_env = cloth_env.ClothEnv(
+        **variant['env_kwargs'], randomization_kwargs=variant['randomization_kwargs'])
 
-    env_keys, env_dims = general_utils.get_keys_and_dims(variant, eval_env)
+    randomized_eval_env = general_utils.get_randomized_env(
+        wrappers.NormalizedBoxEnv(eval_env), randomization_kwargs=variant['randomization_kwargs'])
+
+    env_keys, env_dims = general_utils.get_keys_and_dims(
+        variant, randomized_eval_env)
+
+    fc_width, fc_depth = variant['value_function_kwargs']['fc_layer_size'], variant['value_function_kwargs']['fc_layer_depth']
 
     qf1 = networks.ConcatMlp(
         input_size=env_dims['value_input_size'],
         output_size=1,
-        hidden_sizes=[variant['fc_layer_size']
-                      for _ in range(variant['fc_layer_depth'])],
+        hidden_sizes=[fc_width for _ in range(fc_depth)],
     )
     qf2 = networks.ConcatMlp(
         input_size=env_dims['value_input_size'],
         output_size=1,
-        hidden_sizes=[variant['fc_layer_size']
-                      for _ in range(variant['fc_layer_depth'])],
+        hidden_sizes=[fc_width for _ in range(fc_depth)],
     )
     target_qf1 = networks.ConcatMlp(
         input_size=env_dims['value_input_size'],
         output_size=1,
-        hidden_sizes=[variant['fc_layer_size']
-                      for _ in range(variant['fc_layer_depth'])],
+        hidden_sizes=[fc_width for _ in range(fc_depth)],
     )
     target_qf2 = networks.ConcatMlp(
         input_size=env_dims['value_input_size'],
         output_size=1,
-        hidden_sizes=[variant['fc_layer_size']
-                      for _ in range(variant['fc_layer_depth'])],
+        hidden_sizes=[fc_width for _ in range(fc_depth)],
     )
 
     policy = sac_policies.TanhScriptPolicy(
         output_size=env_dims['action_dim'],
         added_fc_input_size=env_dims['added_fc_input_size'],
-        aux_output_size=9,
         **variant['policy_kwargs'],
     )
 
     eval_policy = sac_policies.MakeDeterministic(policy)
 
+    success_test = success_rate_test.SuccessRateTest(
+        env=randomized_eval_env,
+        policy=eval_policy,
+        keys=env_keys,
+        name='randomized_cloth',
+        metric_keys=['success_rate', 'corner_distance', 'corner_0',
+                     'corner_1', 'corner_2', 'corner_3', 'corner_sum_error'],
+        **variant['eval_kwargs'],
+    )
+    real_corner_test = real_corner_prediction_test.RealCornerPredictionTest(
+        env=randomized_eval_env,
+        policy=eval_policy,
+        keys=env_keys,
+        name='real_corner_error',
+        metric_keys=[
+            'corner_error'],
+        **variant['eval_kwargs'],)
+
     evaluation_suite = eval_suite.EvalTestSuite(
-        [success_rate_test.SuccessRateTest(eval_env, eval_policy, 'constant_cloth', ['success_rate', 'corner_distance',
-                                                                                     'corner_0', 'corner_1', 'corner_2', 'corner_3', 'corner_sum_error'], variant['num_eval_rollouts'], keys=env_keys, variant=variant)], variant['save_folder'])
+        tests=[success_test, real_corner_test])
 
     def make_worker_env_function():
-        return general_utils.get_randomized_env(wrappers.NormalizedBoxEnv(cloth_env.ClothEnv(**variant['env_kwargs'], has_viewer=True)), variant['env_kwargs']['randomization_kwargs'])
+        return general_utils.get_randomized_env(wrappers.NormalizedBoxEnv(cloth_env.ClothEnv(**variant['env_kwargs'], randomization_kwargs=variant['randomization_kwargs'])), randomization_kwargs=variant['randomization_kwargs'])
 
     env_functions = [make_worker_env_function for _ in range(
-        variant['num_processes'])]
+        variant['path_collector_kwargs']['num_processes'])]
     vec_env = wrappers.SubprocVecEnv(env_functions)
 
     exploration_path_collector = data_collector.VectorizedKeyPathCollector(
         vec_env,
         policy,
-        processes=variant['num_processes'],
         observation_key=env_keys['path_collector_observation_key'],
         desired_goal_key=env_keys['desired_goal_key'],
-        demo_paths=variant['demo_paths'],
-        demo_divider=variant['env_kwargs']['output_max'],
         **variant['path_collector_kwargs'],
     )
-
-    # TODO: get rid of this stuff
-    constraints = task_definitions.constraints["sideways"](
-        0, 4, 8, args.success_distance)
-    constraint_distances = [c['distance'] for c in constraints]
-
-    reward_function = reward_calculation.get_task_reward_function(
-        constraint_distances, 3, variant['env_kwargs']['sparse_dense'], variant['env_kwargs']['success_reward'], variant['env_kwargs']['fail_reward'], variant['env_kwargs']['extra_reward'])
 
     replay_buffer = future_obs_dict_replay_buffer.FutureObsDictRelabelingBuffer(
         ob_spaces=copy.deepcopy(eval_env.observation_space.spaces),
         action_space=copy.deepcopy(eval_env.action_space),
+        task_reward_function=randomized_eval_env.task_reward_function,
         observation_key=env_keys['observation_key'],
         desired_goal_key=env_keys['desired_goal_key'],
         achieved_goal_key=env_keys['achieved_goal_key'],
         **variant['replay_buffer_kwargs']
     )
-
-    # TODO: pass as an arg
-    replay_buffer.set_task_reward_function(reward_function)
 
     trainer = sac.SACTrainer(
         policy_target_entropy=-np.prod(
@@ -120,23 +124,13 @@ def experiment(variant):
     )
     trainer = her.ClothSacHERTrainer(trainer)
 
-    # TODO: maybe create this in the algo when saving...
-    script_policy = sac_policies.ScriptPolicy(
-        output_size=env_dims['action_dim'],
-        added_fc_input_size=env_dims['added_fc_input_size'],
-        aux_output_size=9,
-        **variant['policy_kwargs'],
-    )
-
-    # TODO: check that all passed params make sense
     algorithm = torch_rl_algorithm.TorchBatchRLAlgorithm(
-        script_policy=script_policy,
         eval_suite=evaluation_suite,
         trainer=trainer,
         exploration_data_collector=exploration_path_collector,
-        num_demoers=variant['num_demoers'],
         replay_buffer=replay_buffer,
-        save_folder=variant['save_folder'],
+        env_dims=env_dims,
+        policy_kwargs=variant['policy_kwargs'],
         **variant['algorithm_kwargs']
     )
     algorithm.to(pytorch_util.device)
@@ -151,7 +145,7 @@ def experiment(variant):
 
 if __name__ == "__main__":
     args = general_utils.argsparser()
-    variant = general_utils.get_variant(args)  # TODO: further clean up
+    variant = general_utils.get_variant(args)
 
     general_utils.setup_training_device()
     general_utils.setup_save_folder(variant)

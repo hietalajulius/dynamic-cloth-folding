@@ -6,7 +6,9 @@ def goal_distance(goal_a, goal_b):
     return np.linalg.norm(goal_a - goal_b, axis=-1)
 
 
-def get_task_reward_function(constraint_distances, single_goal_dim, sparse_dense, success_reward, fail_reward, extra_reward):
+def get_task_reward_function(constraints, single_goal_dim, sparse_dense, success_reward, fail_reward, extra_reward):
+    constraint_distances = [c['distance'] for c in constraints]
+
     def task_reward_function(achieved_goal, desired_goal, info):
         achieved_oks = np.zeros(
             (achieved_goal.shape[0], len(constraint_distances)))
@@ -36,7 +38,7 @@ def get_task_reward_function(constraint_distances, single_goal_dim, sparse_dense
             dist_rewards = np.sum((1 - achieved_distances/np.array(constraint_distances)),
                                   axis=1) / len(constraint_distances)
 
-            task_rewards += dist_rewards*extra_reward #Extra for being closer to the goal
+            task_rewards += dist_rewards*extra_reward  # Extra for being closer to the goal
 
             if "num_future_goals" in info.keys():
                 num_future_goals = info['num_future_goals']

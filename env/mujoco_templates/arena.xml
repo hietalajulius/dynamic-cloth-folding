@@ -106,7 +106,7 @@
             <geom name="la_tabla_vis" type="box" material="{{table_material_name}}" pos="0 0 0" size="0.3 0.3 0.13" group="1" />
         </body>
 
-        <composite type="grid" count="{{num_cloth_geoms}} {{num_cloth_geoms}} 1" spacing="{{geom_spacing}}" offset="{{0.62288139 - offset }} {{0.13480165 - offset }} 0.1333164"  >
+        <composite type="grid" count="9 9 1" spacing="{{geom_spacing}}" offset="{{0.62288139 - offset }} {{0.13480165 - offset }} 0.1333164"  >
             <joint kind="main" solimpfix="{{joint_solimp_low}} {{joint_solimp_high}} {{joint_solimp_width}}" solreffix="{{joint_solref_timeconst}} {{joint_solref_dampratio}}" />
             <tendon solimpfix="{{tendon_shear_solimp_low}} {{tendon_shear_solimp_high}} {{tendon_shear_solimp_width}}" solreffix="{{tendon_shear_solref_timeconst}} {{tendon_shear_solref_dampratio}}" width="0.001" kind="shear" />
             <tendon solimpfix="{{tendon_main_solimp_low}} {{tendon_main_solimp_high}} {{tendon_main_solimp_width}}" solreffix="{{tendon_main_solref_timeconst}} {{tendon_main_solref_dampratio}}" kind="main" />

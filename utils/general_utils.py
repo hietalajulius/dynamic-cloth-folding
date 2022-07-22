@@ -6,6 +6,10 @@ from robosuite import wrappers
 from git import Repo
 import json
 from rlkit.torch import pytorch_util
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 
 
 def get_keys_and_dims(variant, env):
@@ -206,86 +210,90 @@ def argsparser():
     return args
 
 
-def get_variant(args):
-    title = args.title + "-run-" + str(args.run)
-    save_folder = os.path.join(os.path.dirname(
-        os.path.abspath("./")), "trainings", title)
-
-    envs_dir = os.path.abspath("./env")
-    variant = dict(
+def get_general_kwargs(args, save_folder, title):
+    kwargs = dict(
         algorithm="SAC",
         title=title,
         save_folder=save_folder,
-        fc_layer_size=args.fc_layer_size,
-        fc_layer_depth=args.fc_layer_depth,
-        trainer_kwargs=dict(
-            discount=args.discount,
-            soft_target_tau=5e-3,
-            target_update_period=1,
-            policy_lr=3E-4,
-            qf_lr=3E-4,
-            reward_scale=1,
-            use_automatic_entropy_tuning=True,
-            corner_prediction_loss_coef=args.corner_prediction_loss_coef
-        ),
-        path_collector_kwargs=dict(),
-        policy_kwargs=dict(),
-        replay_buffer_kwargs=dict(),
-        algorithm_kwargs=dict(),
-        num_demoers=args.num_demoers,
-        demo_paths=[os.path.join(
-            envs_dir, "cloth_data", "scaled_executable_raw_actions.csv")],  # The demo actions collected in the lab for the sideways fold
         random_seed=args.run,
-        num_processes=int(args.num_processes),
-        save_images_every_epoch=args.save_images_every_epoch,
-        num_eval_rollouts=args.num_eval_rollouts
     )
+    return kwargs
 
-    variant['algorithm_kwargs'] = dict(
+
+def get_eval_kwargs(args, save_folder):
+    eval_kwargs = dict(
+        save_images_every_epoch=args.save_images_every_epoch,
+        num_runs=args.num_eval_rollouts,
+        max_path_length=int(args.max_path_length),
+        additional_keys=[
+            'robot_observation'],
+        frame_stack_size=args.frame_stack_size,
+        save_blurred_images=bool(args.albumentations_randomization),
+        save_folder=save_folder)
+    return eval_kwargs
+
+
+def get_algorithm_kwargs(args, save_folder):
+    algorithm_kwargs = dict(
         num_epochs=args.num_epochs,
         num_trains_per_train_loop=args.train_steps,
         num_expl_steps_per_train_loop=args.train_steps,
         num_train_loops_per_epoch=int(args.num_cycles),
         max_path_length=int(args.max_path_length),
         save_policy_every_epoch=args.save_policy_every_epoch,
-        batch_size=args.batch_size
+        batch_size=args.batch_size,
+        num_demoers=args.num_demoers,
+        save_folder=save_folder
     )
+    return algorithm_kwargs
 
-    variant['replay_buffer_kwargs'] = dict(
+
+def get_path_collector_kwargs(args):
+    path_collector_kwargs = dict(
+        additional_keys=[
+            'robot_observation'],
+        # The demo actions collected in the lab for the sideways fold)
+        demo_paths=[os.path.join(f"./data", "demos.csv")],
+        demo_divider=args.output_max,
+        num_processes=int(args.num_processes),)
+    return path_collector_kwargs
+
+
+def get_value_function_kwargs(args):
+    value_function_kwargs = dict(fc_layer_size=args.fc_layer_size,
+                                 fc_layer_depth=args.fc_layer_depth,)
+    return value_function_kwargs
+
+
+def get_trainer_kwargs(args):
+    trainer_kwargs = dict(
+        discount=args.discount,
+        soft_target_tau=5e-3,
+        target_update_period=1,
+        policy_lr=3E-4,
+        qf_lr=3E-4,
+        reward_scale=1,
+        use_automatic_entropy_tuning=True,
+        corner_prediction_loss_coef=args.corner_prediction_loss_coef
+    )
+    return trainer_kwargs
+
+
+def get_replay_buffer_kwargs(args):
+    replay_buffer_kwargs = dict(
         max_size=int(args.buffer_size),
-        fraction_goals_rollout_goals=1 - args.her_percent
+        fraction_goals_rollout_goals=1 - args.her_percent,
+        internal_keys=['image', 'robot_observation']
     )
+    return replay_buffer_kwargs
 
-    if args.camera_config == "small":
-        camera_config = dict(type="small", fovy_range=(
-            13, 15), height=100, width=848)
-    else:
-        camera_config = dict(type="large", fovy_range=(
-            57, 59), height=480, width=848)
 
-    variant['env_kwargs'] = dict(
+def get_env_kwargs(args, save_folder):
+    env_kwargs = dict(
         save_folder=save_folder,
         timestep=args.timestep,
         smallest_key=args.smallest_key,
         success_distance=args.success_distance,
-        randomization_kwargs=dict(
-            lights_randomization=bool(args.lights_randomization),
-            materials_randomization=bool(args.materials_randomization),
-            camera_position_randomization=bool(
-                args.camera_position_randomization),
-            lookat_position_randomization=bool(
-                args.lookat_position_randomization),
-            lookat_position_randomization_radius=args.lookat_position_randomization_radius,
-            dynamics_randomization=bool(args.dynamics_randomization),
-            albumentations_randomization=bool(
-                args.albumentations_randomization),
-            cloth_size=args.cloth_size,
-            camera_type=args.camera_type,
-            camera_config=camera_config,
-            position_perturbation_size=args.position_perturbation_size,
-            rotation_perturbation_size=args.rotation_perturbation_size,
-            fovy_perturbation_size=args.fovy_perturbation_size
-        ),
         robot_observation=args.robot_observation,
         control_frequency=args.control_frequency,
         ctrl_filter=args.filter,
@@ -301,9 +309,42 @@ def get_variant(args):
         goal_noise_range=(0.0, args.goal_noise),
         image_obs_noise_mean=args.image_obs_noise_mean,
         image_obs_noise_std=args.image_obs_noise_std,
+        model_kwargs_path=os.path.join(f"./data", "model_params.csv")
 
     )
-    variant['policy_kwargs'] = dict(
+    return env_kwargs
+
+
+def get_randomization_kwargs(args):
+    if args.camera_config == "small":
+        camera_config = dict(type="small", fovy_range=(
+            13, 15), height=100, width=848)
+    else:
+        camera_config = dict(type="large", fovy_range=(
+            57, 59), height=480, width=848)
+    randomization_kwargs = dict(
+        lights_randomization=bool(args.lights_randomization),
+        materials_randomization=bool(args.materials_randomization),
+        camera_position_randomization=bool(
+            args.camera_position_randomization),
+        lookat_position_randomization=bool(
+            args.lookat_position_randomization),
+        lookat_position_randomization_radius=args.lookat_position_randomization_radius,
+        dynamics_randomization=bool(args.dynamics_randomization),
+        albumentations_randomization=bool(
+            args.albumentations_randomization),
+        cloth_size=args.cloth_size,
+        camera_type=args.camera_type,
+        camera_config=camera_config,
+        position_perturbation_size=args.position_perturbation_size,
+        rotation_perturbation_size=args.rotation_perturbation_size,
+        fovy_perturbation_size=args.fovy_perturbation_size
+    )
+    return randomization_kwargs
+
+
+def get_policy_kwargs(args):
+    policy_kwargs = dict(
         input_width=100,
         input_height=100,
         input_channels=args.frame_stack_size,
@@ -314,11 +355,26 @@ def get_variant(args):
         hidden_sizes_aux=[256, 8],
         hidden_sizes_main=[256, 256, 256, 256],
         init_w=1e-4,
+        aux_output_size=9,
     )
-    variant['path_collector_kwargs']['additional_keys'] = [
-        'robot_observation']
-    variant['replay_buffer_kwargs']['internal_keys'] = [
-        'image', 'robot_observation']
+    return policy_kwargs
+
+
+def get_variant(args):
+    title = args.title + "-run-" + str(args.run)
+    save_folder = os.path.join(os.path.dirname(
+        os.path.abspath("./")), "trainings", title)
+
+    variant = get_general_kwargs(args, save_folder, title)
+    variant['randomization_kwargs'] = get_randomization_kwargs(args)
+    variant['value_function_kwargs'] = get_value_function_kwargs(args)
+    variant['policy_kwargs'] = get_policy_kwargs(args)
+    variant['env_kwargs'] = get_env_kwargs(args, save_folder)
+    variant['eval_kwargs'] = get_eval_kwargs(args, save_folder)
+    variant['algorithm_kwargs'] = get_algorithm_kwargs(args, save_folder)
+    variant['path_collector_kwargs'] = get_path_collector_kwargs(args)
+    variant['replay_buffer_kwargs'] = get_replay_buffer_kwargs(args)
+    variant['trainer_kwargs'] = get_trainer_kwargs(args)
 
     return variant
 
@@ -336,7 +392,7 @@ def setup_save_folder(variant):
 
 def setup_training_device():
     if torch.cuda.is_available():
-        print("Training with GPU")
+        logger.debug("Training with GPU")
         pytorch_util.set_gpu_mode(True)
     else:
-        print("Training with CPU")
+        logger.debug("Training with CPU")
