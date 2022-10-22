@@ -1,11 +1,11 @@
-torch
-torchvision
+torch==1.12.0+cu116
+torchvision==0.13.0+cu116
 python-dateutil
-opencv-python
+opencv-python==4.6.0.66
 GitPython
 Jinja2
 psutil
 albumentations
-pandas
+pandas==1.4.3
 gtimer
-tensorboard
+tensorboard==2.9.1
