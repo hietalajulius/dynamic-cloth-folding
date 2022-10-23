@@ -20,5 +20,63 @@ Please contact the authors for instructions on how to run trained policies in th
 * Run `cd dynamic-cloth-folding && ./install-dependencies.sh` to install all required dependencies (assumes CUDA 11.6 and a compatible Nvidia GPU)
 
 ## Training a model
+
+
+
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/4254623/197414575-c791c1ba-e4b9-453a-a020-5e9832c64048.gif" >
+  <h5 align="center">The above gif shows the RL simulation environment. It is implemented using [MuJoCo](https://mujoco.org/) and [OpenAI Gym](https://www.gymlibrary.dev/)</h6>
+</p>
+
 * Run `source env.sh` before each training to set proper environment variables
-* Run `python train.py` for a full training
+* Run `python train.py <--kwarg value>` for a full training
+
+### Settings
+The different settings are passed to the training script as keyword arguments. The available settings are:
+
+#### General
+| Kwarg | Type | Default value | Description |
+| --- | --- | --- | --- |
+| `--title` | String | `default` | Give a title to the training run, used in filenames when saving progress. | 
+| `--run` | Int | `0` | Run number, used to generate random seeds. Useful when running multiple experiments with the same setup. | 
+| `--num-processes` | Int | `1` | How many python multiprocesses/parallel RL environments to use when collecting experience for the training.  |
+
+#### Environment
+The environment consists of a Franka Emika Panda robot (agent) and a cloth model lying on a flat surface. Visual feedback is captured using a camera whose settings are tuned to approximately match the Realsense D435 camera.
+| Kwarg | Type | Default value | Description |
+| --- | --- | --- | --- |
+| `--cloth-size` | Float | `0.2` | The cloth size in meters | 
+| `--image-obs-noise-mean` | Float | `0.5` | The mean of the gaussian defining what the delay is between taking an action and observing an image within a `[0,1]` timespan between actions | 
+| `--image-obs-noise-std` | Float | `0.5` | The std of the gaussian defining what the delay is between taking an action and observing an image within a `[0,1]` timespan between actions | 
+| `--robot-observation` | Choice[`ee`, `ctrl`, `none`] | `ctrl` | Whether the policy/value functions should observe the true end effector position (`ee`) or the current desired position of the controller (`ctrl`) or `none`  | 
+| `--filter` | Float | `0.03` | The filter value to use in the convex combination interpolation of the controller desired position between time steps  | 
+| `--output-max` | Float | `0.03` | The maximum Cartesian displacement in any direction of the previous controller desired position between time steps i.e. the maximum action from the policy  | 
+| `--damping-ratio` | Float | `1.0` | The damping ratio of the OSC controller  | 
+| `--kp` | Float | `1000.0` | Controller position gain  |
+| `--success-distance` | Float | `0.05` | The minimum distance within which the considered cloth points should be from their goals for the task to be considered successful  |
+
+
+
+#### Training
+The training is structured as follows: one `epoch` consists of `n_cycles` cycles. A `cycle` consists of `n_steps`. A `step` means a single step in the RL environment, but also a single gradient update of the model.
+| Kwarg | Type | Default value | Description |
+| --- | --- | --- | --- |
+| `--train-steps` | Int | `1000` | How many `steps` should be performed per a single `cycle` | 
+| `--num-cycles` | Int | `20` | How many `cycles` should be performed per a single `epoch` | 
+| `--num-epochs` | Int | `100` | How many `epochs` to run for |
+| `--save-policy-every-epoch` | Int | `1` | How often should the policy be saved during training |
+| `--num-eval-rollouts` | Int | `20` | How many evaluation rollouts (until success or `--max-path-length` environment steps per rollout) to perform after each `epoch` |
+| `--batch-size` | Int | `256` | The batch size to use during training the policy network |
+| `--discount` | Float | `0.99` | The discount factor in the RL problem |
+| `--corner-prediction-loss-coef` | Float | `0.001` | The weight of the cloth corner predction loss when updating gradients |
+| `--save-images-every-epoch` | Int | `10` | How often should evaluation images from the RL environment be saveed during training |
+| `--fc-layer-size` | Int | `512` | The fully-connected layer size to use in the policy and value networks |
+| `--fc-layer-depth` | Int | `5` | The fully-connected layer depth to use in the policy and value networks |
+| `--her-percent` | Float | `0.8` | Percentage of training samples whose goal should be recalculated using [HER](https://arxiv.org/abs/1707.01495) |
+| `--buffer-size` | Int | `100000` | The maximum number of steps to store in the replay buffer |
+| `--num-demoers` | Int | `0` | How many of the parallel RL environments should use an agent only executing a demonstration with added noise |
+| `--max-path-length` | Int | `50` | The maximum number of steps the agent can take in the environment before it resets |
+| `--max-close-steps` | Int | `10` | The maximum number of steps the task can be considered successful before the environment resets |
+
+
+
