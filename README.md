@@ -23,7 +23,7 @@ Please contact the authors for instructions on how to run trained policies in th
 
 <p align="center">
   <img src="https://user-images.githubusercontent.com/4254623/197414575-c791c1ba-e4b9-453a-a020-5e9832c64048.gif" >
-  <h5 align="center">The above gif shows the RL simulation environment. It is implemented using [MuJoCo](https://mujoco.org/) and [OpenAI Gym](https://www.gymlibrary.dev/)</h6>
+  <h5 align="center">The gif shows the RL simulation environment. It is implemented using MuJoCo and OpenAI Gym</h6>
 </p>
 
 * Run `source env.sh` before each training to set proper environment variables
