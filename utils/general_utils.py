@@ -115,7 +115,7 @@ def argsparser():
     # Train
     parser.add_argument('--train-steps', default=1000, type=int)  # Per cycle
     parser.add_argument('--num-epochs', default=100, type=int)
-    parser.add_argument('--save-policy_every-epoch', default=1, type=int)
+    parser.add_argument('--save-policy-every-epoch', default=1, type=int)
     parser.add_argument('--num-cycles', default=20, type=int)  # Per epoch
     parser.add_argument('--num-eval-rollouts', type=int, default=20)
     parser.add_argument('--batch-size', type=int, default=256)
@@ -142,7 +142,7 @@ def argsparser():
                         type=int)
 
     # Maximum number of steps the agent is within goal threshold i.e. the task is successful
-    parser.add_argument('--max_close_steps', default=10, type=int)
+    parser.add_argument('--max-close-steps', default=10, type=int)
 
     # Domain randomization
     parser.add_argument('--lights-randomization', default=1, type=int)
@@ -173,10 +173,6 @@ def argsparser():
     parser.add_argument('--image-obs-noise-mean', type=float,
                         default=0.5)
     parser.add_argument('--image-obs-noise-std', type=float, default=0.5)
-
-    # Which cloth parameters to use during training
-    parser.add_argument('--smallest-key', choices=[
-                        "corner_0_distance", "corner_sum_distance"], default="corner_0_distance")
 
     # Which observations from the robot to consider
     parser.add_argument('--robot-observation',
@@ -292,7 +288,6 @@ def get_env_kwargs(args, save_folder):
     env_kwargs = dict(
         save_folder=save_folder,
         timestep=args.timestep,
-        smallest_key=args.smallest_key,
         success_distance=args.success_distance,
         robot_observation=args.robot_observation,
         control_frequency=args.control_frequency,

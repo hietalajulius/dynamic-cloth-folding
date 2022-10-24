@@ -58,7 +58,6 @@ class ClothEnv_(object):
         randomization_kwargs,
         robot_observation,
         max_close_steps,
-        smallest_key,
         model_kwargs_path,
         image_obs_noise_mean=1,
         image_obs_noise_std=0,
@@ -79,8 +78,6 @@ class ClothEnv_(object):
         )
 
         self.model_kwargs_path = model_kwargs_path
-
-        self.smallest_key = smallest_key
         self.success_distance = success_distance
 
         self.process = psutil.Process(os.getpid())

@@ -25,7 +25,6 @@ logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 
 
 def experiment(variant):
-
     eval_env = cloth_env.ClothEnv(
         **variant['env_kwargs'], randomization_kwargs=variant['randomization_kwargs'])
 
