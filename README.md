@@ -46,15 +46,39 @@ The environment consists of a Franka Emika Panda robot (agent) and a cloth model
 | Kwarg | Type | Default value | Description |
 | --- | --- | --- | --- |
 | `--cloth-size` | Float | `0.2` | The cloth size in meters | 
-| `--image-obs-noise-mean` | Float | `0.5` | The mean of the gaussian defining what the delay is between taking an action and observing an image within a `[0,1]` timespan between actions | 
-| `--image-obs-noise-std` | Float | `0.5` | The std of the gaussian defining what the delay is between taking an action and observing an image within a `[0,1]` timespan between actions | 
 | `--robot-observation` | Choice[`ee`, `ctrl`, `none`] | `ctrl` | Whether the policy/value functions should observe the true end effector position (`ee`) or the current desired position of the controller (`ctrl`) or `none`  | 
 | `--filter` | Float | `0.03` | The filter value to use in the convex combination interpolation of the controller desired position between time steps  | 
 | `--output-max` | Float | `0.03` | The maximum Cartesian displacement in any direction of the previous controller desired position between time steps i.e. the maximum action from the policy  | 
 | `--damping-ratio` | Float | `1.0` | The damping ratio of the OSC controller  | 
 | `--kp` | Float | `1000.0` | Controller position gain  |
 | `--success-distance` | Float | `0.05` | The minimum distance within which the considered cloth points should be from their goals for the task to be considered successful  |
+| `--frame-stack-size` | Int | `1` | How many consecutive frames should be stacked together in the observation |
+| `--sparse-dense` | Int (`1=true`, `0=false`) | `1` | Whether the reward should increase linearly with the error if the task is considered successful |
+| `--success-reward` | Int | `0` | The reward at a time step when the task is considered successful |
+| `--fail-reward` | Int | `-1` | The reward at a time step when the task is considered unsuccessful |
+| `--extra-reward` | Int | `1` | When using a sparse dense reward, the maximum extra reward that can be achieved |
+| `--timestep` | Float | `0.01` | Simulation timestep length |
+| `--control-frequency` | Int | `10` | Control frequency (Hz) |
+| `--camera-type` | Choice[`up`, `side`, `front`, `all`] | `side` | The camera angle to use during training |
+| `--camera-config` | Choice[`small`, `large`] | `small` | Defines the camera fovy range to use. `small` corresponds to a 848x100 image on the real camera whereas `large` corresponds to a 848x480 image on the real camera. |
 
+#### Domain randomization
+
+| Kwarg | Type | Default value | Description |
+| --- | --- | --- | --- |
+| `--goal-noise` | Float | `0.03` | The range within which the goal positions of the cloth points should be randomized |
+| `--image-obs-noise-mean` | Float | `0.5` | The mean of the gaussian defining what the delay is between taking an action and observing an image within a `[0,1]` timespan between actions | 
+| `--image-obs-noise-std` | Float | `0.5` | The std of the gaussian defining what the delay is between taking an action and observing an image within a `[0,1]` timespan between actions | 
+| `--lights-randomization` | Int (`1=true`, `0=false`)  | `1` | Whether lights in the environment should be randomized | 
+| `--materials-randomization` | Int (`1=true`, `0=false`)  | `1` | Whether the visual cloth material properties in the environment should be randomized | 
+| `--camera-position-randomization` | Int (`1=true`, `0=false`)  | `1` | Whether the camera position in the environment should be randomized | 
+| `--lookat-position-randomization-radius` | Float  | `0.03` | Within what radius in meters should the camera lookat position be randomized from the center of the cloth| 
+| `--lookat-position-randomization` | Int (`1=true`, `0=false`)  | `1` | Whether the lookat position should be randomized | 
+| `--albumentations-randomization` | Int (`1=true`, `0=false`)  | `1` | Whether the albumentations library should be used to randomly blur and adjust colors of the image observations |
+| `--dynamics-randomization` | Int (`1=true`, `0=false`)  | `1` | Whether the cloth dynamics should be randomized | 
+| `--fovy-perturbation-size` | Float  | `0.05` | The max percentage that the camera fovy should be randomized | 
+| `--rotation-perturbation-size` | Float  | `0.75` | The max percentage that the camera rotation should be randomized | 
+| `--position-perturbation-size` | Float  | `0.2` | The max percentage that the camera position should be randomized |
 
 
 #### Training
