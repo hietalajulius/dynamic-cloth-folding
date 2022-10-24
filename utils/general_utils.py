@@ -149,7 +149,7 @@ def argsparser():
     parser.add_argument('--materials-randomization', default=1, type=int)
     parser.add_argument('--camera-position-randomization', default=1, type=int)
     parser.add_argument(
-        '--lookat-position-randomization_radius', default=0.03, type=float)
+        '--lookat-position-randomization-radius', default=0.03, type=float)
     parser.add_argument('--lookat-position-randomization', default=1, type=int)
     parser.add_argument('--albumentations-randomization', default=1, type=int)
     parser.add_argument('--dynamics-randomization', default=1, type=int)
@@ -162,7 +162,7 @@ def argsparser():
 
     # Camera
     parser.add_argument(
-        '--camera_type', choices=["up", "side", "front", "all"], default="side")
+        '--camera-type', choices=["up", "side", "front", "all"], default="side")
     parser.add_argument('--camera-config',
                         choices=["small", "large"], default="small")
 
@@ -200,7 +200,7 @@ def argsparser():
     # Mujoco timestep length
     parser.add_argument('--timestep', type=float, default=0.01)
     # Control frequncy in Hz
-    parser.add_argument('--control_frequency', type=int, default=10)
+    parser.add_argument('--control-frequency', type=int, default=10)
 
     args = parser.parse_args()
     return args
@@ -357,8 +357,7 @@ def get_policy_kwargs(args):
 
 def get_variant(args):
     title = args.title + "-run-" + str(args.run)
-    save_folder = os.path.join(os.path.dirname(
-        os.path.abspath("./")), "trainings", title)
+    save_folder = os.path.join(os.path.abspath("./"), "trainings", title)
 
     variant = get_general_kwargs(args, save_folder, title)
     variant['randomization_kwargs'] = get_randomization_kwargs(args)
@@ -376,6 +375,8 @@ def get_variant(args):
 
 def setup_save_folder(variant):
     os.makedirs(variant["save_folder"], exist_ok=True)
+
+    print(f'Created progress directory to: {variant["save_folder"]}')
     profiling_path = os.path.join(variant["save_folder"], "profiling")
     os.makedirs(profiling_path, exist_ok=True)
 
