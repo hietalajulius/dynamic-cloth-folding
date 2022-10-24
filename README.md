@@ -103,4 +103,6 @@ The training is structured as follows: one `epoch` consists of `n_cycles` cycles
 | `--max-close-steps` | Int | `10` | The maximum number of steps the task can be considered successful before the environment resets |
 
 
-
+## Misc
+* The `./data` folder contains a file `demos.csv` that is the real-world demonstration that is used along with random noise during training
+* The `./data` folder also contains a file `model_params.csv` that contains the cloth dynamics parameters that are used during dynamics randomization
