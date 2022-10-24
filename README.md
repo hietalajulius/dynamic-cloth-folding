@@ -21,8 +21,6 @@ Please contact the authors for instructions on how to run trained policies in th
 
 ## Training a model
 
-
-
 <p align="center">
   <img src="https://user-images.githubusercontent.com/4254623/197414575-c791c1ba-e4b9-453a-a020-5e9832c64048.gif" >
   <h5 align="center">The above gif shows the RL simulation environment. It is implemented using [MuJoCo](https://mujoco.org/) and [OpenAI Gym](https://www.gymlibrary.dev/)</h6>
@@ -30,6 +28,15 @@ Please contact the authors for instructions on how to run trained policies in th
 
 * Run `source env.sh` before each training to set proper environment variables
 * Run `python train.py <--kwarg value>` for a full training
+
+Each training run will create a new directory in the `trainings` directory that contains
+* The current neural network weights
+* The settings used for the run
+* The git commit hashes of the submodules
+* The compiled MuJoCo models used during training
+* The evaluation policy and images captured during evaluation for each epoch
+
+Training progress and metrics can be visualized using tensorboard by running `tensorboard --logdir tblogs` in the root of the repository and opening `http://localhost:6006/` in your browser.
 
 ### Settings
 The different settings are passed to the training script as keyword arguments. The available settings are:
